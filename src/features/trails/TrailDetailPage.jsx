@@ -12,6 +12,7 @@ import {
 import { Link, useParams } from 'react-router-dom';
 import styled from 'styled-components';
 import { DifficultyBadge } from '../../components/common/Badge.jsx';
+import { ImageCredits } from '../../components/common/ImageCredits.jsx';
 import { TrailMap } from '../../components/trails/TrailMap.jsx';
 import { mountains } from '../../data/mountains.js';
 import { getTrailBySlug } from '../../data/trails.js';
@@ -421,6 +422,12 @@ export function TrailDetailPage() {
             </SafetyList>
           </Panel>
 
+          <Panel>
+            <h2>
+              <Camera size={18} aria-hidden="true" /> Photo Credits
+            </h2>
+            <ImageCredits imageFiles={trail.imageFiles ?? []} />
+          </Panel>
         </SideBar>
       </ContentGrid>
     </Page>

@@ -1,54 +1,59 @@
-# LofotenPeaks - Project Exam 1
+# Lofoten Peaks
 
-<img src="images/Websitedesign.png">
+Lofoten Peaks is being rebuilt as a React information site for mountains and hiking trails in Lofoten, Norway.
 
-## Description
-This project involves creating a custom blog website using HTML, CSS, and JavaScript, with content managed through a WordPress installation acting as a Headless CMS.
+## Stack
 
-## Tools and Technologies Used
-- HTML
-- CSS
-- JavaScript
-- WordPress REST API
-- GitHub
-- Netlify 
-- Hotjar
+- React
+- Vite
+- styled-components
+- React Router
+- React Leaflet + OpenStreetMap tiles
 
-## Overview
-- `index.html`: Features a carousel to highlight the latest blog posts.
-- `blogposts.html`: Displays an initial set of 10 blog posts.
-- `post.html`: Each post has a dedicated page, clicking on images opens them in a modal for larger viewing.
-- `contact.html`: Form validation using JavaScript to ensure valid user input before submission.
-- `about.html`: Information/Location.
+## Backend Direction
 
-## Getting Started
+Phase 1 uses static local data in `src/data`. This keeps the MVP simple while the content structure and UI are still changing.
 
-### Installing
+Later phases can move the same data shape into Supabase:
 
-1. Clone the repo:
+- Supabase Auth for registration/login
+- Postgres tables for mountains, trails, user hikes, and comments
+- Supabase Storage for user-uploaded photos
+- Row Level Security for permissions
+
+## Project Structure
+
+```txt
+public/
+  images/
+src/
+  components/
+    common/
+    layout/
+    mountains/
+    trails/
+  data/
+  features/
+    home/
+    mountains/
+    trails/
+  lib/
+  styles/
+```
+
+## Running Locally
 
 ```bash
-git clone git@github.com:Noroff-FEU-Assignments/project-exam-1-SanderNilsen.git
-```
-
-2. Install the dependencies:
-
-```
 npm install
+npm run dev
 ```
 
-### Running
-
-To run the app, run the following commands:
+## Build
 
 ```bash
-npm run start
+npm run build
 ```
 
-## Contact
+## Content Note
 
-[My LinkedIn page](https://www.linkedin.com/in/sandernilsen/)
-
-## Live Website
-
-[LofotenPeaks](https://lofotenpeaks.netlify.app/)
+The current mountain and trail records are starter data for development. Verify exact coordinates, route geometry, distances, difficulty, and safety notes before publishing the site as a real hiking guide.

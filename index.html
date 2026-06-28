@@ -1,111 +1,20 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
-    <title>Lofoten Peaks</title>
-    <link rel="apple-touch-icon" sizes="180x180" href="images/apple-touch-icon.png">
-    <link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32x32.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="images/favicon-16x16.png">
-    <link rel="manifest" href="/site.webmanifest">
-    <meta charset="UTF-8" >
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" >
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       name="description"
-      content="Blog showcasing the breathtaking beauty of the Lofoten Islands"
-    >
-    <link rel="stylesheet" type="text/css" href="styles.css" >
-    <script src="js/script.js" defer></script>
-    <script src="js/index.js" defer></script>
-    <!-- Hotjar Tracking Code for LofotenPeaks -->
-    <script>
-      (function (h, o, t, j, a, r) {
-        h.hj =
-          h.hj ||
-          function () {
-            (h.hj.q = h.hj.q || []).push(arguments);
-          };
-        h._hjSettings = { hjid: 4969373, hjsv: 6 };
-        a = o.getElementsByTagName("head")[0];
-        r = o.createElement("script");
-        r.async = 1;
-        r.src = t + h._hjSettings.hjid + j + h._hjSettings.hjsv;
-        a.appendChild(r);
-      })(window, document, "https://static.hotjar.com/c/hotjar-", ".js?sv=");
-    </script>
+      content="Lofoten Peaks is a guide to mountains, hiking trails, photos, and maps in Lofoten, Norway."
+    />
+    <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+    <title>Lofoten Peaks</title>
   </head>
-
   <body>
-    <header>
-      <a href="index.html">
-        <img
-          class="logo"
-          src="images/LofotenPeaks-Logo-v4.png"
-          alt="lofotenpeaks logo"
-        >
-      </a>
-      <nav>
-        <div class="hamburger-menu">
-          <div class="bar bar1"></div>
-          <div class="bar bar2"></div>
-          <div class="bar bar3"></div>
-        </div>
-        <ul class="nav-links">
-          <li><a href="index.html">HOME</a></li>
-          <li><a href="blogposts.html">BLOG POSTS</a></li>
-          <li><a href="contact.html">CONTACT</a></li>
-          <li><a href="about.html">ABOUT</a></li>
-        </ul>
-      </nav>
-    </header>
-
-    <main>
-      <div class="banner">
-        <img
-          class="banner-img"
-          src="images/homebanner.png"
-          alt="panorama overviewing the Lofoten peaks"
-        >
-        <h1 class="fontsizemobile-h1">Uncover Lofoten's Majestic Peaks</h1>
-      </div>
-
-      <div class="paragraph-container">
-        <p class="lp-color paragraph fontsizemobile-p">
-          Situated at the latitude of 68 degrees north, Lofoten is an
-          archipelago nestled off the northwest coast of Norway, renowned for
-          its dramatic mountain peaks, crystal-clear fjords, and charming
-          fishing villages.
-        </p>
-      </div>
-
-      <div class="latest-posts-container">
-        <div class="latest-post-wrapper">
-          <h2 class="lp-color latest-posts-h2">LATEST POSTS</h2>
-          <div class="lp-color arrows">
-            <div class="arrow prev">&larr;</div>
-            <div class="arrow next">&rarr;</div>
-          </div>
-        </div>
-        <div class="line"></div>
-        <div class="article-slider">
-          <div class="loader"></div>
-        </div>
-      </div>
-    </main>
-
-    <footer>
-      <img
-        class="footer-img"
-        src="images/footerv3.png"
-        alt="footer mountains"
-      >
-      <div class="footer-container">
-        <a href="index.html">
-          <img
-            class="logo"
-            src="images/logo-white.png"
-            alt="lofotenpeaks footer logo"
-          >
-        </a>
-      </div>
-    </footer>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

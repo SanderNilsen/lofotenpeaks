@@ -45,8 +45,8 @@ export function MountainListPage() {
       <Header>
         <h1>Mountains</h1>
         <p>
-          Browse starter mountain profiles for the MVP. Each profile links to route information,
-          difficulty, images, and map data.
+          Browse hiking guides for well-known Lofoten mountains. Each guide includes route
+          information, difficulty, photos, map data, and safety notes.
         </p>
       </Header>
       <Grid>

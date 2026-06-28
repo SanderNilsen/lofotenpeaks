@@ -69,7 +69,7 @@ export function MountainCard({ mountain }) {
         </Meta>
         <Summary>{mountain.summary}</Summary>
         <CardLink to={`/mountains/${mountain.slug}`}>
-          View mountain <ArrowRight size={16} aria-hidden="true" />
+          View hiking guide <ArrowRight size={16} aria-hidden="true" />
         </CardLink>
       </Body>
     </Card>

@@ -4,6 +4,9 @@ export const trails = [
     slug: 'reinebringen',
     mountainId: 'reinebringen',
     name: 'Reinebringen',
+    summary: 'Iconic steep stair hike above Reine with one of Lofoten\'s most famous fjord views.',
+    description:
+      'Reinebringen climbs steeply from the old road by Ramsviktunnelen to the ridge above Reine, Sakrisøy, Hamnøy and Reinefjorden. The Sherpa-built steps make the route more stable than the old eroded path, but the ascent is still demanding and the viewpoint can feel exposed.',
     lengthKm: 2.0,
     elevationGainMeters: 448,
     estimatedDuration: '1-2 hours round trip',
@@ -32,6 +35,9 @@ export const trails = [
     slug: 'ryten-kvalvika',
     mountainId: 'ryten-kvalvika',
     name: 'Ryten / Kvalvika',
+    summary: 'Classic hike to the Ryten viewpoint over Kvalvika Beach, with an optional beach extension.',
+    description:
+      'Ryten is a popular summit above Kvalvika Beach, reached from the Fredvang/Innersand area through open coastal terrain. The route crosses wet and boggy sections before rising toward the broad summit plateau, where the view opens over Kvalvika and the outer coast.',
     lengthKm: 7.5,
     elevationGainMeters: 520,
     estimatedDuration: '4-6 hours round trip',
@@ -60,6 +66,9 @@ export const trails = [
     slug: 'festvagtind',
     mountainId: 'festvagtind',
     name: 'Festvågtind',
+    summary: 'Short, steep summit hike above Henningsvær with dramatic island views.',
+    description:
+      'Festvågtind rises sharply above the road to Henningsvær and packs a lot of elevation into a short distance. The route climbs through rough, rocky terrain past the Heiavatnet area before reaching a summit ridge with wide views over Henningsvær, the Vestfjord and the surrounding islands.',
     lengthKm: 3.3,
     elevationGainMeters: 530,
     estimatedDuration: '2-3 hours round trip',
@@ -88,6 +97,9 @@ export const trails = [
     slug: 'offersoykammen',
     mountainId: 'offersoykammen',
     name: 'Offersøykammen',
+    summary: 'Compact mountain hike near Leknes with a big view over beaches, fjords and Nappstraumen.',
+    description:
+      'Offersøykammen is a short but sustained climb near the Nappstraumen tunnel and Leknes. The route gains height quickly and rewards the effort with broad views toward Haukland, Uttakleiv, Flakstadøya, Leknes and the surrounding fjord landscape.',
     lengthKm: 2.2,
     elevationGainMeters: 410,
     estimatedDuration: '2-2.5 hours round trip',
@@ -116,6 +128,9 @@ export const trails = [
     slug: 'tjeldbergtind',
     mountainId: 'tjeldbergtind',
     name: 'Tjeldbergtind',
+    summary: 'Accessible Svolvær-area hike with views over Svolvær, Kabelvåg and Vestfjorden.',
+    description:
+      'Tjeldbergtind is a popular local hike between Svolvær and Kabelvåg. It is shorter and lower than many Lofoten summits, but still gives a rewarding 360-degree view over towns, fjords and surrounding peaks.',
     lengthKm: 4.7,
     elevationGainMeters: 360,
     estimatedDuration: '1-2 hours round trip',
@@ -144,6 +159,9 @@ export const trails = [
     slug: 'himmeltindan',
     mountainId: 'himmeltindan',
     name: 'Himmeltindan',
+    summary: 'Long climb from Haukland Beach toward one of Vestvågøy\'s biggest viewpoints.',
+    description:
+      'Himmeltindan is one of the major summit hikes in central Lofoten. The common route starts at Haukland Beach and climbs steadily through open terrain to the upper ridge. Many hikers stop at the accessible viewpoint below the restricted highest summit area.',
     lengthKm: 8.5,
     elevationGainMeters: 945,
     estimatedDuration: '3-5 hours round trip',
@@ -172,6 +190,9 @@ export const trails = [
     slug: 'mannen',
     mountainId: 'mannen',
     name: 'Mannen',
+    summary: 'Short Haukland Beach summit hike with strong effort-to-view value.',
+    description:
+      'Mannen starts from the Haukland Beach area and follows an old cart road before climbing grassy and sometimes muddy slopes to the ridge. It is popular because the route is manageable while the view over Haukland, Uttakleiv and Vik is excellent.',
     lengthKm: 3.5,
     elevationGainMeters: 400,
     estimatedDuration: '2-3 hours round trip',
@@ -195,6 +216,9 @@ export const trails = [
     slug: 'munken',
     mountainId: 'munken',
     name: 'Munken',
+    summary: 'Longer Sørvågen mountain hike through lakes, rock slabs and wild Moskenesøya terrain.',
+    description:
+      'Munken is a more committing hike near Sørvågen. The route climbs from near Sørvågvatnet through varied terrain with lakes, rocky sections, boggy areas and views toward Munkebu before reaching a broad mountain panorama in southern Lofoten.',
     lengthKm: 11.9,
     elevationGainMeters: 921,
     estimatedDuration: '5-7 hours round trip',

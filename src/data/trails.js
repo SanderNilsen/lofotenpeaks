@@ -8,6 +8,7 @@ export const trails = [
     id: 'reinebringen',
     slug: 'reinebringen',
     mountainId: 'reinebringen',
+    weatherLocationId: 'west-lofoten',
     name: 'Reinebringen',
     summary: 'Iconic steep stair hike above Reine with one of Lofoten\'s most famous fjord views.',
     description:
@@ -37,6 +38,7 @@ export const trails = [
     id: 'ryten-kvalvika',
     slug: 'ryten-kvalvika',
     mountainId: 'ryten-kvalvika',
+    weatherLocationId: 'west-lofoten',
     name: 'Ryten / Kvalvika',
     summary: 'Classic hike to the Ryten viewpoint over Kvalvika Beach, with an optional beach extension.',
     description:
@@ -66,6 +68,7 @@ export const trails = [
     id: 'festvagtind',
     slug: 'festvagtind',
     mountainId: 'festvagtind',
+    weatherLocationId: 'east-lofoten',
     name: 'Festvågtind',
     summary: 'Short, steep summit hike above Henningsvær with dramatic island views.',
     description:
@@ -95,6 +98,7 @@ export const trails = [
     id: 'offersoykammen',
     slug: 'offersoykammen',
     mountainId: 'offersoykammen',
+    weatherLocationId: 'central-lofoten',
     name: 'Offersøykammen',
     summary: 'Compact mountain hike near Leknes with a big view over beaches, fjords and Nappstraumen.',
     description:
@@ -124,6 +128,7 @@ export const trails = [
     id: 'tjeldbergtind',
     slug: 'tjeldbergtind',
     mountainId: 'tjeldbergtind',
+    weatherLocationId: 'east-lofoten',
     name: 'Tjeldbergtind',
     summary: 'Accessible Svolvær-area hike with views over Svolvær, Kabelvåg and Vestfjorden.',
     description:
@@ -153,6 +158,7 @@ export const trails = [
     id: 'himmeltindan',
     slug: 'himmeltindan',
     mountainId: 'himmeltindan',
+    weatherLocationId: 'central-lofoten',
     name: 'Himmeltindan',
     summary: 'Long climb from Haukland Beach toward one of Vestvågøy\'s biggest viewpoints.',
     description:
@@ -182,6 +188,7 @@ export const trails = [
     id: 'mannen',
     slug: 'mannen',
     mountainId: 'mannen',
+    weatherLocationId: 'central-lofoten',
     name: 'Mannen',
     summary: 'Short Haukland Beach summit hike with strong effort-to-view value.',
     description:
@@ -206,6 +213,7 @@ export const trails = [
     id: 'munken',
     slug: 'munken',
     mountainId: 'munken',
+    weatherLocationId: 'west-lofoten',
     name: 'Munken',
     summary: 'Longer Sørvågen mountain hike through lakes, rock slabs and wild Moskenesøya terrain.',
     description:

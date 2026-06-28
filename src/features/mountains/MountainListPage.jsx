@@ -1,5 +1,6 @@
 import styled from 'styled-components';
 import { MountainCard } from '../../components/mountains/MountainCard.jsx';
+import { MountainWeatherPanel } from '../../components/weather/MountainWeatherPanel.jsx';
 import { mountains } from '../../data/mountains.js';
 import { theme } from '../../styles/theme.js';
 
@@ -49,6 +50,7 @@ export function MountainListPage() {
           information, difficulty, photos, map data, and safety notes.
         </p>
       </Header>
+      <MountainWeatherPanel />
       <Grid>
         {mountains.map((mountain) => (
           <MountainCard key={mountain.id} mountain={mountain} />

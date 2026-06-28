@@ -14,6 +14,7 @@ import styled from 'styled-components';
 import { DifficultyBadge } from '../../components/common/Badge.jsx';
 import { ImageCredits } from '../../components/common/ImageCredits.jsx';
 import { TrailMap } from '../../components/trails/TrailMap.jsx';
+import { MountainWeatherPanel } from '../../components/weather/MountainWeatherPanel.jsx';
 import { mountains } from '../../data/mountains.js';
 import { getTrailBySlug } from '../../data/trails.js';
 import { formatDistance, formatElevation } from '../../lib/formatters.js';
@@ -300,6 +301,7 @@ export function TrailDetailPage() {
   const galleryImages = trailImages.length > 1 ? trailImages.slice(1) : trailImages;
   const region = mountain?.region ?? 'Lofoten';
   const highPoint = mountain?.heightMeters ?? trail.elevationGainMeters;
+  const weatherLocationId = trail.weatherLocationId ?? mountain?.weatherLocationId;
 
   return (
     <Page>
@@ -410,6 +412,10 @@ export function TrailDetailPage() {
               </div>
             </FactList>
           </Panel>
+
+          {weatherLocationId && (
+            <MountainWeatherPanel title="Weather Near This Hike" locationIds={[weatherLocationId]} compact />
+          )}
 
           <Panel>
             <h2>

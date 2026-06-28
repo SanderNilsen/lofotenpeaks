@@ -356,7 +356,7 @@ export function TrailDetailPage() {
             <h2>
               <MapPin size={22} aria-hidden="true" /> Map
             </h2>
-            <MapNote>Approximate route shown from the currently available start and finish coordinates.</MapNote>
+            <MapNote>{trail.routeNote}</MapNote>
             <TrailMap trail={trail} />
           </Section>
 

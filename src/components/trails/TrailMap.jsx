@@ -1,4 +1,5 @@
-import { CircleMarker, MapContainer, Polyline, Popup, TileLayer } from 'react-leaflet';
+import { useEffect } from 'react';
+import { CircleMarker, MapContainer, Polyline, Popup, TileLayer, useMap } from 'react-leaflet';
 import styled from 'styled-components';
 import { theme } from '../../styles/theme.js';
 
@@ -14,17 +15,35 @@ const MapFrame = styled.div`
   }
 `;
 
+function FitRouteBounds({ positions }) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (positions.length < 2) {
+      return;
+    }
+
+    map.fitBounds(positions, {
+      padding: [28, 28],
+    });
+  }, [map, positions]);
+
+  return null;
+}
+
 export function TrailMap({ trail }) {
-  const center = trail.route[Math.floor(trail.route.length / 2)];
+  const route = trail.route?.length ? trail.route : [trail.startPoint, trail.endPoint].filter(Boolean);
+  const center = route[Math.floor(route.length / 2)];
 
   return (
     <MapFrame>
       <MapContainer center={center} zoom={13} scrollWheelZoom={false}>
+        <FitRouteBounds positions={route} />
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
-        <Polyline positions={trail.route} pathOptions={{ color: theme.colors.forest, weight: 5 }} />
+        <Polyline positions={route} pathOptions={{ color: theme.colors.forest, lineCap: 'round', lineJoin: 'round', weight: 5 }} />
         <CircleMarker center={trail.startPoint} pathOptions={{ color: theme.colors.fjord }} radius={8}>
           <Popup>{trail.name} start</Popup>
         </CircleMarker>

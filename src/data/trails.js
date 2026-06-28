@@ -1,3 +1,8 @@
+import { trailRoutes } from './trailRoutes.js';
+
+const routePreviewNote =
+  'Route line uses saved route coordinate data for planning preview. Verify locally before hiking.';
+
 export const trails = [
   {
     id: 'reinebringen',
@@ -13,10 +18,8 @@ export const trails = [
     difficulty: 'hard',
     startPoint: [67.923017, 13.079083],
     endPoint: [67.927689, 13.07652],
-    route: [
-      [67.923017, 13.079083],
-      [67.927689, 13.07652],
-    ],
+    route: trailRoutes.reinebringen,
+    routeNote: routePreviewNote,
     safetyNotes: [
       'Very steep stair ascent; take your time on descent.',
       'Not recommended in winter or when icy.',
@@ -44,10 +47,8 @@ export const trails = [
     difficulty: 'moderate',
     startPoint: [68.099734, 13.135228],
     endPoint: [68.08904, 13.09263],
-    route: [
-      [68.099734, 13.135228],
-      [68.08904, 13.09263],
-    ],
+    route: trailRoutes.rytenKvalvika,
+    routeNote: routePreviewNote,
     safetyNotes: [
       'Boggy sections and wet boardwalks can be slippery.',
       'Cliffs above Kvalvika are very steep; avoid cliff-edge photos.',
@@ -75,10 +76,8 @@ export const trails = [
     difficulty: 'hard',
     startPoint: [68.17105, 14.21396],
     endPoint: [68.178048, 14.225311],
-    route: [
-      [68.17105, 14.21396],
-      [68.178048, 14.225311],
-    ],
+    route: trailRoutes.festvagtind,
+    routeNote: routePreviewNote,
     safetyNotes: [
       'Steep and rocky terrain despite the short distance.',
       'Avoid in heavy rain; rocks and mud become slippery.',
@@ -106,10 +105,8 @@ export const trails = [
     difficulty: 'moderate',
     startPoint: [68.15439, 13.51368],
     endPoint: [68.161276, 13.501912],
-    route: [
-      [68.15439, 13.51368],
-      [68.161276, 13.501912],
-    ],
+    route: trailRoutes.offersoykammen,
+    routeNote: routePreviewNote,
     safetyNotes: [
       'Steep ascent with little warm-up.',
       'Use caution on wet grass and muddy sections.',
@@ -137,10 +134,8 @@ export const trails = [
     difficulty: 'moderate',
     startPoint: [68.233184, 14.525517],
     endPoint: [68.229662, 14.49932],
-    route: [
-      [68.233184, 14.525517],
-      [68.229662, 14.49932],
-    ],
+    route: trailRoutes.tjeldbergtind,
+    routeNote: routePreviewNote,
     safetyNotes: [
       'Forest and upper slopes can be muddy after rain.',
       'Several route variants exist; use a map/GPX if doing the loop.',
@@ -168,10 +163,8 @@ export const trails = [
     difficulty: 'hard',
     startPoint: [68.199379, 13.532091],
     endPoint: [68.221006, 13.573159],
-    route: [
-      [68.199379, 13.532091],
-      [68.221006, 13.573159],
-    ],
+    route: trailRoutes.himmeltindan,
+    routeNote: routePreviewNote,
     safetyNotes: [
       'Long sustained climb with exposed weather near the top.',
       'Highest summit area may be restricted; respect signs and closures.',
@@ -199,10 +192,8 @@ export const trails = [
     difficulty: 'moderate',
     startPoint: [68.199379, 13.532091],
     endPoint: [68.203696, 13.520262],
-    route: [
-      [68.199379, 13.532091],
-      [68.203696, 13.520262],
-    ],
+    route: trailRoutes.mannen,
+    routeNote: routePreviewNote,
     safetyNotes: [
       'Some exposed parts near the ridge and summit.',
       'Grass and mud can be slippery after rain.',
@@ -225,10 +216,8 @@ export const trails = [
     difficulty: 'hard',
     startPoint: [67.891149, 13.010128],
     endPoint: [67.93249, 13.019111],
-    route: [
-      [67.891149, 13.010128],
-      [67.93249, 13.019111],
-    ],
+    route: trailRoutes.munken,
+    routeNote: routePreviewNote,
     safetyNotes: [
       'Longer route requiring good fitness and enough food/water.',
       'Rock slabs, chains and wet sections can be slippery.',

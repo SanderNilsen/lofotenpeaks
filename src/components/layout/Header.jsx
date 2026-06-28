@@ -1,4 +1,4 @@
-import { Menu, Mountain, X } from 'lucide-react';
+import { Menu, X } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import styled from 'styled-components';
 import { useState } from 'react';
@@ -47,9 +47,12 @@ const Nav = styled.nav`
   gap: 8px;
 
   a {
+    align-items: center;
     border-radius: ${theme.radii.small};
     color: ${theme.colors.ink};
+    display: inline-flex;
     font-weight: 700;
+    gap: 6px;
     padding: 10px 12px;
     text-decoration: none;
   }
@@ -72,6 +75,11 @@ const Nav = styled.nav`
     right: 0;
     top: 76px;
   }
+`;
+
+const NavIcon = styled.img`
+  height: 16px;
+  width: 16px;
 `;
 
 const MenuButton = styled.button`
@@ -98,7 +106,7 @@ export function Header() {
     <HeaderFrame>
       <HeaderInner>
         <Brand to="/" onClick={() => setMenuOpen(false)}>
-          <Logo src="/images/LofotenPeaks-Logo-v4.png" alt="Lofoten Peaks logo" />
+          <Logo src="/images/lofoten-peaks-logo.svg" alt="Lofoten Peaks logo" />
           <BrandText>Lofoten Peaks</BrandText>
         </Brand>
         <Nav $open={menuOpen} aria-label="Main navigation">
@@ -106,7 +114,7 @@ export function Header() {
             Home
           </NavLink>
           <NavLink to="/mountains" onClick={() => setMenuOpen(false)}>
-            <Mountain size={16} aria-hidden="true" /> Mountains
+            <NavIcon src="/images/lofoten-peaks-mountain-icon.svg" alt="" aria-hidden="true" /> Mountains
           </NavLink>
         </Nav>
         <MenuButton

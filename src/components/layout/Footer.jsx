@@ -6,7 +6,7 @@ const FooterFrame = styled.footer`
 `;
 
 const FooterImage = styled.img`
-  max-height: 250px;
+  height: clamp(130px, 18vw, 250px);
   object-fit: cover;
   width: 100%;
   margin-bottom: -6px;

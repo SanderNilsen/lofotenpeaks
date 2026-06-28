@@ -1,8 +1,14 @@
 import {
   ArrowLeft,
+  Backpack,
+  Bus,
   Camera,
+  CalendarDays,
+  Car,
   Clock,
   Flag,
+  Footprints,
+  ListChecks,
   MapPin,
   Mountain as MountainIcon,
   Route as RouteIcon,
@@ -13,6 +19,7 @@ import { Link, useParams } from 'react-router-dom';
 import styled from 'styled-components';
 import { DifficultyBadge } from '../../components/common/Badge.jsx';
 import { ImageCredits } from '../../components/common/ImageCredits.jsx';
+import { Seo } from '../../components/common/Seo.jsx';
 import { TrailMap } from '../../components/trails/TrailMap.jsx';
 import { MountainWeatherPanel } from '../../components/weather/MountainWeatherPanel.jsx';
 import { mountains } from '../../data/mountains.js';
@@ -158,6 +165,64 @@ const MapNote = styled.p`
   margin: 0 0 14px;
 `;
 
+const GuideGrid = styled.div`
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+
+  @media (max-width: 720px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const GuideCard = styled.article`
+  background: ${theme.colors.surface};
+  border: 1px solid ${theme.colors.line};
+  border-radius: ${theme.radii.medium};
+  display: grid;
+  gap: 8px;
+  grid-column: ${({ $wide }) => ($wide ? '1 / -1' : 'auto')};
+  padding: 16px;
+
+  h3 {
+    align-items: center;
+    display: flex;
+    font-size: 1rem;
+    gap: 8px;
+    margin: 0;
+  }
+
+  p {
+    color: ${theme.colors.muted};
+    line-height: 1.6;
+  }
+`;
+
+const Checklist = styled.ul`
+  display: grid;
+  gap: 8px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+
+  li {
+    line-height: 1.55;
+    padding-left: 18px;
+    position: relative;
+  }
+
+  li::before {
+    background: ${theme.colors.forest};
+    border-radius: 999px;
+    content: '';
+    height: 6px;
+    left: 0;
+    position: absolute;
+    top: 0.62em;
+    width: 6px;
+  }
+`;
+
 const Gallery = styled.div`
   display: grid;
   gap: 12px;
@@ -287,6 +352,21 @@ function formatCoordinate(point) {
   return `${point[0].toFixed(5)}, ${point[1].toFixed(5)}`;
 }
 
+function getGuideItems(guide) {
+  if (!guide) {
+    return [];
+  }
+
+  return [
+    { label: 'Parking', value: guide.parking, Icon: Car },
+    { label: 'Trailhead', value: guide.trailhead, Icon: Footprints },
+    { label: 'Best season', value: guide.bestSeason, Icon: CalendarDays },
+    { label: 'Suitable for', value: guide.suitableFor, Icon: MountainIcon },
+    { label: 'Gear notes', value: guide.gearNotes, Icon: Backpack },
+    { label: 'Access', value: guide.access, Icon: Bus },
+  ].filter((item) => item.value);
+}
+
 export function TrailDetailPage() {
   const { slug } = useParams();
   const trail = getTrailBySlug(slug);
@@ -302,9 +382,14 @@ export function TrailDetailPage() {
   const region = mountain?.region ?? 'Lofoten';
   const highPoint = mountain?.heightMeters ?? trail.elevationGainMeters;
   const weatherLocationId = trail.weatherLocationId ?? mountain?.weatherLocationId;
+  const guideItems = getGuideItems(trail.guide);
+  const seoDescription = `${trail.summary ?? mountain?.summary} Route: ${formatDistance(trail.lengthKm)}, ${formatElevation(
+    trail.elevationGainMeters,
+  )} elevation gain, ${trail.estimatedDuration}.`;
 
   return (
     <Page>
+      <Seo title={`${trail.name} Hiking Guide`} description={seoDescription} image={heroImage?.src} type="article" />
       <BackLink to="/mountains">
         <ArrowLeft size={16} aria-hidden="true" /> Mountains
       </BackLink>
@@ -353,6 +438,36 @@ export function TrailDetailPage() {
             </h2>
             <p>{trail.description ?? mountain?.description}</p>
           </Section>
+
+          {trail.guide && (
+            <Section>
+              <h2>
+                <ListChecks size={22} aria-hidden="true" /> Planning Notes
+              </h2>
+              <GuideGrid>
+                {guideItems.map(({ label, value, Icon }) => (
+                  <GuideCard key={label}>
+                    <h3>
+                      <Icon size={18} aria-hidden="true" /> {label}
+                    </h3>
+                    <p>{value}</p>
+                  </GuideCard>
+                ))}
+                {trail.guide.beforeYouGo?.length > 0 && (
+                  <GuideCard $wide>
+                    <h3>
+                      <ListChecks size={18} aria-hidden="true" /> Before You Go
+                    </h3>
+                    <Checklist>
+                      {trail.guide.beforeYouGo.map((item) => (
+                        <li key={item}>{item}</li>
+                      ))}
+                    </Checklist>
+                  </GuideCard>
+                )}
+              </GuideGrid>
+            </Section>
+          )}
 
           <Section>
             <h2>

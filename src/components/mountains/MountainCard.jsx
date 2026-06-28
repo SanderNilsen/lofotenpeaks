@@ -1,7 +1,7 @@
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Clock, Route } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import styled from 'styled-components';
-import { formatElevation } from '../../lib/formatters.js';
+import { formatDistance, formatElevation } from '../../lib/formatters.js';
 import { theme } from '../../styles/theme.js';
 import { DifficultyBadge } from '../common/Badge.jsx';
 
@@ -27,6 +27,7 @@ const Body = styled.div`
 const TitleRow = styled.div`
   align-items: flex-start;
   display: flex;
+  flex-wrap: wrap;
   gap: 12px;
   justify-content: space-between;
 
@@ -39,6 +40,21 @@ const TitleRow = styled.div`
 const Meta = styled.p`
   color: ${theme.colors.muted};
   margin: 0;
+`;
+
+const RouteMeta = styled.div`
+  color: ${theme.colors.muted};
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 0.95rem;
+  font-weight: 700;
+  gap: 10px;
+
+  span {
+    align-items: center;
+    display: inline-flex;
+    gap: 5px;
+  }
 `;
 
 const Summary = styled.p`
@@ -55,7 +71,7 @@ const CardLink = styled(Link)`
   text-decoration: none;
 `;
 
-export function MountainCard({ mountain }) {
+export function MountainCard({ mountain, trail }) {
   return (
     <Card>
       <Image src={mountain.heroImage.src} alt={mountain.heroImage.alt} />
@@ -67,6 +83,16 @@ export function MountainCard({ mountain }) {
         <Meta>
           {formatElevation(mountain.heightMeters)} · {mountain.region}
         </Meta>
+        {trail && (
+          <RouteMeta>
+            <span>
+              <Route size={15} aria-hidden="true" /> {formatDistance(trail.lengthKm)}
+            </span>
+            <span>
+              <Clock size={15} aria-hidden="true" /> {trail.estimatedDuration}
+            </span>
+          </RouteMeta>
+        )}
         <Summary>{mountain.summary}</Summary>
         <CardLink to={`/mountains/${mountain.slug}`}>
           View hiking guide <ArrowRight size={16} aria-hidden="true" />

@@ -1,6 +1,7 @@
 import { MapPinned } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import styled from 'styled-components';
+import { Seo } from '../../components/common/Seo.jsx';
 import { MountainCard } from '../../components/mountains/MountainCard.jsx';
 import { mountains } from '../../data/mountains.js';
 import { theme } from '../../styles/theme.js';
@@ -99,6 +100,11 @@ const Grid = styled.div`
 export function HomePage() {
   return (
     <>
+      <Seo
+        title="Lofoten Hiking Guides"
+        description="Explore Lofoten Peaks, a practical guide to well-known mountain hikes in Lofoten with photos, route details, maps, weather, and safety notes."
+        image="/images/homebanner.png"
+      />
       <Hero>
         <HeroImage src="/images/homebanner.png" alt="Panorama overviewing Lofoten peaks" />
         <HeroOverlay />

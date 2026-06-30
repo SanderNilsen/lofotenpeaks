@@ -1,8 +1,17 @@
-import { LogOut, ShieldCheck, UserCircle } from 'lucide-react';
-import { useState } from 'react';
+import { CheckCircle2, LogOut, Medal, Save, ShieldCheck, UserCircle } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
 import styled from 'styled-components';
+import { LeaderboardPanel } from '../../components/community/LeaderboardPanel.jsx';
 import { Seo } from '../../components/common/Seo.jsx';
-import { signInWithEmail, signOut, signUpWithEmail } from '../../lib/supabase/api.js';
+import {
+  getLeaderboard,
+  getProfile,
+  getUserCheckIns,
+  signInWithEmail,
+  signOut,
+  signUpWithEmail,
+  updateProfile,
+} from '../../lib/supabase/api.js';
 import { theme } from '../../styles/theme.js';
 import { useAuth } from './AuthProvider.jsx';
 
@@ -108,10 +117,13 @@ const SecondaryButton = styled(PrimaryButton)`
 `;
 
 const Message = styled.p`
+  align-items: center;
   background: ${({ $error }) => ($error ? '#f2e6dc' : theme.colors.background)};
   border: 1px solid ${({ $error }) => ($error ? '#dfc4af' : theme.colors.line)};
   border-radius: ${theme.radii.small};
   color: ${({ $error }) => ($error ? theme.colors.warning : theme.colors.muted)};
+  display: flex;
+  gap: 8px;
   font-weight: 700;
   line-height: 1.55;
   margin: 0;
@@ -127,6 +139,118 @@ const SetupList = styled.ul`
   padding-left: 20px;
 `;
 
+const Dashboard = styled.div`
+  display: grid;
+  gap: 18px;
+`;
+
+const DashboardGrid = styled.div`
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 0.7fr);
+
+  @media (max-width: 820px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const Card = styled.section`
+  background: ${theme.colors.surface};
+  border: 1px solid ${theme.colors.line};
+  border-radius: ${theme.radii.medium};
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+
+  h2 {
+    align-items: center;
+    display: flex;
+    font-size: 1.2rem;
+    gap: 8px;
+    margin: 0;
+  }
+`;
+
+const ProfileForm = styled.form`
+  display: grid;
+  gap: 12px;
+`;
+
+const ButtonRow = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+`;
+
+const StatGrid = styled.dl`
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 0;
+
+  div {
+    background: ${theme.colors.background};
+    border: 1px solid ${theme.colors.line};
+    border-radius: ${theme.radii.small};
+    padding: 12px;
+  }
+
+  dt {
+    color: ${theme.colors.muted};
+    font-size: 0.76rem;
+    font-weight: 800;
+    text-transform: uppercase;
+  }
+
+  dd {
+    font-size: 1.25rem;
+    font-weight: 900;
+    margin: 4px 0 0;
+  }
+`;
+
+const CheckInList = styled.ul`
+  display: grid;
+  gap: 10px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+
+  li {
+    background: ${theme.colors.background};
+    border: 1px solid ${theme.colors.line};
+    border-radius: ${theme.radii.small};
+    display: grid;
+    gap: 4px;
+    padding: 12px;
+  }
+
+  strong {
+    display: block;
+  }
+
+  span {
+    color: ${theme.colors.muted};
+    font-size: 0.9rem;
+    font-weight: 700;
+  }
+`;
+
+const EmptyText = styled.p`
+  color: ${theme.colors.muted};
+  font-weight: 700;
+  line-height: 1.55;
+  margin: 0;
+`;
+
+function formatCheckInDate(value) {
+  return new Intl.DateTimeFormat('en', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  }).format(new Date(value));
+}
+
 export function AuthPage() {
   const { isConfigured, isLoading, user } = useAuth();
   const [mode, setMode] = useState('sign-in');
@@ -134,6 +258,59 @@ export function AuthPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [status, setStatus] = useState({ type: 'idle', message: '' });
+  const [profileName, setProfileName] = useState('');
+  const [accountData, setAccountData] = useState({
+    profile: null,
+    checkIns: [],
+    leaderboard: [],
+    isLoading: false,
+    error: '',
+  });
+
+  useEffect(() => {
+    if (!isConfigured || !user) {
+      setAccountData({ profile: null, checkIns: [], leaderboard: [], isLoading: false, error: '' });
+      setProfileName('');
+      return undefined;
+    }
+
+    let isMounted = true;
+    setAccountData((current) => ({ ...current, isLoading: true, error: '' }));
+
+    Promise.all([getProfile(user.id), getUserCheckIns(user.id), getLeaderboard({ limit: 6 })])
+      .then(([profile, checkIns, leaderboard]) => {
+        if (!isMounted) {
+          return;
+        }
+
+        setProfileName(profile?.display_name ?? '');
+        setAccountData({
+          profile,
+          checkIns,
+          leaderboard,
+          isLoading: false,
+          error: '',
+        });
+      })
+      .catch((error) => {
+        if (isMounted) {
+          setAccountData((current) => ({ ...current, isLoading: false, error: error.message }));
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [isConfigured, user]);
+
+  const accountStats = useMemo(() => {
+    const approvedCheckIns = accountData.checkIns.filter((checkIn) => checkIn.status === 'approved');
+
+    return {
+      checkInCount: approvedCheckIns.length,
+      points: approvedCheckIns.reduce((total, checkIn) => total + (checkIn.points ?? 0), 0),
+    };
+  }, [accountData.checkIns]);
 
   async function handleSubmit(event) {
     event.preventDefault();
@@ -161,6 +338,22 @@ export function AuthPage() {
     try {
       await signOut();
       setStatus({ type: 'success', message: 'Signed out.' });
+    } catch (error) {
+      setStatus({ type: 'error', message: error.message });
+    }
+  }
+
+  async function handleProfileUpdate(event) {
+    event.preventDefault();
+    setStatus({ type: 'loading', message: '' });
+
+    try {
+      const updatedProfile = await updateProfile(user.id, {
+        display_name: profileName.trim() || user.email,
+      });
+      const leaderboard = await getLeaderboard({ limit: 6 });
+      setAccountData((current) => ({ ...current, profile: updatedProfile, leaderboard }));
+      setStatus({ type: 'success', message: 'Profile updated.' });
     } catch (error) {
       setStatus({ type: 'error', message: error.message });
     }
@@ -202,15 +395,83 @@ export function AuthPage() {
       )}
 
       {isConfigured && !isLoading && user && (
-        <Panel>
+        <Dashboard>
           <Message>
             <ShieldCheck size={18} aria-hidden="true" /> Signed in as {user.email}
           </Message>
-          <SecondaryButton type="button" disabled={status.type === 'loading'} onClick={handleSignOut}>
-            <LogOut size={18} aria-hidden="true" /> Sign out
-          </SecondaryButton>
-          {status.message && <Message $error={status.type === 'error'}>{status.message}</Message>}
-        </Panel>
+          {accountData.error && <Message $error>{accountData.error}</Message>}
+          <DashboardGrid>
+            <Card>
+              <h2>
+                <UserCircle size={18} aria-hidden="true" /> Profile
+              </h2>
+              <ProfileForm onSubmit={handleProfileUpdate}>
+                <Field>
+                  <span>Display name</span>
+                  <input
+                    type="text"
+                    value={profileName}
+                    autoComplete="name"
+                    placeholder={user.email}
+                    onChange={(event) => setProfileName(event.target.value)}
+                  />
+                </Field>
+                <ButtonRow>
+                  <PrimaryButton type="submit" disabled={status.type === 'loading' || accountData.isLoading}>
+                    <Save size={18} aria-hidden="true" /> Save profile
+                  </PrimaryButton>
+                  <SecondaryButton type="button" disabled={status.type === 'loading'} onClick={handleSignOut}>
+                    <LogOut size={18} aria-hidden="true" /> Sign out
+                  </SecondaryButton>
+                </ButtonRow>
+              </ProfileForm>
+              {status.message && <Message $error={status.type === 'error'}>{status.message}</Message>}
+            </Card>
+
+            <Card>
+              <h2>
+                <Medal size={18} aria-hidden="true" /> Summit Stats
+              </h2>
+              <StatGrid>
+                <div>
+                  <dt>Points</dt>
+                  <dd>{accountStats.points}</dd>
+                </div>
+                <div>
+                  <dt>Check-ins</dt>
+                  <dd>{accountStats.checkInCount}</dd>
+                </div>
+              </StatGrid>
+            </Card>
+          </DashboardGrid>
+
+          <DashboardGrid>
+            <Card>
+              <h2>
+                <CheckCircle2 size={18} aria-hidden="true" /> Recent Check-Ins
+              </h2>
+              {accountData.isLoading && <EmptyText>Loading check-ins...</EmptyText>}
+              {!accountData.isLoading && accountData.checkIns.length === 0 && (
+                <EmptyText>No check-ins yet. Open a mountain guide and save your first summit visit.</EmptyText>
+              )}
+              {!accountData.isLoading && accountData.checkIns.length > 0 && (
+                <CheckInList>
+                  {accountData.checkIns.slice(0, 6).map((checkIn) => (
+                    <li key={checkIn.id}>
+                      <strong>{checkIn.mountains?.name ?? checkIn.trails?.name ?? checkIn.mountain_id}</strong>
+                      <span>
+                        {formatCheckInDate(checkIn.checked_in_at)} · {checkIn.points} points
+                      </span>
+                      {checkIn.note && <span>{checkIn.note}</span>}
+                    </li>
+                  ))}
+                </CheckInList>
+              )}
+            </Card>
+
+            <LeaderboardPanel entries={accountData.leaderboard} isLoading={accountData.isLoading} />
+          </DashboardGrid>
+        </Dashboard>
       )}
 
       {isConfigured && !isLoading && !user && (

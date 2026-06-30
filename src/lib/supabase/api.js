@@ -74,7 +74,58 @@ export async function updateProfile(userId, updates) {
 
 export async function getLeaderboard({ limit = 20 } = {}) {
   const client = requireSupabaseClient();
-  const { data, error } = await client.from('leaderboard').select('*').limit(limit);
+  const { data, error } = await client
+    .from('leaderboard')
+    .select('*')
+    .order('points', { ascending: false })
+    .order('check_in_count', { ascending: false })
+    .limit(limit);
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
+}
+
+export async function getUserCheckIns(userId) {
+  const client = requireSupabaseClient();
+  const { data, error } = await client
+    .from('check_ins')
+    .select(
+      `
+        id,
+        mountain_id,
+        trail_id,
+        checked_in_at,
+        check_in_day,
+        points,
+        note,
+        status,
+        mountains(name, slug),
+        trails(name, slug)
+      `,
+    )
+    .eq('user_id', userId)
+    .order('checked_in_at', { ascending: false });
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
+}
+
+export async function getTodayCheckInForMountain({ userId, mountainId }) {
+  const today = new Date().toISOString().slice(0, 10);
+  const client = requireSupabaseClient();
+  const { data, error } = await client
+    .from('check_ins')
+    .select('id, checked_in_at, check_in_day, points')
+    .eq('user_id', userId)
+    .eq('mountain_id', mountainId)
+    .eq('check_in_day', today)
+    .maybeSingle();
 
   if (error) {
     throw error;
@@ -92,6 +143,17 @@ export async function createCheckIn(checkIn) {
   }
 
   return data;
+}
+
+export async function createMountainCheckIn({ userId, mountainId, trailId, note }) {
+  return createCheckIn({
+    user_id: userId,
+    mountain_id: mountainId,
+    trail_id: trailId,
+    note: note?.trim() || null,
+    points: 10,
+    status: 'approved',
+  });
 }
 
 export async function getCommentsForTrail(trailId) {

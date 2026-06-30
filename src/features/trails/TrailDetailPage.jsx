@@ -15,6 +15,7 @@ import {
   ShieldAlert,
   TrendingUp,
 } from 'lucide-react';
+import { lazy, Suspense } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import styled from 'styled-components';
 import { DifficultyBadge } from '../../components/common/Badge.jsx';
@@ -26,6 +27,8 @@ import { mountains } from '../../data/mountains.js';
 import { getTrailBySlug } from '../../data/trails.js';
 import { formatDistance, formatElevation } from '../../lib/formatters.js';
 import { theme } from '../../styles/theme.js';
+
+const CheckInPanel = lazy(() => import('../../components/community/CheckInPanel.jsx'));
 
 const Page = styled.article`
   margin: 0 auto;
@@ -492,6 +495,19 @@ export function TrailDetailPage() {
         </GuideColumn>
 
         <SideBar>
+          <Suspense
+            fallback={
+              <Panel>
+                <h2>
+                  <MapPin size={18} aria-hidden="true" /> Summit Check-In
+                </h2>
+                <MapNote>Loading account tools...</MapNote>
+              </Panel>
+            }
+          >
+            <CheckInPanel trail={trail} />
+          </Suspense>
+
           <Panel>
             <h2>
               <RouteIcon size={18} aria-hidden="true" /> Trail Facts

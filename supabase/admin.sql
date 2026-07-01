@@ -1,0 +1,397 @@
+-- Admin CMS layer for Lofoten Peaks.
+-- Safe to rerun after the base schema has been applied.
+
+create table if not exists public.admin_users (
+  user_id uuid primary key references auth.users(id) on delete cascade,
+  created_at timestamptz not null default now()
+);
+
+alter table public.admin_users enable row level security;
+
+create or replace function public.is_admin()
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1
+    from public.admin_users
+    where user_id = auth.uid()
+  );
+$$;
+
+grant execute on function public.is_admin() to authenticated;
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_policies
+    where schemaname = 'public' and tablename = 'admin_users' and policyname = 'Admins can read admin users'
+  ) then
+    create policy "Admins can read admin users"
+    on public.admin_users for select
+    using (public.is_admin());
+  end if;
+end $$;
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_policies
+    where schemaname = 'public' and tablename = 'mountains' and policyname = 'Admins can read all mountains'
+  ) then
+    create policy "Admins can read all mountains"
+    on public.mountains for select
+    using (public.is_admin());
+  end if;
+
+  if not exists (
+    select 1 from pg_policies
+    where schemaname = 'public' and tablename = 'mountains' and policyname = 'Admins can insert mountains'
+  ) then
+    create policy "Admins can insert mountains"
+    on public.mountains for insert
+    with check (public.is_admin());
+  end if;
+
+  if not exists (
+    select 1 from pg_policies
+    where schemaname = 'public' and tablename = 'mountains' and policyname = 'Admins can update mountains'
+  ) then
+    create policy "Admins can update mountains"
+    on public.mountains for update
+    using (public.is_admin())
+    with check (public.is_admin());
+  end if;
+
+  if not exists (
+    select 1 from pg_policies
+    where schemaname = 'public' and tablename = 'mountains' and policyname = 'Admins can delete mountains'
+  ) then
+    create policy "Admins can delete mountains"
+    on public.mountains for delete
+    using (public.is_admin());
+  end if;
+end $$;
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_policies
+    where schemaname = 'public' and tablename = 'trails' and policyname = 'Admins can read all trails'
+  ) then
+    create policy "Admins can read all trails"
+    on public.trails for select
+    using (public.is_admin());
+  end if;
+
+  if not exists (
+    select 1 from pg_policies
+    where schemaname = 'public' and tablename = 'trails' and policyname = 'Admins can insert trails'
+  ) then
+    create policy "Admins can insert trails"
+    on public.trails for insert
+    with check (public.is_admin());
+  end if;
+
+  if not exists (
+    select 1 from pg_policies
+    where schemaname = 'public' and tablename = 'trails' and policyname = 'Admins can update trails'
+  ) then
+    create policy "Admins can update trails"
+    on public.trails for update
+    using (public.is_admin())
+    with check (public.is_admin());
+  end if;
+
+  if not exists (
+    select 1 from pg_policies
+    where schemaname = 'public' and tablename = 'trails' and policyname = 'Admins can delete trails'
+  ) then
+    create policy "Admins can delete trails"
+    on public.trails for delete
+    using (public.is_admin());
+  end if;
+end $$;
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_policies
+    where schemaname = 'public' and tablename = 'trail_images' and policyname = 'Admins can insert trail images'
+  ) then
+    create policy "Admins can insert trail images"
+    on public.trail_images for insert
+    with check (public.is_admin());
+  end if;
+
+  if not exists (
+    select 1 from pg_policies
+    where schemaname = 'public' and tablename = 'trail_images' and policyname = 'Admins can update trail images'
+  ) then
+    create policy "Admins can update trail images"
+    on public.trail_images for update
+    using (public.is_admin())
+    with check (public.is_admin());
+  end if;
+
+  if not exists (
+    select 1 from pg_policies
+    where schemaname = 'public' and tablename = 'trail_images' and policyname = 'Admins can delete trail images'
+  ) then
+    create policy "Admins can delete trail images"
+    on public.trail_images for delete
+    using (public.is_admin());
+  end if;
+end $$;
+
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values (
+  'mountain-images',
+  'mountain-images',
+  true,
+  5242880,
+  array['image/jpeg', 'image/png', 'image/webp']
+)
+on conflict (id) do update set
+  public = excluded.public,
+  file_size_limit = excluded.file_size_limit,
+  allowed_mime_types = excluded.allowed_mime_types;
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_policies
+    where schemaname = 'storage' and tablename = 'objects' and policyname = 'Mountain images are public'
+  ) then
+    create policy "Mountain images are public"
+    on storage.objects for select
+    using (bucket_id = 'mountain-images');
+  end if;
+
+  if not exists (
+    select 1 from pg_policies
+    where schemaname = 'storage' and tablename = 'objects' and policyname = 'Admins can upload mountain images'
+  ) then
+    create policy "Admins can upload mountain images"
+    on storage.objects for insert
+    with check (bucket_id = 'mountain-images' and public.is_admin());
+  end if;
+
+  if not exists (
+    select 1 from pg_policies
+    where schemaname = 'storage' and tablename = 'objects' and policyname = 'Admins can update mountain images'
+  ) then
+    create policy "Admins can update mountain images"
+    on storage.objects for update
+    using (bucket_id = 'mountain-images' and public.is_admin())
+    with check (bucket_id = 'mountain-images' and public.is_admin());
+  end if;
+
+  if not exists (
+    select 1 from pg_policies
+    where schemaname = 'storage' and tablename = 'objects' and policyname = 'Admins can delete mountain images'
+  ) then
+    create policy "Admins can delete mountain images"
+    on storage.objects for delete
+    using (bucket_id = 'mountain-images' and public.is_admin());
+  end if;
+end $$;
+
+create or replace view public.mountain_guides
+with (security_invoker = true) as
+select
+  m.id as mountain_id,
+  m.slug as mountain_slug,
+  m.name as mountain_name,
+  m.region,
+  m.height_meters,
+  case when m.summit is null then null else extensions.st_y(m.summit::extensions.geometry) end as summit_lat,
+  case when m.summit is null then null else extensions.st_x(m.summit::extensions.geometry) end as summit_lng,
+  m.difficulty as mountain_difficulty,
+  m.summary as mountain_summary,
+  m.description as mountain_description,
+  m.weather_location_id,
+  m.hero_image_path,
+  t.id as trail_id,
+  t.slug as trail_slug,
+  t.name as trail_name,
+  t.summary as trail_summary,
+  t.description as trail_description,
+  t.length_km,
+  t.elevation_gain_meters,
+  t.estimated_duration,
+  t.difficulty as trail_difficulty,
+  case when t.start_point is null then null else extensions.st_y(t.start_point::extensions.geometry) end as start_lat,
+  case when t.start_point is null then null else extensions.st_x(t.start_point::extensions.geometry) end as start_lng,
+  case when t.end_point is null then null else extensions.st_y(t.end_point::extensions.geometry) end as end_lat,
+  case when t.end_point is null then null else extensions.st_x(t.end_point::extensions.geometry) end as end_lng,
+  t.route_geojson,
+  t.route_note,
+  coalesce(
+    jsonb_agg(
+      jsonb_build_object(
+        'filePath', ti.file_path,
+        'alt', ti.alt,
+        'source', ti.source,
+        'license', ti.license,
+        'creditUrl', ti.credit_url,
+        'sortOrder', ti.sort_order
+      )
+      order by ti.sort_order, ti.id
+    ) filter (where ti.id is not null),
+    '[]'::jsonb
+  ) as images
+from public.mountains m
+left join public.trails t
+  on t.mountain_id = m.id
+  and t.published = true
+left join public.trail_images ti
+  on ti.trail_id = t.id
+where m.published = true
+group by
+  m.id,
+  m.slug,
+  m.name,
+  m.region,
+  m.height_meters,
+  m.summit,
+  m.difficulty,
+  m.summary,
+  m.description,
+  m.weather_location_id,
+  m.hero_image_path,
+  t.id,
+  t.slug,
+  t.name,
+  t.summary,
+  t.description,
+  t.length_km,
+  t.elevation_gain_meters,
+  t.estimated_duration,
+  t.difficulty,
+  t.start_point,
+  t.end_point,
+  t.route_geojson,
+  t.route_note;
+
+grant select on public.mountain_guides to anon, authenticated;
+
+create or replace function public.admin_create_mountain_guide(
+  p_mountain_id text,
+  p_slug text,
+  p_name text,
+  p_region text,
+  p_height_meters integer,
+  p_summit_lat numeric,
+  p_summit_lng numeric,
+  p_difficulty public.difficulty_level,
+  p_summary text,
+  p_description text,
+  p_weather_location_id text,
+  p_hero_image_path text,
+  p_trail_length_km numeric,
+  p_trail_elevation_gain_meters integer,
+  p_trail_estimated_duration text,
+  p_start_lat numeric,
+  p_start_lng numeric,
+  p_route_note text default null
+)
+returns table (mountain_id text, trail_id text)
+language plpgsql
+security definer
+set search_path = public, extensions
+as $$
+declare
+  clean_slug text := lower(trim(p_slug));
+begin
+  if not public.is_admin() then
+    raise exception 'Admin access required' using errcode = '42501';
+  end if;
+
+  insert into public.mountains (
+    id,
+    slug,
+    name,
+    region,
+    height_meters,
+    summit,
+    difficulty,
+    summary,
+    description,
+    weather_location_id,
+    hero_image_path,
+    published
+  ) values (
+    p_mountain_id,
+    clean_slug,
+    p_name,
+    p_region,
+    p_height_meters,
+    extensions.st_setsrid(extensions.st_makepoint(p_summit_lng, p_summit_lat), 4326)::extensions.geography,
+    p_difficulty,
+    p_summary,
+    p_description,
+    nullif(p_weather_location_id, ''),
+    nullif(p_hero_image_path, ''),
+    true
+  );
+
+  insert into public.trails (
+    id,
+    mountain_id,
+    slug,
+    name,
+    summary,
+    description,
+    length_km,
+    elevation_gain_meters,
+    estimated_duration,
+    difficulty,
+    start_point,
+    end_point,
+    route_note,
+    published
+  ) values (
+    p_mountain_id,
+    p_mountain_id,
+    clean_slug,
+    p_name,
+    p_summary,
+    p_description,
+    p_trail_length_km,
+    p_trail_elevation_gain_meters,
+    p_trail_estimated_duration,
+    p_difficulty,
+    extensions.st_setsrid(extensions.st_makepoint(p_start_lng, p_start_lat), 4326)::extensions.geography,
+    extensions.st_setsrid(extensions.st_makepoint(p_summit_lng, p_summit_lat), 4326)::extensions.geography,
+    coalesce(nullif(p_route_note, ''), 'Route line uses start and summit coordinates until GPX route data is uploaded. Verify locally before hiking.'),
+    true
+  );
+
+  return query select p_mountain_id, p_mountain_id;
+end;
+$$;
+
+grant execute on function public.admin_create_mountain_guide(
+  text,
+  text,
+  text,
+  text,
+  integer,
+  numeric,
+  numeric,
+  public.difficulty_level,
+  text,
+  text,
+  text,
+  text,
+  numeric,
+  integer,
+  text,
+  numeric,
+  numeric,
+  text
+) to authenticated;

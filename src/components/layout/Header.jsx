@@ -1,4 +1,4 @@
-import { Menu, UserCircle, X } from 'lucide-react';
+import { Menu, ShieldCheck, UserCircle, X } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import styled from 'styled-components';
 import { useState } from 'react';
@@ -118,6 +118,9 @@ export function Header() {
           </NavLink>
           <NavLink to="/account" onClick={() => setMenuOpen(false)}>
             <UserCircle size={16} aria-hidden="true" /> Account
+          </NavLink>
+          <NavLink to="/admin" onClick={() => setMenuOpen(false)}>
+            <ShieldCheck size={16} aria-hidden="true" /> Admin
           </NavLink>
         </Nav>
         <MenuButton

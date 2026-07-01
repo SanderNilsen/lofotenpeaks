@@ -16,7 +16,7 @@ import {
   ShieldAlert,
   TrendingUp,
 } from 'lucide-react';
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import styled from 'styled-components';
 import { DifficultyBadge } from '../../components/common/Badge.jsx';
@@ -27,6 +27,8 @@ import { MountainWeatherPanel } from '../../components/weather/MountainWeatherPa
 import { mountains } from '../../data/mountains.js';
 import { getTrailBySlug } from '../../data/trails.js';
 import { formatDistance, formatElevation } from '../../lib/formatters.js';
+import { getRemoteMountainGuideBySlug } from '../../lib/supabase/api.js';
+import { isSupabaseConfigured } from '../../lib/supabase/client.js';
 import { theme } from '../../styles/theme.js';
 
 const CheckInPanel = lazy(() => import('../../components/community/CheckInPanel.jsx'));
@@ -374,13 +376,54 @@ function getGuideItems(guide) {
 
 export function TrailDetailPage() {
   const { slug } = useParams();
-  const trail = getTrailBySlug(slug);
+  const staticTrail = getTrailBySlug(slug);
+  const [remoteGuide, setRemoteGuide] = useState(null);
+  const [remoteIsLoading, setRemoteIsLoading] = useState(isSupabaseConfigured);
 
-  if (!trail) {
+  useEffect(() => {
+    setRemoteGuide(null);
+
+    if (!isSupabaseConfigured) {
+      setRemoteIsLoading(false);
+      return undefined;
+    }
+
+    let isMounted = true;
+    setRemoteIsLoading(true);
+
+    getRemoteMountainGuideBySlug(slug)
+      .then((guide) => {
+        if (isMounted) {
+          setRemoteGuide(guide);
+        }
+      })
+      .catch(() => {
+        if (isMounted) {
+          setRemoteGuide(null);
+        }
+      })
+      .finally(() => {
+        if (isMounted) {
+          setRemoteIsLoading(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [slug]);
+
+  const trail = remoteGuide?.trail ?? staticTrail;
+
+  if (!trail && !remoteIsLoading) {
     return <Page>Trail not found.</Page>;
   }
 
-  const mountain = mountains.find((item) => item.id === trail.mountainId);
+  if (!trail) {
+    return <Page>Loading hiking guide...</Page>;
+  }
+
+  const mountain = remoteGuide?.mountain ?? mountains.find((item) => item.id === trail.mountainId);
   const trailImages = getTrailImages(trail, mountain);
   const heroImage = trailImages[0] ?? mountain?.heroImage;
   const galleryImages = trailImages.length > 1 ? trailImages.slice(1) : trailImages;

@@ -1,11 +1,13 @@
 import { Search, SlidersHorizontal } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import styled from 'styled-components';
 import { Seo } from '../../components/common/Seo.jsx';
 import { MountainCard } from '../../components/mountains/MountainCard.jsx';
 import { MountainWeatherPanel } from '../../components/weather/MountainWeatherPanel.jsx';
-import { mountains } from '../../data/mountains.js';
-import { trails } from '../../data/trails.js';
+import { mountains as staticMountains } from '../../data/mountains.js';
+import { trails as staticTrails } from '../../data/trails.js';
+import { getRemoteMountainGuides } from '../../lib/supabase/api.js';
+import { isSupabaseConfigured } from '../../lib/supabase/client.js';
 import { theme } from '../../styles/theme.js';
 
 const Page = styled.section`
@@ -153,7 +155,7 @@ function getRegionLabel(region) {
   return region.split(',')[0].trim();
 }
 
-function getPrimaryTrail(mountain) {
+function getPrimaryTrail(mountain, trails) {
   return trails.find((trail) => trail.mountainId === mountain.id);
 }
 
@@ -178,19 +180,55 @@ function matchesLengthFilter(lengthFilter, trail) {
 }
 
 export function MountainListPage() {
+  const [content, setContent] = useState({
+    mountains: staticMountains,
+    trails: staticTrails,
+    isLoading: isSupabaseConfigured,
+    source: 'static',
+  });
   const [searchTerm, setSearchTerm] = useState('');
   const [difficultyFilter, setDifficultyFilter] = useState('all');
   const [regionFilter, setRegionFilter] = useState('all');
   const [lengthFilter, setLengthFilter] = useState('all');
 
+  useEffect(() => {
+    if (!isSupabaseConfigured) {
+      return undefined;
+    }
+
+    let isMounted = true;
+
+    getRemoteMountainGuides()
+      .then((remoteContent) => {
+        if (!isMounted) {
+          return;
+        }
+
+        if (remoteContent.mountains.length > 0) {
+          setContent({ ...remoteContent, isLoading: false, source: 'supabase' });
+        } else {
+          setContent((current) => ({ ...current, isLoading: false }));
+        }
+      })
+      .catch(() => {
+        if (isMounted) {
+          setContent((current) => ({ ...current, isLoading: false }));
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   const mountainItems = useMemo(
-    () => mountains.map((mountain) => ({ mountain, trail: getPrimaryTrail(mountain) })),
-    [],
+    () => content.mountains.map((mountain) => ({ mountain, trail: getPrimaryTrail(mountain, content.trails) })),
+    [content.mountains, content.trails],
   );
 
   const regionOptions = useMemo(
-    () => [...new Set(mountains.map((mountain) => getRegionLabel(mountain.region)))].sort(),
-    [],
+    () => [...new Set(content.mountains.map((mountain) => getRegionLabel(mountain.region)))].sort(),
+    [content.mountains],
   );
 
   const filteredItems = useMemo(() => {
@@ -286,7 +324,8 @@ export function MountainListPage() {
           </Field>
         </FilterGrid>
         <ResultLine>
-          Showing {filteredItems.length} of {mountains.length} mountain guides
+          Showing {filteredItems.length} of {content.mountains.length} mountain guides
+          {content.isLoading ? ' · Syncing Supabase content...' : ''}
         </ResultLine>
       </FilterPanel>
       {filteredItems.length > 0 ? (

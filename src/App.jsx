@@ -6,6 +6,7 @@ import { MountainListPage } from './features/mountains/MountainListPage.jsx';
 import { TrailDetailPage } from './features/trails/TrailDetailPage.jsx';
 
 const AuthRoute = lazy(() => import('./features/auth/AuthRoute.jsx'));
+const AdminRoute = lazy(() => import('./features/admin/AdminRoute.jsx'));
 
 function LegacyTrailRedirect() {
   const { slug } = useParams();
@@ -14,7 +15,7 @@ function LegacyTrailRedirect() {
 }
 
 function RouteFallback() {
-  return <div style={{ padding: '48px 24px' }}>Loading account...</div>;
+  return <div style={{ padding: '48px 24px' }}>Loading...</div>;
 }
 
 export default function App() {
@@ -27,6 +28,14 @@ export default function App() {
           element={
             <Suspense fallback={<RouteFallback />}>
               <AuthRoute />
+            </Suspense>
+          }
+        />
+        <Route
+          path="/admin"
+          element={
+            <Suspense fallback={<RouteFallback />}>
+              <AdminRoute />
             </Suspense>
           }
         />

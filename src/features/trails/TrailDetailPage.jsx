@@ -10,6 +10,7 @@ import {
   Footprints,
   ListChecks,
   MapPin,
+  MessageCircle,
   Mountain as MountainIcon,
   Route as RouteIcon,
   ShieldAlert,
@@ -29,6 +30,7 @@ import { formatDistance, formatElevation } from '../../lib/formatters.js';
 import { theme } from '../../styles/theme.js';
 
 const CheckInPanel = lazy(() => import('../../components/community/CheckInPanel.jsx'));
+const CommentsPanel = lazy(() => import('../../components/community/CommentsPanel.jsx'));
 
 const Page = styled.article`
   margin: 0 auto;
@@ -492,6 +494,19 @@ export function TrailDetailPage() {
               </Gallery>
             </Section>
           )}
+
+          <Suspense
+            fallback={
+              <Panel>
+                <h2>
+                  <MessageCircle size={18} aria-hidden="true" /> Comments
+                </h2>
+                <MapNote>Loading comments...</MapNote>
+              </Panel>
+            }
+          >
+            <CommentsPanel trail={trail} />
+          </Suspense>
         </GuideColumn>
 
         <SideBar>

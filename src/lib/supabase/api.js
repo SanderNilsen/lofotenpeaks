@@ -182,6 +182,16 @@ export async function createComment(comment) {
   return data;
 }
 
+export async function createTrailComment({ userId, mountainId, trailId, body }) {
+  return createComment({
+    user_id: userId,
+    mountain_id: mountainId,
+    trail_id: trailId,
+    body: body.trim(),
+    status: 'approved',
+  });
+}
+
 export async function createUserHike(hike) {
   const client = requireSupabaseClient();
   const { data, error } = await client.from('user_hikes').insert(hike).select().single();

@@ -1,11 +1,23 @@
-import { ImagePlus, Lock, Mountain, Save, ShieldCheck } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import {
+  Camera,
+  ImagePlus,
+  Lock,
+  Mountain,
+  Plus,
+  RefreshCw,
+  Save,
+  ShieldCheck,
+} from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import styled from 'styled-components';
 import { Seo } from '../../components/common/Seo.jsx';
 import {
+  addAdminTrailImage,
   createAdminMountainGuide,
+  getAdminMountainGuides,
   getIsAdmin,
+  updateAdminMountainGuide,
   uploadAdminMountainImage,
 } from '../../lib/supabase/api.js';
 import { theme } from '../../styles/theme.js';
@@ -13,7 +25,7 @@ import { useAuth } from '../auth/AuthProvider.jsx';
 
 const Page = styled.section`
   margin: 0 auto;
-  max-width: 920px;
+  max-width: ${theme.pageWidth};
   padding: 48px 24px 0;
 `;
 
@@ -33,6 +45,17 @@ const Header = styled.header`
   }
 `;
 
+const AdminLayout = styled.div`
+  align-items: start;
+  display: grid;
+  gap: 20px;
+  grid-template-columns: minmax(260px, 0.38fr) minmax(0, 0.62fr);
+
+  @media (max-width: 900px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
 const Panel = styled.section`
   background: ${theme.colors.surface};
   border: 1px solid ${theme.colors.line};
@@ -47,6 +70,42 @@ const Panel = styled.section`
     font-size: 1.25rem;
     gap: 8px;
     margin: 0;
+  }
+`;
+
+const ToolRow = styled.div`
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: space-between;
+`;
+
+const GuideList = styled.div`
+  display: grid;
+  gap: 10px;
+`;
+
+const GuideButton = styled.button`
+  background: ${({ $active }) => ($active ? theme.colors.background : 'transparent')};
+  border: 1px solid ${({ $active }) => ($active ? theme.colors.forest : theme.colors.line)};
+  border-radius: ${theme.radii.small};
+  color: ${theme.colors.ink};
+  cursor: pointer;
+  display: grid;
+  gap: 5px;
+  padding: 12px;
+  text-align: left;
+
+  strong {
+    font-size: 0.98rem;
+  }
+
+  span {
+    color: ${theme.colors.muted};
+    font-size: 0.86rem;
+    font-weight: 700;
+    line-height: 1.35;
   }
 `;
 
@@ -112,6 +171,12 @@ const FullField = styled(Field)`
   grid-column: 1 / -1;
 `;
 
+const ButtonRow = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+`;
+
 const Button = styled.button`
   align-items: center;
   background: ${theme.colors.forest};
@@ -123,7 +188,6 @@ const Button = styled.button`
   font-weight: 900;
   gap: 8px;
   justify-content: center;
-  justify-self: start;
   min-height: 44px;
   padding: 10px 14px;
 
@@ -131,6 +195,12 @@ const Button = styled.button`
     cursor: not-allowed;
     opacity: 0.65;
   }
+`;
+
+const SecondaryButton = styled(Button)`
+  background: ${theme.colors.background};
+  border: 1px solid ${theme.colors.line};
+  color: ${theme.colors.ink};
 `;
 
 const Message = styled.p`
@@ -163,7 +233,18 @@ const AccountLink = styled(Link)`
   text-decoration: none;
 `;
 
+const UploadNote = styled.p`
+  color: ${theme.colors.muted};
+  font-size: 0.9rem;
+  font-weight: 700;
+  grid-column: 1 / -1;
+  line-height: 1.5;
+  margin: 0;
+`;
+
 const initialForm = {
+  mountainId: '',
+  trailId: '',
   name: '',
   slug: '',
   region: '',
@@ -180,6 +261,14 @@ const initialForm = {
   elevationGainMeters: '',
   estimatedDuration: '',
   routeNote: '',
+  heroImagePath: '',
+};
+
+const initialGalleryMeta = {
+  alt: '',
+  source: '',
+  license: '',
+  creditUrl: '',
 };
 
 function slugify(value) {
@@ -198,13 +287,70 @@ function toNumber(value) {
   return Number(String(value).replace(',', '.'));
 }
 
+function formValue(value) {
+  return value ?? '';
+}
+
+function formFromGuide(guide) {
+  const { mountain, trail } = guide;
+
+  return {
+    mountainId: mountain.id,
+    trailId: trail?.id ?? mountain.id,
+    name: mountain.name,
+    slug: mountain.slug,
+    region: mountain.region,
+    heightMeters: formValue(mountain.heightMeters),
+    difficulty: mountain.difficulty ?? 'moderate',
+    summary: mountain.summary ?? '',
+    description: mountain.description ?? '',
+    weatherLocationId: mountain.weatherLocationId ?? 'west-lofoten',
+    summitLat: formValue(mountain.coordinates?.lat),
+    summitLng: formValue(mountain.coordinates?.lng),
+    startLat: formValue(trail?.startPoint?.[0]),
+    startLng: formValue(trail?.startPoint?.[1]),
+    lengthKm: formValue(trail?.lengthKm),
+    elevationGainMeters: formValue(trail?.elevationGainMeters),
+    estimatedDuration: trail?.estimatedDuration ?? '',
+    routeNote: trail?.routeNote ?? '',
+    heroImagePath: mountain.heroImage?.src ?? '',
+  };
+}
+
 export function AdminPage() {
   const { isConfigured, isLoading: authIsLoading, user } = useAuth();
   const [isAdmin, setIsAdmin] = useState(false);
   const [isCheckingAdmin, setIsCheckingAdmin] = useState(false);
+  const [mode, setMode] = useState('create');
+  const [guides, setGuides] = useState([]);
+  const [guidesStatus, setGuidesStatus] = useState({ type: 'idle', message: '' });
+  const [selectedMountainId, setSelectedMountainId] = useState('');
   const [form, setForm] = useState(initialForm);
   const [heroImage, setHeroImage] = useState(null);
+  const [galleryImages, setGalleryImages] = useState([]);
+  const [galleryMeta, setGalleryMeta] = useState(initialGalleryMeta);
   const [status, setStatus] = useState({ type: 'idle', message: '' });
+
+  const selectedGuide = useMemo(
+    () => guides.find((guide) => guide.mountain.id === selectedMountainId),
+    [guides, selectedMountainId],
+  );
+  const previewSlug = useMemo(() => form.slug || slugify(form.name), [form.name, form.slug]);
+  const existingImageCount = selectedGuide?.trail?.imageCredits?.length ?? 0;
+
+  const loadGuides = useCallback(async () => {
+    setGuidesStatus({ type: 'loading', message: '' });
+
+    try {
+      const nextGuides = await getAdminMountainGuides();
+      setGuides(nextGuides);
+      setGuidesStatus({ type: 'success', message: '' });
+      return nextGuides;
+    } catch (error) {
+      setGuidesStatus({ type: 'error', message: error.message });
+      return [];
+    }
+  }, []);
 
   useEffect(() => {
     if (!isConfigured || !user) {
@@ -237,14 +383,87 @@ export function AdminPage() {
     };
   }, [isConfigured, user]);
 
-  const previewSlug = useMemo(() => form.slug || slugify(form.name), [form.name, form.slug]);
+  useEffect(() => {
+    if (isAdmin) {
+      loadGuides();
+    }
+  }, [isAdmin, loadGuides]);
 
   function updateField(name, value) {
     setForm((current) => ({
       ...current,
       [name]: value,
-      ...(name === 'name' && !current.slug ? { slug: slugify(value) } : {}),
+      ...(name === 'name' && !current.slug && mode === 'create' ? { slug: slugify(value) } : {}),
     }));
+  }
+
+  function updateGalleryMeta(name, value) {
+    setGalleryMeta((current) => ({
+      ...current,
+      [name]: value,
+    }));
+  }
+
+  function startCreate() {
+    setMode('create');
+    setSelectedMountainId('');
+    setForm(initialForm);
+    setHeroImage(null);
+    setGalleryImages([]);
+    setGalleryMeta(initialGalleryMeta);
+    setStatus({ type: 'idle', message: '' });
+  }
+
+  function startEdit(guide) {
+    setMode('edit');
+    setSelectedMountainId(guide.mountain.id);
+    setForm(formFromGuide(guide));
+    setHeroImage(null);
+    setGalleryImages([]);
+    setGalleryMeta(initialGalleryMeta);
+    setStatus({ type: 'idle', message: '' });
+  }
+
+  function createPayload(heroImagePath) {
+    const slug = previewSlug;
+
+    return {
+      id: form.mountainId || slug,
+      trailId: form.trailId || slug,
+      slug,
+      name: form.name.trim(),
+      region: form.region.trim(),
+      heightMeters: toNumber(form.heightMeters),
+      summitLat: toNumber(form.summitLat),
+      summitLng: toNumber(form.summitLng),
+      difficulty: form.difficulty,
+      summary: form.summary.trim(),
+      description: form.description.trim(),
+      weatherLocationId: form.weatherLocationId,
+      heroImagePath,
+      lengthKm: toNumber(form.lengthKm),
+      elevationGainMeters: toNumber(form.elevationGainMeters),
+      estimatedDuration: form.estimatedDuration.trim(),
+      startLat: toNumber(form.startLat),
+      startLng: toNumber(form.startLng),
+      routeNote: form.routeNote.trim(),
+    };
+  }
+
+  async function saveGalleryImages({ trailId, slug }) {
+    for (const [index, file] of galleryImages.entries()) {
+      const filePath = await uploadAdminMountainImage({ file, slug });
+
+      await addAdminTrailImage({
+        trailId,
+        filePath,
+        alt: galleryMeta.alt.trim() || `${form.name.trim()} trail view`,
+        source: galleryMeta.source.trim(),
+        license: galleryMeta.license.trim(),
+        creditUrl: galleryMeta.creditUrl.trim(),
+        sortOrder: (existingImageCount + index + 1) * 10,
+      });
+    }
   }
 
   async function handleSubmit(event) {
@@ -253,34 +472,39 @@ export function AdminPage() {
 
     try {
       const slug = previewSlug;
-      const heroImagePath = heroImage ? await uploadAdminMountainImage({ file: heroImage, slug }) : '';
+      const heroImagePath = heroImage
+        ? await uploadAdminMountainImage({ file: heroImage, slug })
+        : form.heroImagePath;
+      const payload = createPayload(heroImagePath);
+      const result =
+        mode === 'edit'
+          ? await updateAdminMountainGuide(payload)
+          : await createAdminMountainGuide(payload);
+      const trailId = result?.trail_id ?? payload.trailId;
 
-      await createAdminMountainGuide({
-        id: slug,
-        slug,
-        name: form.name.trim(),
-        region: form.region.trim(),
-        heightMeters: toNumber(form.heightMeters),
-        summitLat: toNumber(form.summitLat),
-        summitLng: toNumber(form.summitLng),
-        difficulty: form.difficulty,
-        summary: form.summary.trim(),
-        description: form.description.trim(),
-        weatherLocationId: form.weatherLocationId,
-        heroImagePath,
-        lengthKm: toNumber(form.lengthKm),
-        elevationGainMeters: toNumber(form.elevationGainMeters),
-        estimatedDuration: form.estimatedDuration.trim(),
-        startLat: toNumber(form.startLat),
-        startLng: toNumber(form.startLng),
-        routeNote: form.routeNote.trim(),
-      });
+      await saveGalleryImages({ trailId, slug });
 
-      setForm(initialForm);
+      const nextGuides = await loadGuides();
+      const savedGuide = nextGuides.find((guide) => guide.mountain.id === payload.id);
+
+      if (mode === 'edit' && savedGuide) {
+        setForm(formFromGuide(savedGuide));
+        setSelectedMountainId(savedGuide.mountain.id);
+      } else {
+        setForm(initialForm);
+        setSelectedMountainId('');
+        setMode('create');
+      }
+
       setHeroImage(null);
+      setGalleryImages([]);
+      setGalleryMeta(initialGalleryMeta);
       setStatus({
         type: 'success',
-        message: `Mountain guide created. Open /mountains/${slug} to review it.`,
+        message:
+          mode === 'edit'
+            ? `Mountain guide updated. Open /mountains/${slug} to review it.`
+            : `Mountain guide created. Open /mountains/${slug} to review it.`,
       });
     } catch (error) {
       setStatus({ type: 'error', message: error.message });
@@ -295,7 +519,7 @@ export function AdminPage() {
       />
       <Header>
         <h1>Admin</h1>
-        <p>Add mountain guides to Supabase so new content no longer has to be coded into static files.</p>
+        <p>Add and update Supabase mountain guides without editing static frontend files.</p>
       </Header>
 
       {!isConfigured && (
@@ -340,107 +564,276 @@ export function AdminPage() {
       )}
 
       {isConfigured && !authIsLoading && user && !isCheckingAdmin && isAdmin && (
-        <Panel>
-          <h2>
-            <ShieldCheck size={18} aria-hidden="true" /> Create Mountain Guide
-          </h2>
-          {status.message && <Message $error={status.type === 'error'}>{status.message}</Message>}
-          <Form onSubmit={handleSubmit}>
-            <Fieldset>
-              <legend>Mountain</legend>
-              <Grid>
-                <Field>
-                  <span>Name</span>
-                  <input required value={form.name} onChange={(event) => updateField('name', event.target.value)} />
-                </Field>
-                <Field>
-                  <span>Slug</span>
-                  <input required value={previewSlug} onChange={(event) => updateField('slug', slugify(event.target.value))} />
-                </Field>
-                <Field>
-                  <span>Region</span>
-                  <input required value={form.region} onChange={(event) => updateField('region', event.target.value)} />
-                </Field>
-                <Field>
-                  <span>Difficulty</span>
-                  <select value={form.difficulty} onChange={(event) => updateField('difficulty', event.target.value)}>
-                    <option value="easy">Easy</option>
-                    <option value="moderate">Moderate</option>
-                    <option value="hard">Hard</option>
-                    <option value="expert">Expert</option>
-                  </select>
-                </Field>
-                <Field>
-                  <span>Height meters</span>
-                  <input required type="number" min="0" value={form.heightMeters} onChange={(event) => updateField('heightMeters', event.target.value)} />
-                </Field>
-                <Field>
-                  <span>Weather area</span>
-                  <select value={form.weatherLocationId} onChange={(event) => updateField('weatherLocationId', event.target.value)}>
-                    <option value="west-lofoten">West Lofoten</option>
-                    <option value="central-lofoten">Central Lofoten</option>
-                    <option value="east-lofoten">East Lofoten</option>
-                  </select>
-                </Field>
-                <Field>
-                  <span>Summit latitude</span>
-                  <input required type="number" step="any" value={form.summitLat} onChange={(event) => updateField('summitLat', event.target.value)} />
-                </Field>
-                <Field>
-                  <span>Summit longitude</span>
-                  <input required type="number" step="any" value={form.summitLng} onChange={(event) => updateField('summitLng', event.target.value)} />
-                </Field>
-                <FullField>
-                  <span>Summary</span>
-                  <input required value={form.summary} onChange={(event) => updateField('summary', event.target.value)} />
-                </FullField>
-                <FullField>
-                  <span>Description</span>
-                  <textarea required value={form.description} onChange={(event) => updateField('description', event.target.value)} />
-                </FullField>
-                <FullField>
-                  <span>Hero image</span>
-                  <input accept="image/jpeg,image/png,image/webp" type="file" onChange={(event) => setHeroImage(event.target.files?.[0] ?? null)} />
-                </FullField>
-              </Grid>
-            </Fieldset>
+        <AdminLayout>
+          <Panel>
+            <ToolRow>
+              <h2>
+                <Mountain size={18} aria-hidden="true" /> Guides
+              </h2>
+              <ButtonRow>
+                <SecondaryButton type="button" onClick={loadGuides}>
+                  <RefreshCw size={16} aria-hidden="true" /> Refresh
+                </SecondaryButton>
+                <Button type="button" onClick={startCreate}>
+                  <Plus size={16} aria-hidden="true" /> New
+                </Button>
+              </ButtonRow>
+            </ToolRow>
+            {guidesStatus.type === 'loading' && <Message>Loading guides...</Message>}
+            {guidesStatus.type === 'error' && <Message $error>{guidesStatus.message}</Message>}
+            <GuideList>
+              {guides.map((guide) => (
+                <GuideButton
+                  key={`${guide.mountain.id}-${guide.trail?.id ?? 'mountain'}`}
+                  type="button"
+                  $active={guide.mountain.id === selectedMountainId}
+                  onClick={() => startEdit(guide)}
+                >
+                  <strong>{guide.mountain.name}</strong>
+                  <span>
+                    {guide.mountain.region}
+                    {guide.trail ? ` · ${guide.trail.estimatedDuration}` : ''}
+                  </span>
+                </GuideButton>
+              ))}
+            </GuideList>
+          </Panel>
 
-            <Fieldset>
-              <legend>First trail</legend>
-              <Grid>
-                <Field>
-                  <span>Length km</span>
-                  <input required type="number" min="0" step="0.1" value={form.lengthKm} onChange={(event) => updateField('lengthKm', event.target.value)} />
-                </Field>
-                <Field>
-                  <span>Elevation gain meters</span>
-                  <input required type="number" min="0" value={form.elevationGainMeters} onChange={(event) => updateField('elevationGainMeters', event.target.value)} />
-                </Field>
-                <Field>
-                  <span>Estimated duration</span>
-                  <input required placeholder="2-3 hours round trip" value={form.estimatedDuration} onChange={(event) => updateField('estimatedDuration', event.target.value)} />
-                </Field>
-                <Field>
-                  <span>Start latitude</span>
-                  <input required type="number" step="any" value={form.startLat} onChange={(event) => updateField('startLat', event.target.value)} />
-                </Field>
-                <Field>
-                  <span>Start longitude</span>
-                  <input required type="number" step="any" value={form.startLng} onChange={(event) => updateField('startLng', event.target.value)} />
-                </Field>
-                <FullField>
-                  <span>Route note</span>
-                  <input value={form.routeNote} onChange={(event) => updateField('routeNote', event.target.value)} />
-                </FullField>
-              </Grid>
-            </Fieldset>
+          <Panel>
+            <h2>
+              {mode === 'edit' ? <Save size={18} aria-hidden="true" /> : <ShieldCheck size={18} aria-hidden="true" />}
+              {mode === 'edit' ? 'Edit Mountain Guide' : 'Create Mountain Guide'}
+            </h2>
+            {mode === 'edit' && (
+              <Message>
+                Editing {form.name}. <Link to={`/mountains/${previewSlug}`}>Open public guide</Link>
+              </Message>
+            )}
+            {status.message && <Message $error={status.type === 'error'}>{status.message}</Message>}
+            <Form onSubmit={handleSubmit}>
+              <Fieldset>
+                <legend>Mountain</legend>
+                <Grid>
+                  <Field>
+                    <span>Name</span>
+                    <input required value={form.name} onChange={(event) => updateField('name', event.target.value)} />
+                  </Field>
+                  <Field>
+                    <span>Slug</span>
+                    <input
+                      required
+                      value={previewSlug}
+                      onChange={(event) => updateField('slug', slugify(event.target.value))}
+                    />
+                  </Field>
+                  <Field>
+                    <span>Region</span>
+                    <input required value={form.region} onChange={(event) => updateField('region', event.target.value)} />
+                  </Field>
+                  <Field>
+                    <span>Difficulty</span>
+                    <select value={form.difficulty} onChange={(event) => updateField('difficulty', event.target.value)}>
+                      <option value="easy">Easy</option>
+                      <option value="moderate">Moderate</option>
+                      <option value="hard">Hard</option>
+                      <option value="expert">Expert</option>
+                    </select>
+                  </Field>
+                  <Field>
+                    <span>Height meters</span>
+                    <input
+                      required
+                      type="number"
+                      min="0"
+                      value={form.heightMeters}
+                      onChange={(event) => updateField('heightMeters', event.target.value)}
+                    />
+                  </Field>
+                  <Field>
+                    <span>Weather area</span>
+                    <select
+                      value={form.weatherLocationId}
+                      onChange={(event) => updateField('weatherLocationId', event.target.value)}
+                    >
+                      <option value="west-lofoten">West Lofoten</option>
+                      <option value="central-lofoten">Central Lofoten</option>
+                      <option value="east-lofoten">East Lofoten</option>
+                    </select>
+                  </Field>
+                  <Field>
+                    <span>Summit latitude</span>
+                    <input
+                      required
+                      type="number"
+                      step="any"
+                      value={form.summitLat}
+                      onChange={(event) => updateField('summitLat', event.target.value)}
+                    />
+                  </Field>
+                  <Field>
+                    <span>Summit longitude</span>
+                    <input
+                      required
+                      type="number"
+                      step="any"
+                      value={form.summitLng}
+                      onChange={(event) => updateField('summitLng', event.target.value)}
+                    />
+                  </Field>
+                  <FullField>
+                    <span>Summary</span>
+                    <input required value={form.summary} onChange={(event) => updateField('summary', event.target.value)} />
+                  </FullField>
+                  <FullField>
+                    <span>Description</span>
+                    <textarea
+                      required
+                      value={form.description}
+                      onChange={(event) => updateField('description', event.target.value)}
+                    />
+                  </FullField>
+                  <FullField>
+                    <span>{mode === 'edit' ? 'Replace hero image' : 'Hero image'}</span>
+                    <input
+                      accept="image/jpeg,image/png,image/webp"
+                      type="file"
+                      onChange={(event) => setHeroImage(event.target.files?.[0] ?? null)}
+                    />
+                  </FullField>
+                </Grid>
+              </Fieldset>
 
-            <Button type="submit" disabled={status.type === 'loading'}>
-              {heroImage ? <ImagePlus size={18} aria-hidden="true" /> : <Mountain size={18} aria-hidden="true" />}
-              <Save size={18} aria-hidden="true" /> Create guide
-            </Button>
-          </Form>
-        </Panel>
+              <Fieldset>
+                <legend>Trail</legend>
+                <Grid>
+                  <Field>
+                    <span>Length km</span>
+                    <input
+                      required
+                      type="number"
+                      min="0"
+                      step="0.1"
+                      value={form.lengthKm}
+                      onChange={(event) => updateField('lengthKm', event.target.value)}
+                    />
+                  </Field>
+                  <Field>
+                    <span>Elevation gain meters</span>
+                    <input
+                      required
+                      type="number"
+                      min="0"
+                      value={form.elevationGainMeters}
+                      onChange={(event) => updateField('elevationGainMeters', event.target.value)}
+                    />
+                  </Field>
+                  <Field>
+                    <span>Estimated duration</span>
+                    <input
+                      required
+                      placeholder="2-3 hours round trip"
+                      value={form.estimatedDuration}
+                      onChange={(event) => updateField('estimatedDuration', event.target.value)}
+                    />
+                  </Field>
+                  <Field>
+                    <span>Start latitude</span>
+                    <input
+                      required
+                      type="number"
+                      step="any"
+                      value={form.startLat}
+                      onChange={(event) => updateField('startLat', event.target.value)}
+                    />
+                  </Field>
+                  <Field>
+                    <span>Start longitude</span>
+                    <input
+                      required
+                      type="number"
+                      step="any"
+                      value={form.startLng}
+                      onChange={(event) => updateField('startLng', event.target.value)}
+                    />
+                  </Field>
+                  <FullField>
+                    <span>Route note</span>
+                    <input value={form.routeNote} onChange={(event) => updateField('routeNote', event.target.value)} />
+                  </FullField>
+                </Grid>
+              </Fieldset>
+
+              <Fieldset>
+                <legend>Gallery</legend>
+                <Grid>
+                  <FullField>
+                    <span>Gallery images</span>
+                    <input
+                      accept="image/jpeg,image/png,image/webp"
+                      multiple
+                      type="file"
+                      onChange={(event) => setGalleryImages([...(event.target.files ?? [])])}
+                    />
+                  </FullField>
+                  <UploadNote>
+                    {galleryImages.length > 0
+                      ? `${galleryImages.length} gallery image${galleryImages.length === 1 ? '' : 's'} selected.`
+                      : `${existingImageCount} gallery image${existingImageCount === 1 ? '' : 's'} saved for this guide.`}
+                  </UploadNote>
+                  <Field>
+                    <span>Image alt text</span>
+                    <input value={galleryMeta.alt} onChange={(event) => updateGalleryMeta('alt', event.target.value)} />
+                  </Field>
+                  <Field>
+                    <span>Source</span>
+                    <input
+                      placeholder="Your name, photographer, or Unsplash"
+                      value={galleryMeta.source}
+                      onChange={(event) => updateGalleryMeta('source', event.target.value)}
+                    />
+                  </Field>
+                  <Field>
+                    <span>License</span>
+                    <input
+                      placeholder="Own photo, used with permission, Unsplash"
+                      value={galleryMeta.license}
+                      onChange={(event) => updateGalleryMeta('license', event.target.value)}
+                    />
+                  </Field>
+                  <Field>
+                    <span>Credit URL</span>
+                    <input
+                      type="url"
+                      value={galleryMeta.creditUrl}
+                      onChange={(event) => updateGalleryMeta('creditUrl', event.target.value)}
+                    />
+                  </Field>
+                </Grid>
+              </Fieldset>
+
+              <ButtonRow>
+                <Button type="submit" disabled={status.type === 'loading'}>
+                  {galleryImages.length > 0 || heroImage ? (
+                    <ImagePlus size={18} aria-hidden="true" />
+                  ) : (
+                    <Save size={18} aria-hidden="true" />
+                  )}
+                  {mode === 'edit' ? 'Update guide' : 'Create guide'}
+                </Button>
+                {mode === 'edit' && (
+                  <SecondaryButton type="button" onClick={startCreate}>
+                    <Plus size={18} aria-hidden="true" /> New guide
+                  </SecondaryButton>
+                )}
+                {galleryImages.length > 0 && (
+                  <SecondaryButton type="button" onClick={() => setGalleryImages([])}>
+                    <Camera size={18} aria-hidden="true" /> Clear images
+                  </SecondaryButton>
+                )}
+              </ButtonRow>
+            </Form>
+          </Panel>
+        </AdminLayout>
       )}
     </Page>
   );

@@ -1,6 +1,6 @@
 # Admin CMS Setup
 
-The frontend has an `/admin` route for adding mountain guides to Supabase instead of editing static files.
+The frontend has an `/admin` route for adding and updating mountain guides in Supabase instead of editing static files.
 
 ## Database Setup
 
@@ -24,16 +24,18 @@ where email = 'your-email@example.com'
 on conflict do nothing;
 ```
 
-The `/admin` page checks this table before allowing mountain uploads.
+The `/admin` page checks this table before allowing content changes.
 
-## What Admin Can Create
+## What Admin Can Manage
 
-The first version creates:
+The current admin screen supports:
 
-- one mountain
-- one matching trail
+- creating one mountain with one matching trail
+- editing existing mountain/trail guide fields
 - summit and trailhead coordinates
 - difficulty, height, route summary, route note, and description
 - one hero image uploaded to the `mountain-images` Supabase Storage bucket
+- gallery images stored in Supabase Storage and registered in `public.trail_images`
+- optional image source, license, and credit URL metadata
 
-Gallery images, GPX upload, editing existing guides, and deleting guides should come after the basic create flow is working.
+GPX upload, deleting guides, multiple trails per mountain, and moderation tools should come after the basic create/edit flow is working.

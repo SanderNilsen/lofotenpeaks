@@ -621,7 +621,10 @@ export function TrailDetailPage() {
             <h2>
               <Camera size={18} aria-hidden="true" /> Photo Credits
             </h2>
-            <ImageCredits imageFiles={trail.imageFiles ?? []} />
+            <ImageCredits
+              credits={trail.imageCredits ?? mountain?.imageCredits ?? []}
+              imageFiles={trail.imageFiles ?? []}
+            />
           </Panel>
         </SideBar>
       </ContentGrid>

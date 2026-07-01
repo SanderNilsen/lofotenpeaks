@@ -395,3 +395,163 @@ grant execute on function public.admin_create_mountain_guide(
   numeric,
   text
 ) to authenticated;
+
+create or replace function public.admin_update_mountain_guide(
+  p_mountain_id text,
+  p_trail_id text,
+  p_slug text,
+  p_name text,
+  p_region text,
+  p_height_meters integer,
+  p_summit_lat numeric,
+  p_summit_lng numeric,
+  p_difficulty public.difficulty_level,
+  p_summary text,
+  p_description text,
+  p_weather_location_id text,
+  p_hero_image_path text,
+  p_trail_length_km numeric,
+  p_trail_elevation_gain_meters integer,
+  p_trail_estimated_duration text,
+  p_start_lat numeric,
+  p_start_lng numeric,
+  p_route_note text default null
+)
+returns table (mountain_id text, trail_id text)
+language plpgsql
+security definer
+set search_path = public, extensions
+as $$
+declare
+  clean_slug text := lower(trim(p_slug));
+begin
+  if not public.is_admin() then
+    raise exception 'Admin access required' using errcode = '42501';
+  end if;
+
+  update public.mountains
+  set
+    slug = clean_slug,
+    name = p_name,
+    region = p_region,
+    height_meters = p_height_meters,
+    summit = extensions.st_setsrid(extensions.st_makepoint(p_summit_lng, p_summit_lat), 4326)::extensions.geography,
+    difficulty = p_difficulty,
+    summary = p_summary,
+    description = p_description,
+    weather_location_id = nullif(p_weather_location_id, ''),
+    hero_image_path = nullif(p_hero_image_path, ''),
+    published = true
+  where id = p_mountain_id;
+
+  if not found then
+    raise exception 'Mountain guide not found' using errcode = 'P0002';
+  end if;
+
+  update public.trails as tr
+  set
+    slug = clean_slug,
+    name = p_name,
+    summary = p_summary,
+    description = p_description,
+    length_km = p_trail_length_km,
+    elevation_gain_meters = p_trail_elevation_gain_meters,
+    estimated_duration = p_trail_estimated_duration,
+    difficulty = p_difficulty,
+    start_point = extensions.st_setsrid(extensions.st_makepoint(p_start_lng, p_start_lat), 4326)::extensions.geography,
+    end_point = extensions.st_setsrid(extensions.st_makepoint(p_summit_lng, p_summit_lat), 4326)::extensions.geography,
+    route_note = coalesce(nullif(p_route_note, ''), tr.route_note),
+    published = true
+  where tr.id = p_trail_id
+    and tr.mountain_id = p_mountain_id;
+
+  if not found then
+    raise exception 'Trail guide not found' using errcode = 'P0002';
+  end if;
+
+  return query select p_mountain_id, p_trail_id;
+end;
+$$;
+
+grant execute on function public.admin_update_mountain_guide(
+  text,
+  text,
+  text,
+  text,
+  text,
+  integer,
+  numeric,
+  numeric,
+  public.difficulty_level,
+  text,
+  text,
+  text,
+  text,
+  numeric,
+  integer,
+  text,
+  numeric,
+  numeric,
+  text
+) to authenticated;
+
+create or replace function public.admin_add_trail_image(
+  p_trail_id text,
+  p_file_path text,
+  p_alt text default null,
+  p_source text default null,
+  p_license text default null,
+  p_credit_url text default null,
+  p_sort_order integer default null
+)
+returns bigint
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  inserted_id bigint;
+begin
+  if not public.is_admin() then
+    raise exception 'Admin access required' using errcode = '42501';
+  end if;
+
+  insert into public.trail_images (
+    trail_id,
+    file_path,
+    alt,
+    source,
+    license,
+    credit_url,
+    sort_order
+  ) values (
+    p_trail_id,
+    p_file_path,
+    nullif(p_alt, ''),
+    nullif(p_source, ''),
+    nullif(p_license, ''),
+    nullif(p_credit_url, ''),
+    coalesce(
+      p_sort_order,
+      (
+        select coalesce(max(ti.sort_order), 0) + 10
+        from public.trail_images as ti
+        where ti.trail_id = p_trail_id
+      )
+    )
+  )
+  returning id into inserted_id;
+
+  return inserted_id;
+end;
+$$;
+
+grant execute on function public.admin_add_trail_image(
+  text,
+  text,
+  text,
+  text,
+  text,
+  text,
+  integer
+) to authenticated;

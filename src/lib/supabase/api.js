@@ -31,6 +31,14 @@ function routeFromGeoJson(routeGeoJson) {
 function transformGuideRow(row) {
   const heroSrc = imagePathToSrc(row.hero_image_path);
   const remoteImages = Array.isArray(row.images) ? row.images : [];
+  const imageCredits = remoteImages
+    .map((image) => ({
+      fileName: getFileName(image.filePath),
+      source: image.source,
+      license: image.license,
+      creditUrl: image.creditUrl,
+    }))
+    .filter((credit) => credit.fileName || credit.source || credit.license || credit.creditUrl);
   const images =
     remoteImages.length > 0
       ? remoteImages.map((image) => ({
@@ -58,6 +66,7 @@ function transformGuideRow(row) {
     heroImage: { src: heroSrc, alt: `${row.mountain_name} mountain view` },
     images,
     imageFiles: images.map((image) => getFileName(image.src)).filter(Boolean),
+    imageCredits,
     trailIds: row.trail_id ? [row.trail_id] : [],
   };
 
@@ -80,10 +89,38 @@ function transformGuideRow(row) {
         routeNote: row.route_note,
         safetyNotes: ['Verify route conditions, weather, and access locally before hiking.'],
         imageFiles: mountain.imageFiles,
+        imageCredits,
       }
     : null;
 
   return { mountain, trail };
+}
+
+function mergeGuideRows(rows) {
+  const guides = (rows ?? []).map(transformGuideRow);
+  const mountainsById = new Map();
+  const trails = [];
+
+  guides.forEach(({ mountain, trail }) => {
+    if (!mountainsById.has(mountain.id)) {
+      mountainsById.set(mountain.id, mountain);
+    }
+
+    if (trail) {
+      trails.push(trail);
+
+      const savedMountain = mountainsById.get(mountain.id);
+      if (!savedMountain.trailIds.includes(trail.id)) {
+        savedMountain.trailIds = [...savedMountain.trailIds, trail.id];
+      }
+    }
+  });
+
+  return {
+    guides,
+    mountains: [...mountainsById.values()],
+    trails,
+  };
 }
 
 export async function getSession() {
@@ -180,29 +217,26 @@ export async function getRemoteMountainGuides() {
     throw error;
   }
 
-  const guides = (data ?? []).map(transformGuideRow);
-  const mountainsById = new Map();
-  const trails = [];
-
-  guides.forEach(({ mountain, trail }) => {
-    if (!mountainsById.has(mountain.id)) {
-      mountainsById.set(mountain.id, mountain);
-    }
-
-    if (trail) {
-      trails.push(trail);
-
-      const savedMountain = mountainsById.get(mountain.id);
-      if (!savedMountain.trailIds.includes(trail.id)) {
-        savedMountain.trailIds = [...savedMountain.trailIds, trail.id];
-      }
-    }
-  });
+  const { mountains, trails } = mergeGuideRows(data);
 
   return {
-    mountains: [...mountainsById.values()],
+    mountains,
     trails,
   };
+}
+
+export async function getAdminMountainGuides() {
+  const client = requireSupabaseClient();
+  const { data, error } = await client
+    .from('mountain_guides')
+    .select('*')
+    .order('mountain_name', { ascending: true });
+
+  if (error) {
+    throw error;
+  }
+
+  return mergeGuideRows(data).guides;
 }
 
 export async function getRemoteMountainGuideBySlug(slug) {
@@ -268,6 +302,56 @@ export async function createAdminMountainGuide(guide) {
   }
 
   return data?.[0] ?? data;
+}
+
+export async function updateAdminMountainGuide(guide) {
+  const client = requireSupabaseClient();
+  const { data, error } = await client.rpc('admin_update_mountain_guide', {
+    p_mountain_id: guide.id,
+    p_trail_id: guide.trailId,
+    p_slug: guide.slug,
+    p_name: guide.name,
+    p_region: guide.region,
+    p_height_meters: guide.heightMeters,
+    p_summit_lat: guide.summitLat,
+    p_summit_lng: guide.summitLng,
+    p_difficulty: guide.difficulty,
+    p_summary: guide.summary,
+    p_description: guide.description,
+    p_weather_location_id: guide.weatherLocationId,
+    p_hero_image_path: guide.heroImagePath,
+    p_trail_length_km: guide.lengthKm,
+    p_trail_elevation_gain_meters: guide.elevationGainMeters,
+    p_trail_estimated_duration: guide.estimatedDuration,
+    p_start_lat: guide.startLat,
+    p_start_lng: guide.startLng,
+    p_route_note: guide.routeNote,
+  });
+
+  if (error) {
+    throw error;
+  }
+
+  return data?.[0] ?? data;
+}
+
+export async function addAdminTrailImage(image) {
+  const client = requireSupabaseClient();
+  const { data, error } = await client.rpc('admin_add_trail_image', {
+    p_trail_id: image.trailId,
+    p_file_path: image.filePath,
+    p_alt: image.alt,
+    p_source: image.source,
+    p_license: image.license,
+    p_credit_url: image.creditUrl,
+    p_sort_order: image.sortOrder,
+  });
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
 }
 
 export async function getLeaderboard({ limit = 20 } = {}) {

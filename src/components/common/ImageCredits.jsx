@@ -44,6 +44,11 @@ const CreditLink = styled.a`
   }
 `;
 
+const CreditText = styled.span`
+  color: ${theme.colors.ink};
+  font-weight: 800;
+`;
+
 const License = styled.span`
   color: ${theme.colors.muted};
   font-size: 0.9rem;
@@ -62,7 +67,27 @@ function formatFileLabel(fileName) {
     .replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
-export function ImageCredits({ imageFiles = [] }) {
+function isUrl(value) {
+  return /^https?:\/\//i.test(value ?? '');
+}
+
+function getCreditHref(credit) {
+  if (credit.creditUrl) {
+    return credit.creditUrl;
+  }
+
+  return isUrl(credit.source) ? credit.source : '';
+}
+
+function getCreditLabel(credit) {
+  if (!credit.source || isUrl(credit.source)) {
+    return 'Photo source';
+  }
+
+  return credit.source;
+}
+
+export function ImageCredits({ credits: providedCredits = [], imageFiles = [] }) {
   const [credits, setCredits] = useState([]);
   const [hasLoaded, setHasLoaded] = useState(false);
 
@@ -98,10 +123,14 @@ export function ImageCredits({ imageFiles = [] }) {
   }, []);
 
   const visibleCredits = useMemo(() => {
+    if (providedCredits.length > 0) {
+      return providedCredits;
+    }
+
     const creditsByFile = new Map(credits.map((credit) => [credit.fileName, credit]));
 
     return imageFiles.map((fileName) => creditsByFile.get(fileName)).filter(Boolean);
-  }, [credits, imageFiles]);
+  }, [credits, imageFiles, providedCredits]);
 
   if (visibleCredits.length === 0) {
     return <StatusText>{hasLoaded ? 'No photo credits listed yet.' : 'Loading photo credits.'}</StatusText>;
@@ -111,11 +140,15 @@ export function ImageCredits({ imageFiles = [] }) {
     <CreditList>
       {visibleCredits.map((credit) => (
         <CreditItem key={credit.fileName}>
-          <CreditLabel>{formatFileLabel(credit.fileName)}</CreditLabel>
-          <CreditLink href={credit.source} target="_blank" rel="noreferrer">
-            Unsplash source <ExternalLink size={14} aria-hidden="true" />
-          </CreditLink>
-          <License>{credit.license}</License>
+          <CreditLabel>{credit.fileName ? formatFileLabel(credit.fileName) : 'Photo credit'}</CreditLabel>
+          {getCreditHref(credit) ? (
+            <CreditLink href={getCreditHref(credit)} target="_blank" rel="noreferrer">
+              {getCreditLabel(credit)} <ExternalLink size={14} aria-hidden="true" />
+            </CreditLink>
+          ) : (
+            credit.source && <CreditText>{credit.source}</CreditText>
+          )}
+          {credit.license && <License>{credit.license}</License>}
         </CreditItem>
       ))}
     </CreditList>

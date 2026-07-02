@@ -8,6 +8,21 @@ function imagePathToSrc(path) {
   return path;
 }
 
+function safePathSlug(slug) {
+  return slug.replace(/[^a-z0-9-]/g, '-');
+}
+
+function getPublicStoragePath(publicUrl, bucket) {
+  const marker = `/storage/v1/object/public/${bucket}/`;
+  const index = publicUrl?.indexOf(marker) ?? -1;
+
+  if (index === -1) {
+    return null;
+  }
+
+  return decodeURIComponent(publicUrl.slice(index + marker.length));
+}
+
 function getFileName(path) {
   return path?.split('/').pop() ?? '';
 }
@@ -46,8 +61,22 @@ function transformGuideRow(row) {
           alt: image.alt || `${row.mountain_name} trail view`,
         }))
       : [{ src: heroSrc, alt: `${row.mountain_name} mountain view` }];
+  const trailImages = remoteImages.map((image) => ({
+    id: image.id,
+    src: imagePathToSrc(image.filePath),
+    filePath: image.filePath,
+    alt: image.alt || `${row.mountain_name} trail view`,
+    source: image.source ?? '',
+    license: image.license ?? '',
+    creditUrl: image.creditUrl ?? '',
+    sortOrder: image.sortOrder ?? 0,
+  }));
   const startPoint = pointFromLatLng(row.start_lat, row.start_lng);
   const endPoint = pointFromLatLng(row.end_lat, row.end_lng);
+  const guide = row.guide && typeof row.guide === 'object' && !Array.isArray(row.guide) ? row.guide : null;
+  const safetyNotes = Array.isArray(row.safety_notes) && row.safety_notes.length > 0
+    ? row.safety_notes
+    : ['Verify route conditions, weather, and access locally before hiking.'];
 
   const mountain = {
     id: row.mountain_id,
@@ -85,9 +114,13 @@ function transformGuideRow(row) {
         difficulty: row.trail_difficulty,
         startPoint,
         endPoint,
+        routeGeojson: row.route_geojson,
         route: routeFromGeoJson(row.route_geojson) ?? [startPoint, endPoint].filter(Boolean),
         routeNote: row.route_note,
-        safetyNotes: ['Verify route conditions, weather, and access locally before hiking.'],
+        gpxStoragePath: row.gpx_storage_path,
+        safetyNotes,
+        guide,
+        images: trailImages,
         imageFiles: mountain.imageFiles,
         imageCredits,
       }
@@ -258,7 +291,7 @@ export async function getRemoteMountainGuideBySlug(slug) {
 export async function uploadAdminMountainImage({ file, slug }) {
   const client = requireSupabaseClient();
   const extension = file.name.split('.').pop()?.toLowerCase() || 'jpg';
-  const safeSlug = slug.replace(/[^a-z0-9-]/g, '-');
+  const safeSlug = safePathSlug(slug);
   const filePath = `mountains/${safeSlug}/${Date.now()}.${extension}`;
   const { error } = await client.storage.from('mountain-images').upload(filePath, file, {
     cacheControl: '3600',
@@ -272,6 +305,22 @@ export async function uploadAdminMountainImage({ file, slug }) {
   const { data } = client.storage.from('mountain-images').getPublicUrl(filePath);
 
   return data.publicUrl;
+}
+
+export async function uploadAdminTrailGpx({ file, slug }) {
+  const client = requireSupabaseClient();
+  const safeSlug = safePathSlug(slug);
+  const filePath = `routes/${safeSlug}/${Date.now()}.gpx`;
+  const { error } = await client.storage.from('trail-gpx').upload(filePath, file, {
+    cacheControl: '3600',
+    upsert: false,
+  });
+
+  if (error) {
+    throw error;
+  }
+
+  return filePath;
 }
 
 export async function createAdminMountainGuide(guide) {
@@ -295,6 +344,10 @@ export async function createAdminMountainGuide(guide) {
     p_start_lat: guide.startLat,
     p_start_lng: guide.startLng,
     p_route_note: guide.routeNote,
+    p_route_geojson: guide.routeGeojson,
+    p_gpx_storage_path: guide.gpxStoragePath,
+    p_safety_notes: guide.safetyNotes,
+    p_guide: guide.guide,
   });
 
   if (error) {
@@ -326,6 +379,10 @@ export async function updateAdminMountainGuide(guide) {
     p_start_lat: guide.startLat,
     p_start_lng: guide.startLng,
     p_route_note: guide.routeNote,
+    p_route_geojson: guide.routeGeojson,
+    p_gpx_storage_path: guide.gpxStoragePath,
+    p_safety_notes: guide.safetyNotes,
+    p_guide: guide.guide,
   });
 
   if (error) {
@@ -352,6 +409,40 @@ export async function addAdminTrailImage(image) {
   }
 
   return data;
+}
+
+export async function updateAdminTrailImage(image) {
+  const client = requireSupabaseClient();
+  const { error } = await client.rpc('admin_update_trail_image', {
+    p_image_id: image.id,
+    p_alt: image.alt,
+    p_source: image.source,
+    p_license: image.license,
+    p_credit_url: image.creditUrl,
+    p_sort_order: image.sortOrder,
+  });
+
+  if (error) {
+    throw error;
+  }
+}
+
+export async function deleteAdminTrailImage(image) {
+  const client = requireSupabaseClient();
+  const imageId = typeof image === 'object' ? image.id : image;
+  const storagePath =
+    typeof image === 'object' ? getPublicStoragePath(image.filePath ?? image.src, 'mountain-images') : null;
+  const { error } = await client.rpc('admin_delete_trail_image', {
+    p_image_id: imageId,
+  });
+
+  if (error) {
+    throw error;
+  }
+
+  if (storagePath) {
+    await client.storage.from('mountain-images').remove([storagePath]);
+  }
 }
 
 export async function getLeaderboard({ limit = 20 } = {}) {

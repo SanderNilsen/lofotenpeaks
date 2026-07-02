@@ -1,5 +1,8 @@
 import {
+  ArrowDown,
+  ArrowUp,
   Camera,
+  FileUp,
   ImagePlus,
   Lock,
   Mountain,
@@ -7,6 +10,7 @@ import {
   RefreshCw,
   Save,
   ShieldCheck,
+  Trash2,
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
@@ -15,11 +19,15 @@ import { Seo } from '../../components/common/Seo.jsx';
 import {
   addAdminTrailImage,
   createAdminMountainGuide,
+  deleteAdminTrailImage,
   getAdminMountainGuides,
   getIsAdmin,
+  updateAdminTrailImage,
   updateAdminMountainGuide,
   uploadAdminMountainImage,
+  uploadAdminTrailGpx,
 } from '../../lib/supabase/api.js';
+import { getRoutePointCount, parseGpxToLineString } from '../../lib/gpx.js';
 import { theme } from '../../styles/theme.js';
 import { useAuth } from '../auth/AuthProvider.jsx';
 
@@ -203,6 +211,15 @@ const SecondaryButton = styled(Button)`
   color: ${theme.colors.ink};
 `;
 
+const DangerButton = styled(SecondaryButton)`
+  color: ${theme.colors.warning};
+`;
+
+const IconButton = styled(SecondaryButton)`
+  min-height: 38px;
+  padding: 8px 10px;
+`;
+
 const Message = styled.p`
   background: ${({ $error }) => ($error ? '#f2e6dc' : theme.colors.background)};
   border: 1px solid ${({ $error }) => ($error ? '#dfc4af' : theme.colors.line)};
@@ -242,6 +259,48 @@ const UploadNote = styled.p`
   margin: 0;
 `;
 
+const SmallTextarea = styled.textarea`
+  min-height: 92px !important;
+`;
+
+const GalleryManager = styled.div`
+  display: grid;
+  gap: 14px;
+  grid-column: 1 / -1;
+`;
+
+const GalleryItem = styled.article`
+  background: ${theme.colors.background};
+  border: 1px solid ${theme.colors.line};
+  border-radius: ${theme.radii.medium};
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 130px minmax(0, 1fr);
+  padding: 12px;
+
+  @media (max-width: 680px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const GalleryThumb = styled.img`
+  aspect-ratio: 4 / 3;
+  border-radius: ${theme.radii.small};
+  object-fit: cover;
+  width: 100%;
+`;
+
+const GalleryFields = styled.div`
+  display: grid;
+  gap: 10px;
+`;
+
+const GalleryActions = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+`;
+
 const initialForm = {
   mountainId: '',
   trailId: '',
@@ -261,6 +320,14 @@ const initialForm = {
   elevationGainMeters: '',
   estimatedDuration: '',
   routeNote: '',
+  parking: '',
+  trailhead: '',
+  bestSeason: '',
+  suitableFor: '',
+  gearNotes: '',
+  access: '',
+  beforeYouGo: '',
+  safetyNotes: '',
   heroImagePath: '',
 };
 
@@ -285,6 +352,17 @@ function slugify(value) {
 
 function toNumber(value) {
   return Number(String(value).replace(',', '.'));
+}
+
+function linesFromText(value) {
+  return value
+    .split('\n')
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function textFromLines(value) {
+  return Array.isArray(value) ? value.join('\n') : '';
 }
 
 function formValue(value) {
@@ -313,8 +391,29 @@ function formFromGuide(guide) {
     elevationGainMeters: formValue(trail?.elevationGainMeters),
     estimatedDuration: trail?.estimatedDuration ?? '',
     routeNote: trail?.routeNote ?? '',
+    parking: trail?.guide?.parking ?? '',
+    trailhead: trail?.guide?.trailhead ?? '',
+    bestSeason: trail?.guide?.bestSeason ?? '',
+    suitableFor: trail?.guide?.suitableFor ?? '',
+    gearNotes: trail?.guide?.gearNotes ?? '',
+    access: trail?.guide?.access ?? '',
+    beforeYouGo: textFromLines(trail?.guide?.beforeYouGo),
+    safetyNotes: textFromLines(trail?.safetyNotes),
     heroImagePath: mountain.heroImage?.src ?? '',
   };
+}
+
+function galleryFromGuide(guide) {
+  return (guide.trail?.images ?? []).map((image, index) => ({
+    id: image.id,
+    src: image.src,
+    filePath: image.filePath,
+    alt: image.alt ?? '',
+    source: image.source ?? '',
+    license: image.license ?? '',
+    creditUrl: image.creditUrl ?? '',
+    sortOrder: image.sortOrder ?? (index + 1) * 10,
+  }));
 }
 
 export function AdminPage() {
@@ -328,7 +427,11 @@ export function AdminPage() {
   const [form, setForm] = useState(initialForm);
   const [heroImage, setHeroImage] = useState(null);
   const [galleryImages, setGalleryImages] = useState([]);
+  const [existingGalleryImages, setExistingGalleryImages] = useState([]);
   const [galleryMeta, setGalleryMeta] = useState(initialGalleryMeta);
+  const [gpxFile, setGpxFile] = useState(null);
+  const [routeGeojson, setRouteGeojson] = useState(null);
+  const [gpxStatus, setGpxStatus] = useState({ type: 'idle', message: '' });
   const [status, setStatus] = useState({ type: 'idle', message: '' });
 
   const selectedGuide = useMemo(
@@ -336,7 +439,7 @@ export function AdminPage() {
     [guides, selectedMountainId],
   );
   const previewSlug = useMemo(() => form.slug || slugify(form.name), [form.name, form.slug]);
-  const existingImageCount = selectedGuide?.trail?.imageCredits?.length ?? 0;
+  const existingImageCount = existingGalleryImages.length;
 
   const loadGuides = useCallback(async () => {
     setGuidesStatus({ type: 'loading', message: '' });
@@ -404,13 +507,66 @@ export function AdminPage() {
     }));
   }
 
+  function updateExistingGalleryImage(imageId, field, value) {
+    setExistingGalleryImages((current) =>
+      current.map((image) => (image.id === imageId ? { ...image, [field]: value } : image)),
+    );
+  }
+
+  function moveExistingGalleryImage(index, direction) {
+    setExistingGalleryImages((current) => {
+      const nextIndex = index + direction;
+
+      if (nextIndex < 0 || nextIndex >= current.length) {
+        return current;
+      }
+
+      const next = [...current];
+      const [item] = next.splice(index, 1);
+      next.splice(nextIndex, 0, item);
+
+      return next.map((image, imageIndex) => ({
+        ...image,
+        sortOrder: (imageIndex + 1) * 10,
+      }));
+    });
+  }
+
+  async function handleGpxChange(file) {
+    setGpxFile(null);
+    setRouteGeojson(null);
+
+    if (!file) {
+      setGpxStatus({ type: 'idle', message: '' });
+      return;
+    }
+
+    try {
+      const text = await file.text();
+      const parsedRoute = parseGpxToLineString(text);
+
+      setGpxFile(file);
+      setRouteGeojson(parsedRoute);
+      setGpxStatus({
+        type: 'success',
+        message: `${getRoutePointCount(parsedRoute)} route points ready to save.`,
+      });
+    } catch (error) {
+      setGpxStatus({ type: 'error', message: error.message });
+    }
+  }
+
   function startCreate() {
     setMode('create');
     setSelectedMountainId('');
     setForm(initialForm);
     setHeroImage(null);
     setGalleryImages([]);
+    setExistingGalleryImages([]);
     setGalleryMeta(initialGalleryMeta);
+    setGpxFile(null);
+    setRouteGeojson(null);
+    setGpxStatus({ type: 'idle', message: '' });
     setStatus({ type: 'idle', message: '' });
   }
 
@@ -420,12 +576,32 @@ export function AdminPage() {
     setForm(formFromGuide(guide));
     setHeroImage(null);
     setGalleryImages([]);
+    setExistingGalleryImages(galleryFromGuide(guide));
     setGalleryMeta(initialGalleryMeta);
+    setGpxFile(null);
+    setRouteGeojson(null);
+    setGpxStatus(
+      guide.trail?.routeGeojson
+        ? {
+            type: 'success',
+            message: `${getRoutePointCount(guide.trail.routeGeojson)} saved route points are connected to this guide.`,
+          }
+        : { type: 'idle', message: '' },
+    );
     setStatus({ type: 'idle', message: '' });
   }
 
-  function createPayload(heroImagePath) {
+  function createPayload(heroImagePath, gpxStoragePath) {
     const slug = previewSlug;
+    const guide = {
+      parking: form.parking.trim(),
+      trailhead: form.trailhead.trim(),
+      bestSeason: form.bestSeason.trim(),
+      suitableFor: form.suitableFor.trim(),
+      gearNotes: form.gearNotes.trim(),
+      access: form.access.trim(),
+      beforeYouGo: linesFromText(form.beforeYouGo),
+    };
 
     return {
       id: form.mountainId || slug,
@@ -447,6 +623,10 @@ export function AdminPage() {
       startLat: toNumber(form.startLat),
       startLng: toNumber(form.startLng),
       routeNote: form.routeNote.trim(),
+      routeGeojson,
+      gpxStoragePath,
+      safetyNotes: linesFromText(form.safetyNotes),
+      guide,
     };
   }
 
@@ -466,16 +646,75 @@ export function AdminPage() {
     }
   }
 
+  async function saveExistingGalleryImages() {
+    await Promise.all(
+      existingGalleryImages.map((image, index) =>
+        updateAdminTrailImage({
+          ...image,
+          sortOrder: (index + 1) * 10,
+        }),
+      ),
+    );
+  }
+
+  async function handleSaveGalleryChanges() {
+    setStatus({ type: 'loading', message: '' });
+
+    try {
+      await saveExistingGalleryImages();
+      const nextGuides = await loadGuides();
+      const savedGuide = nextGuides.find((guide) => guide.mountain.id === form.mountainId);
+
+      if (savedGuide) {
+        setExistingGalleryImages(galleryFromGuide(savedGuide));
+      }
+
+      setStatus({ type: 'success', message: 'Gallery changes saved.' });
+    } catch (error) {
+      setStatus({ type: 'error', message: error.message });
+    }
+  }
+
+  async function handleDeleteGalleryImage(image) {
+    const shouldDelete = window.confirm('Delete this image from the public guide?');
+
+    if (!shouldDelete) {
+      return;
+    }
+
+    setStatus({ type: 'loading', message: '' });
+
+    try {
+      await deleteAdminTrailImage(image);
+      setExistingGalleryImages((current) =>
+        current
+          .filter((currentImage) => currentImage.id !== image.id)
+          .map((image, index) => ({
+            ...image,
+            sortOrder: (index + 1) * 10,
+          })),
+      );
+      setStatus({ type: 'success', message: 'Gallery image deleted.' });
+    } catch (error) {
+      setStatus({ type: 'error', message: error.message });
+    }
+  }
+
   async function handleSubmit(event) {
     event.preventDefault();
     setStatus({ type: 'loading', message: '' });
 
     try {
+      if (gpxStatus.type === 'error') {
+        throw new Error('Fix or clear the GPX file before saving.');
+      }
+
       const slug = previewSlug;
       const heroImagePath = heroImage
         ? await uploadAdminMountainImage({ file: heroImage, slug })
         : form.heroImagePath;
-      const payload = createPayload(heroImagePath);
+      const gpxStoragePath = gpxFile ? await uploadAdminTrailGpx({ file: gpxFile, slug }) : undefined;
+      const payload = createPayload(heroImagePath, gpxStoragePath);
       const result =
         mode === 'edit'
           ? await updateAdminMountainGuide(payload)
@@ -483,6 +722,9 @@ export function AdminPage() {
       const trailId = result?.trail_id ?? payload.trailId;
 
       await saveGalleryImages({ trailId, slug });
+      if (mode === 'edit') {
+        await saveExistingGalleryImages();
+      }
 
       const nextGuides = await loadGuides();
       const savedGuide = nextGuides.find((guide) => guide.mountain.id === payload.id);
@@ -490,15 +732,20 @@ export function AdminPage() {
       if (mode === 'edit' && savedGuide) {
         setForm(formFromGuide(savedGuide));
         setSelectedMountainId(savedGuide.mountain.id);
+        setExistingGalleryImages(galleryFromGuide(savedGuide));
       } else {
         setForm(initialForm);
         setSelectedMountainId('');
         setMode('create');
+        setExistingGalleryImages([]);
       }
 
       setHeroImage(null);
       setGalleryImages([]);
       setGalleryMeta(initialGalleryMeta);
+      setGpxFile(null);
+      setRouteGeojson(null);
+      setGpxStatus({ type: 'idle', message: '' });
       setStatus({
         type: 'success',
         message:
@@ -760,14 +1007,168 @@ export function AdminPage() {
                     <span>Route note</span>
                     <input value={form.routeNote} onChange={(event) => updateField('routeNote', event.target.value)} />
                   </FullField>
+                  <FullField>
+                    <span>GPX route file</span>
+                    <input
+                      accept=".gpx,application/gpx+xml,application/xml,text/xml"
+                      type="file"
+                      onChange={(event) => handleGpxChange(event.target.files?.[0] ?? null)}
+                    />
+                  </FullField>
+                  {gpxStatus.message && (
+                    <UploadNote as="div">
+                      <Message $error={gpxStatus.type === 'error'}>{gpxStatus.message}</Message>
+                    </UploadNote>
+                  )}
+                </Grid>
+              </Fieldset>
+
+              <Fieldset>
+                <legend>Planning Notes</legend>
+                <Grid>
+                  <Field>
+                    <span>Parking</span>
+                    <SmallTextarea value={form.parking} onChange={(event) => updateField('parking', event.target.value)} />
+                  </Field>
+                  <Field>
+                    <span>Trailhead</span>
+                    <SmallTextarea
+                      value={form.trailhead}
+                      onChange={(event) => updateField('trailhead', event.target.value)}
+                    />
+                  </Field>
+                  <Field>
+                    <span>Best season</span>
+                    <SmallTextarea
+                      value={form.bestSeason}
+                      onChange={(event) => updateField('bestSeason', event.target.value)}
+                    />
+                  </Field>
+                  <Field>
+                    <span>Suitable for</span>
+                    <SmallTextarea
+                      value={form.suitableFor}
+                      onChange={(event) => updateField('suitableFor', event.target.value)}
+                    />
+                  </Field>
+                  <Field>
+                    <span>Gear notes</span>
+                    <SmallTextarea
+                      value={form.gearNotes}
+                      onChange={(event) => updateField('gearNotes', event.target.value)}
+                    />
+                  </Field>
+                  <Field>
+                    <span>Access</span>
+                    <SmallTextarea value={form.access} onChange={(event) => updateField('access', event.target.value)} />
+                  </Field>
+                  <FullField>
+                    <span>Before you go checklist</span>
+                    <SmallTextarea
+                      placeholder="One checklist item per line"
+                      value={form.beforeYouGo}
+                      onChange={(event) => updateField('beforeYouGo', event.target.value)}
+                    />
+                  </FullField>
+                  <FullField>
+                    <span>Safety notes</span>
+                    <SmallTextarea
+                      required
+                      placeholder="One safety note per line"
+                      value={form.safetyNotes}
+                      onChange={(event) => updateField('safetyNotes', event.target.value)}
+                    />
+                  </FullField>
                 </Grid>
               </Fieldset>
 
               <Fieldset>
                 <legend>Gallery</legend>
                 <Grid>
+                  {mode === 'edit' && existingGalleryImages.length > 0 && (
+                    <GalleryManager>
+                      {existingGalleryImages.map((image, index) => (
+                        <GalleryItem key={image.id}>
+                          <GalleryThumb src={image.src} alt={image.alt || 'Trail gallery image'} />
+                          <GalleryFields>
+                            <Grid>
+                              <Field>
+                                <span>Alt text</span>
+                                <input
+                                  value={image.alt}
+                                  onChange={(event) =>
+                                    updateExistingGalleryImage(image.id, 'alt', event.target.value)
+                                  }
+                                />
+                              </Field>
+                              <Field>
+                                <span>Source</span>
+                                <input
+                                  value={image.source}
+                                  onChange={(event) =>
+                                    updateExistingGalleryImage(image.id, 'source', event.target.value)
+                                  }
+                                />
+                              </Field>
+                              <Field>
+                                <span>License</span>
+                                <input
+                                  value={image.license}
+                                  onChange={(event) =>
+                                    updateExistingGalleryImage(image.id, 'license', event.target.value)
+                                  }
+                                />
+                              </Field>
+                              <Field>
+                                <span>Credit URL</span>
+                                <input
+                                  type="url"
+                                  value={image.creditUrl}
+                                  onChange={(event) =>
+                                    updateExistingGalleryImage(image.id, 'creditUrl', event.target.value)
+                                  }
+                                />
+                              </Field>
+                            </Grid>
+                            <GalleryActions>
+                              <IconButton
+                                disabled={index === 0 || status.type === 'loading'}
+                                type="button"
+                                onClick={() => moveExistingGalleryImage(index, -1)}
+                              >
+                                <ArrowUp size={16} aria-hidden="true" /> Up
+                              </IconButton>
+                              <IconButton
+                                disabled={index === existingGalleryImages.length - 1 || status.type === 'loading'}
+                                type="button"
+                                onClick={() => moveExistingGalleryImage(index, 1)}
+                              >
+                                <ArrowDown size={16} aria-hidden="true" /> Down
+                              </IconButton>
+                              <DangerButton
+                                disabled={status.type === 'loading'}
+                                type="button"
+                                onClick={() => handleDeleteGalleryImage(image)}
+                              >
+                                <Trash2 size={16} aria-hidden="true" /> Delete
+                              </DangerButton>
+                            </GalleryActions>
+                          </GalleryFields>
+                        </GalleryItem>
+                      ))}
+                      <ButtonRow>
+                        <SecondaryButton
+                          disabled={status.type === 'loading'}
+                          type="button"
+                          onClick={handleSaveGalleryChanges}
+                        >
+                          <Save size={16} aria-hidden="true" /> Save gallery changes
+                        </SecondaryButton>
+                      </ButtonRow>
+                    </GalleryManager>
+                  )}
                   <FullField>
-                    <span>Gallery images</span>
+                    <span>Add gallery images</span>
                     <input
                       accept="image/jpeg,image/png,image/webp"
                       multiple
@@ -813,7 +1214,9 @@ export function AdminPage() {
 
               <ButtonRow>
                 <Button type="submit" disabled={status.type === 'loading'}>
-                  {galleryImages.length > 0 || heroImage ? (
+                  {gpxFile ? (
+                    <FileUp size={18} aria-hidden="true" />
+                  ) : galleryImages.length > 0 || heroImage ? (
                     <ImagePlus size={18} aria-hidden="true" />
                   ) : (
                     <Save size={18} aria-hidden="true" />
@@ -828,6 +1231,18 @@ export function AdminPage() {
                 {galleryImages.length > 0 && (
                   <SecondaryButton type="button" onClick={() => setGalleryImages([])}>
                     <Camera size={18} aria-hidden="true" /> Clear images
+                  </SecondaryButton>
+                )}
+                {gpxFile && (
+                  <SecondaryButton
+                    type="button"
+                    onClick={() => {
+                      setGpxFile(null);
+                      setRouteGeojson(null);
+                      setGpxStatus({ type: 'idle', message: '' });
+                    }}
+                  >
+                    <FileUp size={18} aria-hidden="true" /> Clear GPX
                   </SecondaryButton>
                 )}
               </ButtonRow>

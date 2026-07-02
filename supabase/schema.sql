@@ -52,6 +52,9 @@ create table public.trails (
   end_point extensions.geography(point, 4326),
   route_geojson jsonb,
   route_note text,
+  gpx_storage_path text,
+  safety_notes jsonb not null default '[]'::jsonb,
+  guide jsonb not null default '{}'::jsonb,
   published boolean not null default true,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()

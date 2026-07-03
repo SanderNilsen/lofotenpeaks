@@ -1,8 +1,10 @@
 import { Menu, ShieldCheck, UserCircle, X } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import styled from 'styled-components';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { getIsAdmin } from '../../lib/supabase/api.js';
 import { theme } from '../../styles/theme.js';
+import { useAuth } from '../../features/auth/AuthProvider.jsx';
 
 const HeaderFrame = styled.header`
   position: sticky;
@@ -100,7 +102,34 @@ const MenuButton = styled.button`
 `;
 
 export function Header() {
+  const { isConfigured, user } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    if (!isConfigured || !user) {
+      setIsAdmin(false);
+      return undefined;
+    }
+
+    let isMounted = true;
+
+    getIsAdmin()
+      .then((value) => {
+        if (isMounted) {
+          setIsAdmin(value);
+        }
+      })
+      .catch(() => {
+        if (isMounted) {
+          setIsAdmin(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [isConfigured, user]);
 
   return (
     <HeaderFrame>
@@ -119,9 +148,11 @@ export function Header() {
           <NavLink to="/account" onClick={() => setMenuOpen(false)}>
             <UserCircle size={16} aria-hidden="true" /> Account
           </NavLink>
-          <NavLink to="/admin" onClick={() => setMenuOpen(false)}>
-            <ShieldCheck size={16} aria-hidden="true" /> Admin
-          </NavLink>
+          {isAdmin && (
+            <NavLink to="/admin" onClick={() => setMenuOpen(false)}>
+              <ShieldCheck size={16} aria-hidden="true" /> Admin
+            </NavLink>
+          )}
         </Nav>
         <MenuButton
           aria-label={menuOpen ? 'Close navigation menu' : 'Open navigation menu'}

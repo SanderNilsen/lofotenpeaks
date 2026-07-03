@@ -86,6 +86,7 @@ function transformGuideRow(row) {
     weatherLocationId: row.weather_location_id,
     region: row.region,
     heightMeters: row.height_meters,
+    checkInRadiusMeters: row.check_in_radius_meters ?? 200,
     coordinates:
       row.summit_lat !== null && row.summit_lng !== null
         ? { lat: Number(row.summit_lat), lng: Number(row.summit_lng) }
@@ -107,6 +108,7 @@ function transformGuideRow(row) {
         mountainId: row.mountain_id,
         published: row.trail_published ?? true,
         weatherLocationId: row.weather_location_id,
+        checkInRadiusMeters: row.check_in_radius_meters ?? 200,
         name: row.trail_name,
         summary: row.trail_summary,
         description: row.trail_description,
@@ -345,6 +347,7 @@ export async function createAdminMountainGuide(guide) {
     p_trail_estimated_duration: guide.estimatedDuration,
     p_start_lat: guide.startLat,
     p_start_lng: guide.startLng,
+    p_check_in_radius_meters: guide.checkInRadiusMeters,
     p_route_note: guide.routeNote,
     p_route_geojson: guide.routeGeojson,
     p_gpx_storage_path: guide.gpxStoragePath,
@@ -380,6 +383,7 @@ export async function updateAdminMountainGuide(guide) {
     p_trail_estimated_duration: guide.estimatedDuration,
     p_start_lat: guide.startLat,
     p_start_lng: guide.startLng,
+    p_check_in_radius_meters: guide.checkInRadiusMeters,
     p_route_note: guide.routeNote,
     p_route_geojson: guide.routeGeojson,
     p_gpx_storage_path: guide.gpxStoragePath,

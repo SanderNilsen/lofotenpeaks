@@ -27,6 +27,7 @@ create table public.mountains (
   region text not null,
   height_meters integer,
   summit extensions.geography(point, 4326),
+  check_in_radius_meters integer not null default 200,
   difficulty public.difficulty_level not null default 'moderate',
   summary text,
   description text,
@@ -34,7 +35,8 @@ create table public.mountains (
   hero_image_path text,
   published boolean not null default true,
   created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
+  updated_at timestamptz not null default now(),
+  constraint mountains_check_in_radius_range check (check_in_radius_meters between 25 and 1000)
 );
 
 create table public.trails (
@@ -236,28 +238,53 @@ as $$
 declare
   inserted_check_in public.check_ins;
   submitted_location extensions.geography;
+  summit_distance_meters numeric;
+  allowed_radius_meters integer;
 begin
   if auth.uid() is null then
     raise exception 'Sign in required' using errcode = '42501';
   end if;
 
-  if (p_lat is null and p_lng is not null) or (p_lat is not null and p_lng is null) then
-    raise exception 'Both latitude and longitude are required when saving location'
+  if p_lat is null or p_lng is null then
+    raise exception 'Location is required for summit check-in'
       using errcode = '22023';
   end if;
 
-  if p_lat is not null and (p_lat < -90 or p_lat > 90 or p_lng < -180 or p_lng > 180) then
+  if p_lat < -90 or p_lat > 90 or p_lng < -180 or p_lng > 180 then
     raise exception 'Location coordinates are outside valid latitude/longitude ranges'
       using errcode = '22023';
   end if;
 
-  if not exists (
-    select 1
-    from public.mountains as m
-    where m.id = p_mountain_id
-      and m.published = true
-  ) then
+  submitted_location := extensions.st_setsrid(
+    extensions.st_makepoint(p_lng, p_lat),
+    4326
+  )::extensions.geography;
+
+  select
+    case
+      when m.summit is null then null
+      else extensions.st_distance(submitted_location, m.summit)
+    end,
+    m.check_in_radius_meters
+  into summit_distance_meters, allowed_radius_meters
+  from public.mountains as m
+  where m.id = p_mountain_id
+    and m.published = true;
+
+  if not found then
     raise exception 'Published mountain not found' using errcode = 'P0002';
+  end if;
+
+  if summit_distance_meters is null then
+    raise exception 'Summit location is missing for this mountain'
+      using errcode = '22023';
+  end if;
+
+  if summit_distance_meters > allowed_radius_meters then
+    raise exception 'You need to be within % meters of the summit to check in. You are about % meters away.',
+      allowed_radius_meters,
+      round(summit_distance_meters)
+      using errcode = '22023';
   end if;
 
   if p_trail_id is not null and not exists (
@@ -268,13 +295,6 @@ begin
       and t.published = true
   ) then
     raise exception 'Published trail not found for this mountain' using errcode = 'P0002';
-  end if;
-
-  if p_lat is not null then
-    submitted_location := extensions.st_setsrid(
-      extensions.st_makepoint(p_lng, p_lat),
-      4326
-    )::extensions.geography;
   end if;
 
   insert into public.check_ins (
@@ -295,10 +315,7 @@ begin
     10,
     'approved',
     submitted_location,
-    case
-      when submitted_location is null or m.summit is null then null
-      else extensions.st_distance(submitted_location, m.summit)
-    end
+    summit_distance_meters
   from public.mountains as m
   where m.id = p_mountain_id
     and m.published = true

@@ -365,6 +365,7 @@ const initialForm = {
   slug: '',
   region: '',
   heightMeters: '',
+  checkInRadiusMeters: '200',
   difficulty: 'moderate',
   summary: '',
   description: '',
@@ -437,6 +438,7 @@ function formFromGuide(guide) {
     slug: mountain.slug,
     region: mountain.region,
     heightMeters: formValue(mountain.heightMeters),
+    checkInRadiusMeters: formValue(mountain.checkInRadiusMeters ?? 200),
     difficulty: mountain.difficulty ?? 'moderate',
     summary: mountain.summary ?? '',
     description: mountain.description ?? '',
@@ -495,6 +497,14 @@ function validateGuidePayload(payload) {
 
   if (!Number.isFinite(payload.heightMeters) || payload.heightMeters <= 0) {
     throw new Error('Height must be a positive number.');
+  }
+
+  if (
+    !Number.isFinite(payload.checkInRadiusMeters) ||
+    payload.checkInRadiusMeters < 25 ||
+    payload.checkInRadiusMeters > 1000
+  ) {
+    throw new Error('Check-in radius must be between 25 and 1000 meters.');
   }
 
   if (!Number.isFinite(payload.lengthKm) || payload.lengthKm <= 0) {
@@ -739,6 +749,7 @@ export function AdminPage() {
       name: form.name.trim(),
       region: form.region.trim(),
       heightMeters: toNumber(form.heightMeters),
+      checkInRadiusMeters: toNumber(form.checkInRadiusMeters),
       summitLat: toNumber(form.summitLat),
       summitLng: toNumber(form.summitLng),
       difficulty: form.difficulty,
@@ -1086,6 +1097,17 @@ export function AdminPage() {
                       min="0"
                       value={form.heightMeters}
                       onChange={(event) => updateField('heightMeters', event.target.value)}
+                    />
+                  </Field>
+                  <Field>
+                    <span>Check-in radius meters</span>
+                    <input
+                      required
+                      type="number"
+                      min="25"
+                      max="1000"
+                      value={form.checkInRadiusMeters}
+                      onChange={(event) => updateField('checkInRadiusMeters', event.target.value)}
                     />
                   </Field>
                   <Field>

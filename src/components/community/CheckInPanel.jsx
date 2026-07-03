@@ -115,6 +115,14 @@ function getFriendlyError(error) {
     return 'You already checked in to this mountain today.';
   }
 
+  if (error?.message?.includes('Location is required')) {
+    return 'Use your location before checking in. Summit check-ins are only saved near the mountain top.';
+  }
+
+  if (error?.message?.includes('within') && error?.message?.includes('summit')) {
+    return error.message;
+  }
+
   return error?.message ?? 'Could not save check-in.';
 }
 
@@ -186,6 +194,14 @@ function CheckInPanelContent({ trail }) {
   }, [isConfigured, trail?.mountainId, user]);
 
   async function handleCheckIn() {
+    if (!location) {
+      setStatus({
+        type: 'error',
+        message: 'Use your location before checking in. Summit check-ins are only saved near the mountain top.',
+      });
+      return;
+    }
+
     setStatus({ type: 'loading', message: '' });
 
     try {
@@ -263,7 +279,7 @@ function CheckInPanelContent({ trail }) {
       )}
       {isConfigured && !authIsLoading && user && !todayCheckIn && (
         <>
-          <p>Save today&apos;s summit visit and add 10 points to your profile.</p>
+          <p>Use your location at the summit to save today&apos;s visit and add 10 points to your profile.</p>
           <NoteField>
             <span>Optional note</span>
             <textarea
@@ -281,7 +297,7 @@ function CheckInPanelContent({ trail }) {
             >
               <Navigation size={18} aria-hidden="true" /> Use my location
             </SecondaryAction>
-            <Action type="button" disabled={status.type === 'loading'} onClick={handleCheckIn}>
+            <Action type="button" disabled={!location || status.type === 'loading'} onClick={handleCheckIn}>
               <CheckCircle2 size={18} aria-hidden="true" /> Check in
             </Action>
           </ActionRow>

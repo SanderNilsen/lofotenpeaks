@@ -8,6 +8,23 @@ create table if not exists public.admin_users (
 
 alter table public.admin_users enable row level security;
 
+alter table public.mountains
+add column if not exists check_in_radius_meters integer not null default 200;
+
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_constraint
+    where conname = 'mountains_check_in_radius_range'
+      and conrelid = 'public.mountains'::regclass
+  ) then
+    alter table public.mountains
+    add constraint mountains_check_in_radius_range
+    check (check_in_radius_meters between 25 and 1000);
+  end if;
+end $$;
+
 create or replace function public.is_admin()
 returns boolean
 language sql
@@ -265,6 +282,7 @@ select
   m.name as mountain_name,
   m.region,
   m.height_meters,
+  m.check_in_radius_meters,
   case when m.summit is null then null else extensions.st_y(m.summit::extensions.geometry) end as summit_lat,
   case when m.summit is null then null else extensions.st_x(m.summit::extensions.geometry) end as summit_lng,
   m.difficulty as mountain_difficulty,
@@ -320,6 +338,7 @@ group by
   m.name,
   m.region,
   m.height_meters,
+  m.check_in_radius_meters,
   m.summit,
   m.difficulty,
   m.summary,
@@ -355,6 +374,7 @@ select
   m.name as mountain_name,
   m.region,
   m.height_meters,
+  m.check_in_radius_meters,
   case when m.summit is null then null else extensions.st_y(m.summit::extensions.geometry) end as summit_lat,
   case when m.summit is null then null else extensions.st_x(m.summit::extensions.geometry) end as summit_lng,
   m.difficulty as mountain_difficulty,
@@ -408,6 +428,7 @@ group by
   m.name,
   m.region,
   m.height_meters,
+  m.check_in_radius_meters,
   m.summit,
   m.difficulty,
   m.summary,
@@ -456,6 +477,31 @@ drop function if exists public.admin_create_mountain_guide(
   text
 );
 
+drop function if exists public.admin_create_mountain_guide(
+  text,
+  text,
+  text,
+  text,
+  integer,
+  numeric,
+  numeric,
+  public.difficulty_level,
+  text,
+  text,
+  text,
+  text,
+  numeric,
+  integer,
+  text,
+  numeric,
+  numeric,
+  text,
+  jsonb,
+  text,
+  jsonb,
+  jsonb
+);
+
 drop function if exists public.admin_update_mountain_guide(
   text,
   text,
@@ -478,6 +524,32 @@ drop function if exists public.admin_update_mountain_guide(
   text
 );
 
+drop function if exists public.admin_update_mountain_guide(
+  text,
+  text,
+  text,
+  text,
+  text,
+  integer,
+  numeric,
+  numeric,
+  public.difficulty_level,
+  text,
+  text,
+  text,
+  text,
+  numeric,
+  integer,
+  text,
+  numeric,
+  numeric,
+  text,
+  jsonb,
+  text,
+  jsonb,
+  jsonb
+);
+
 create or replace function public.admin_create_mountain_guide(
   p_mountain_id text,
   p_slug text,
@@ -496,6 +568,7 @@ create or replace function public.admin_create_mountain_guide(
   p_trail_estimated_duration text,
   p_start_lat numeric,
   p_start_lng numeric,
+  p_check_in_radius_meters integer default 200,
   p_route_note text default null,
   p_route_geojson jsonb default null,
   p_gpx_storage_path text default null,
@@ -532,6 +605,7 @@ begin
     region,
     height_meters,
     summit,
+    check_in_radius_meters,
     difficulty,
     summary,
     description,
@@ -545,6 +619,7 @@ begin
     p_region,
     p_height_meters,
     extensions.st_setsrid(extensions.st_makepoint(p_summit_lng, p_summit_lat), 4326)::extensions.geography,
+    coalesce(p_check_in_radius_meters, 200),
     p_difficulty,
     p_summary,
     p_description,
@@ -621,6 +696,7 @@ grant execute on function public.admin_create_mountain_guide(
   text,
   numeric,
   numeric,
+  integer,
   text,
   jsonb,
   text,
@@ -647,6 +723,7 @@ create or replace function public.admin_update_mountain_guide(
   p_trail_estimated_duration text,
   p_start_lat numeric,
   p_start_lng numeric,
+  p_check_in_radius_meters integer default 200,
   p_route_note text default null,
   p_route_geojson jsonb default null,
   p_gpx_storage_path text default null,
@@ -683,6 +760,7 @@ begin
     region = p_region,
     height_meters = p_height_meters,
     summit = extensions.st_setsrid(extensions.st_makepoint(p_summit_lng, p_summit_lat), 4326)::extensions.geography,
+    check_in_radius_meters = coalesce(p_check_in_radius_meters, 200),
     difficulty = p_difficulty,
     summary = p_summary,
     description = p_description,
@@ -749,6 +827,7 @@ grant execute on function public.admin_update_mountain_guide(
   text,
   numeric,
   numeric,
+  integer,
   text,
   jsonb,
   text,

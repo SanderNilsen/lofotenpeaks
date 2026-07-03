@@ -254,6 +254,7 @@ begin
   end if;
 end $$;
 
+drop view if exists public.admin_mountain_guides;
 drop view if exists public.mountain_guides;
 
 create or replace view public.mountain_guides
@@ -271,6 +272,7 @@ select
   m.description as mountain_description,
   m.weather_location_id,
   m.hero_image_path,
+  m.published as mountain_published,
   t.id as trail_id,
   t.slug as trail_slug,
   t.name as trail_name,
@@ -289,6 +291,7 @@ select
   t.gpx_storage_path,
   t.safety_notes,
   t.guide,
+  t.published as trail_published,
   coalesce(
     jsonb_agg(
       jsonb_build_object(
@@ -323,6 +326,7 @@ group by
   m.description,
   m.weather_location_id,
   m.hero_image_path,
+  m.published,
   t.id,
   t.slug,
   t.name,
@@ -338,9 +342,98 @@ group by
   t.route_note,
   t.gpx_storage_path,
   t.safety_notes,
-  t.guide;
+  t.guide,
+  t.published;
 
 grant select on public.mountain_guides to anon, authenticated;
+
+create or replace view public.admin_mountain_guides
+with (security_invoker = true) as
+select
+  m.id as mountain_id,
+  m.slug as mountain_slug,
+  m.name as mountain_name,
+  m.region,
+  m.height_meters,
+  case when m.summit is null then null else extensions.st_y(m.summit::extensions.geometry) end as summit_lat,
+  case when m.summit is null then null else extensions.st_x(m.summit::extensions.geometry) end as summit_lng,
+  m.difficulty as mountain_difficulty,
+  m.summary as mountain_summary,
+  m.description as mountain_description,
+  m.weather_location_id,
+  m.hero_image_path,
+  m.published as mountain_published,
+  t.id as trail_id,
+  t.slug as trail_slug,
+  t.name as trail_name,
+  t.summary as trail_summary,
+  t.description as trail_description,
+  t.length_km,
+  t.elevation_gain_meters,
+  t.estimated_duration,
+  t.difficulty as trail_difficulty,
+  case when t.start_point is null then null else extensions.st_y(t.start_point::extensions.geometry) end as start_lat,
+  case when t.start_point is null then null else extensions.st_x(t.start_point::extensions.geometry) end as start_lng,
+  case when t.end_point is null then null else extensions.st_y(t.end_point::extensions.geometry) end as end_lat,
+  case when t.end_point is null then null else extensions.st_x(t.end_point::extensions.geometry) end as end_lng,
+  t.route_geojson,
+  t.route_note,
+  t.gpx_storage_path,
+  t.safety_notes,
+  t.guide,
+  t.published as trail_published,
+  coalesce(
+    jsonb_agg(
+      jsonb_build_object(
+        'id', ti.id,
+        'filePath', ti.file_path,
+        'alt', ti.alt,
+        'source', ti.source,
+        'license', ti.license,
+        'creditUrl', ti.credit_url,
+        'sortOrder', ti.sort_order
+      )
+      order by ti.sort_order, ti.id
+    ) filter (where ti.id is not null),
+    '[]'::jsonb
+  ) as images
+from public.mountains m
+left join public.trails t
+  on t.mountain_id = m.id
+left join public.trail_images ti
+  on ti.trail_id = t.id
+group by
+  m.id,
+  m.slug,
+  m.name,
+  m.region,
+  m.height_meters,
+  m.summit,
+  m.difficulty,
+  m.summary,
+  m.description,
+  m.weather_location_id,
+  m.hero_image_path,
+  m.published,
+  t.id,
+  t.slug,
+  t.name,
+  t.summary,
+  t.description,
+  t.length_km,
+  t.elevation_gain_meters,
+  t.estimated_duration,
+  t.difficulty,
+  t.start_point,
+  t.end_point,
+  t.route_geojson,
+  t.route_note,
+  t.gpx_storage_path,
+  t.safety_notes,
+  t.guide,
+  t.published;
+
+grant select on public.admin_mountain_guides to authenticated;
 
 drop function if exists public.admin_create_mountain_guide(
   text,
@@ -662,6 +755,64 @@ grant execute on function public.admin_update_mountain_guide(
   jsonb,
   jsonb
 ) to authenticated;
+
+create or replace function public.admin_set_mountain_guide_published(
+  p_mountain_id text,
+  p_trail_id text,
+  p_published boolean
+)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if not public.is_admin() then
+    raise exception 'Admin access required' using errcode = '42501';
+  end if;
+
+  update public.mountains
+  set published = coalesce(p_published, false)
+  where id = p_mountain_id;
+
+  if not found then
+    raise exception 'Mountain guide not found' using errcode = 'P0002';
+  end if;
+
+  update public.trails
+  set published = coalesce(p_published, false)
+  where id = p_trail_id
+    and mountain_id = p_mountain_id;
+
+  if not found then
+    raise exception 'Trail guide not found' using errcode = 'P0002';
+  end if;
+end;
+$$;
+
+grant execute on function public.admin_set_mountain_guide_published(text, text, boolean) to authenticated;
+
+create or replace function public.admin_delete_mountain_guide(p_mountain_id text)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if not public.is_admin() then
+    raise exception 'Admin access required' using errcode = '42501';
+  end if;
+
+  delete from public.mountains as m
+  where m.id = p_mountain_id;
+
+  if not found then
+    raise exception 'Mountain guide not found' using errcode = 'P0002';
+  end if;
+end;
+$$;
+
+grant execute on function public.admin_delete_mountain_guide(text) to authenticated;
 
 create or replace function public.admin_add_trail_image(
   p_trail_id text,

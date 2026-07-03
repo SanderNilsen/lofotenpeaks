@@ -2,6 +2,8 @@ import {
   ArrowDown,
   ArrowUp,
   Camera,
+  Eye,
+  EyeOff,
   FileUp,
   ImagePlus,
   Lock,
@@ -19,9 +21,11 @@ import { Seo } from '../../components/common/Seo.jsx';
 import {
   addAdminTrailImage,
   createAdminMountainGuide,
+  deleteAdminMountainGuide,
   deleteAdminTrailImage,
   getAdminMountainGuides,
   getIsAdmin,
+  setAdminMountainGuidePublished,
   updateAdminTrailImage,
   updateAdminMountainGuide,
   uploadAdminMountainImage,
@@ -301,9 +305,62 @@ const GalleryActions = styled.div`
   gap: 8px;
 `;
 
+const ToggleField = styled.label`
+  align-items: start;
+  background: ${theme.colors.background};
+  border: 1px solid ${theme.colors.line};
+  border-radius: ${theme.radii.small};
+  cursor: pointer;
+  display: grid;
+  gap: 10px;
+  grid-column: 1 / -1;
+  grid-template-columns: auto minmax(0, 1fr);
+  padding: 12px;
+
+  input {
+    accent-color: ${theme.colors.forest};
+    height: 18px;
+    margin-top: 2px;
+    width: 18px;
+  }
+
+  strong {
+    display: block;
+    font-size: 0.95rem;
+    margin-bottom: 3px;
+  }
+
+  span {
+    color: ${theme.colors.muted};
+    display: block;
+    font-size: 0.84rem;
+    font-weight: 700;
+    line-height: 1.45;
+  }
+`;
+
+const StatusPill = styled.span`
+  align-items: center;
+  background: ${({ $published }) => ($published ? '#e4eee6' : '#f2e6dc')};
+  border-radius: 999px;
+  color: ${({ $published }) => ($published ? theme.colors.forest : theme.colors.warning)};
+  display: inline-flex;
+  font-size: 0.74rem !important;
+  font-weight: 900 !important;
+  gap: 5px;
+  justify-self: start;
+  line-height: 1;
+  padding: 6px 8px;
+  text-transform: uppercase;
+`;
+
+const MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024;
+const MAX_GPX_SIZE_BYTES = 2 * 1024 * 1024;
+
 const initialForm = {
   mountainId: '',
   trailId: '',
+  published: true,
   name: '',
   slug: '',
   region: '',
@@ -375,6 +432,7 @@ function formFromGuide(guide) {
   return {
     mountainId: mountain.id,
     trailId: trail?.id ?? mountain.id,
+    published: mountain.published ?? true,
     name: mountain.name,
     slug: mountain.slug,
     region: mountain.region,
@@ -414,6 +472,50 @@ function galleryFromGuide(guide) {
     creditUrl: image.creditUrl ?? '',
     sortOrder: image.sortOrder ?? (index + 1) * 10,
   }));
+}
+
+function assertFileSize(file, maxBytes, label) {
+  if (file.size > maxBytes) {
+    throw new Error(`${label} must be smaller than ${Math.round(maxBytes / 1024 / 1024)} MB.`);
+  }
+}
+
+function isValidCoordinate(value, min, max) {
+  return Number.isFinite(value) && value >= min && value <= max;
+}
+
+function validateGuidePayload(payload) {
+  if (!payload.slug) {
+    throw new Error('Add a valid slug before saving.');
+  }
+
+  if (!payload.heroImagePath) {
+    throw new Error('Add a hero image before saving this guide.');
+  }
+
+  if (!Number.isFinite(payload.heightMeters) || payload.heightMeters <= 0) {
+    throw new Error('Height must be a positive number.');
+  }
+
+  if (!Number.isFinite(payload.lengthKm) || payload.lengthKm <= 0) {
+    throw new Error('Trail length must be a positive number.');
+  }
+
+  if (!Number.isFinite(payload.elevationGainMeters) || payload.elevationGainMeters < 0) {
+    throw new Error('Elevation gain must be zero or higher.');
+  }
+
+  if (!isValidCoordinate(payload.summitLat, -90, 90) || !isValidCoordinate(payload.startLat, -90, 90)) {
+    throw new Error('Latitude must be between -90 and 90.');
+  }
+
+  if (!isValidCoordinate(payload.summitLng, -180, 180) || !isValidCoordinate(payload.startLng, -180, 180)) {
+    throw new Error('Longitude must be between -180 and 180.');
+  }
+
+  if (payload.safetyNotes.length === 0) {
+    throw new Error('Add at least one safety note.');
+  }
 }
 
 export function AdminPage() {
@@ -542,6 +644,7 @@ export function AdminPage() {
     }
 
     try {
+      assertFileSize(file, MAX_GPX_SIZE_BYTES, 'GPX file');
       const text = await file.text();
       const parsedRoute = parseGpxToLineString(text);
 
@@ -553,6 +656,32 @@ export function AdminPage() {
       });
     } catch (error) {
       setGpxStatus({ type: 'error', message: error.message });
+    }
+  }
+
+  function handleHeroImageChange(file) {
+    try {
+      if (file) {
+        assertFileSize(file, MAX_IMAGE_SIZE_BYTES, 'Hero image');
+      }
+
+      setHeroImage(file);
+      setStatus({ type: 'idle', message: '' });
+    } catch (error) {
+      setHeroImage(null);
+      setStatus({ type: 'error', message: error.message });
+    }
+  }
+
+  function handleGalleryImagesChange(fileList) {
+    try {
+      const files = [...(fileList ?? [])];
+      files.forEach((file) => assertFileSize(file, MAX_IMAGE_SIZE_BYTES, 'Gallery image'));
+      setGalleryImages(files);
+      setStatus({ type: 'idle', message: '' });
+    } catch (error) {
+      setGalleryImages([]);
+      setStatus({ type: 'error', message: error.message });
     }
   }
 
@@ -710,16 +839,26 @@ export function AdminPage() {
       }
 
       const slug = previewSlug;
+      const preflightPayload = createPayload(heroImage ? 'pending-upload' : form.heroImagePath, undefined);
+      validateGuidePayload(preflightPayload);
+
       const heroImagePath = heroImage
         ? await uploadAdminMountainImage({ file: heroImage, slug })
         : form.heroImagePath;
       const gpxStoragePath = gpxFile ? await uploadAdminTrailGpx({ file: gpxFile, slug }) : undefined;
       const payload = createPayload(heroImagePath, gpxStoragePath);
+      validateGuidePayload(payload);
       const result =
         mode === 'edit'
           ? await updateAdminMountainGuide(payload)
           : await createAdminMountainGuide(payload);
       const trailId = result?.trail_id ?? payload.trailId;
+
+      await setAdminMountainGuidePublished({
+        mountainId: payload.id,
+        trailId,
+        published: form.published,
+      });
 
       await saveGalleryImages({ trailId, slug });
       if (mode === 'edit') {
@@ -748,11 +887,45 @@ export function AdminPage() {
       setGpxStatus({ type: 'idle', message: '' });
       setStatus({
         type: 'success',
-        message:
-          mode === 'edit'
+        message: form.published
+          ? mode === 'edit'
             ? `Mountain guide updated. Open /mountains/${slug} to review it.`
-            : `Mountain guide created. Open /mountains/${slug} to review it.`,
+            : `Mountain guide created. Open /mountains/${slug} to review it.`
+          : mode === 'edit'
+            ? 'Mountain guide updated and saved as draft.'
+            : 'Mountain guide created and saved as draft.',
       });
+    } catch (error) {
+      setStatus({ type: 'error', message: error.message });
+    }
+  }
+
+  async function handleDeleteGuide() {
+    const shouldDelete = window.confirm(
+      `Delete ${form.name}? This removes the mountain, trail, gallery records, comments, and check-ins connected to it. Use draft mode instead if you only want to hide it from the public site.`,
+    );
+
+    if (!shouldDelete) {
+      return;
+    }
+
+    setStatus({ type: 'loading', message: '' });
+
+    try {
+      const deletedName = form.name;
+      await deleteAdminMountainGuide({ mountainId: form.mountainId });
+      await loadGuides();
+      setMode('create');
+      setSelectedMountainId('');
+      setForm(initialForm);
+      setHeroImage(null);
+      setGalleryImages([]);
+      setExistingGalleryImages([]);
+      setGalleryMeta(initialGalleryMeta);
+      setGpxFile(null);
+      setRouteGeojson(null);
+      setGpxStatus({ type: 'idle', message: '' });
+      setStatus({ type: 'success', message: `${deletedName} was deleted.` });
     } catch (error) {
       setStatus({ type: 'error', message: error.message });
     }
@@ -841,6 +1014,14 @@ export function AdminPage() {
                     {guide.mountain.region}
                     {guide.trail ? ` · ${guide.trail.estimatedDuration}` : ''}
                   </span>
+                  <StatusPill $published={guide.mountain.published}>
+                    {guide.mountain.published ? (
+                      <Eye size={13} aria-hidden="true" />
+                    ) : (
+                      <EyeOff size={13} aria-hidden="true" />
+                    )}
+                    {guide.mountain.published ? 'Published' : 'Draft'}
+                  </StatusPill>
                 </GuideButton>
               ))}
             </GuideList>
@@ -861,6 +1042,17 @@ export function AdminPage() {
               <Fieldset>
                 <legend>Mountain</legend>
                 <Grid>
+                  <ToggleField>
+                    <input
+                      checked={form.published}
+                      type="checkbox"
+                      onChange={(event) => updateField('published', event.target.checked)}
+                    />
+                    <span>
+                      <strong>Published</strong>
+                      Public guides appear on the mountains page. Drafts stay visible here only.
+                    </span>
+                  </ToggleField>
                   <Field>
                     <span>Name</span>
                     <input required value={form.name} onChange={(event) => updateField('name', event.target.value)} />
@@ -944,7 +1136,7 @@ export function AdminPage() {
                     <input
                       accept="image/jpeg,image/png,image/webp"
                       type="file"
-                      onChange={(event) => setHeroImage(event.target.files?.[0] ?? null)}
+                      onChange={(event) => handleHeroImageChange(event.target.files?.[0] ?? null)}
                     />
                   </FullField>
                 </Grid>
@@ -1173,7 +1365,7 @@ export function AdminPage() {
                       accept="image/jpeg,image/png,image/webp"
                       multiple
                       type="file"
-                      onChange={(event) => setGalleryImages([...(event.target.files ?? [])])}
+                      onChange={(event) => handleGalleryImagesChange(event.target.files)}
                     />
                   </FullField>
                   <UploadNote>
@@ -1227,6 +1419,11 @@ export function AdminPage() {
                   <SecondaryButton type="button" onClick={startCreate}>
                     <Plus size={18} aria-hidden="true" /> New guide
                   </SecondaryButton>
+                )}
+                {mode === 'edit' && (
+                  <DangerButton type="button" disabled={status.type === 'loading'} onClick={handleDeleteGuide}>
+                    <Trash2 size={18} aria-hidden="true" /> Delete guide
+                  </DangerButton>
                 )}
                 {galleryImages.length > 0 && (
                   <SecondaryButton type="button" onClick={() => setGalleryImages([])}>

@@ -95,15 +95,23 @@ export function LeaderboardPanel({ entries = [], isLoading = false }) {
       {!isLoading && entries.length === 0 && <Empty>No check-ins yet. The first summit point is still open.</Empty>}
       {!isLoading && entries.length > 0 && (
         <List>
-          {entries.map((entry) => (
-            <Row key={entry.user_id}>
-              <Person>
-                <strong>{entry.display_name}</strong>
-                <span>{entry.check_in_count} check-ins</span>
-              </Person>
-              <Points>{entry.points} pts</Points>
-            </Row>
-          ))}
+          {entries.map((entry) => {
+            const completedMountains = entry.completed_mountains ?? 0;
+            const mountainLabel = completedMountains === 1 ? 'mountain' : 'mountains';
+            const checkInLabel = entry.check_in_count === 1 ? 'check-in' : 'check-ins';
+
+            return (
+              <Row key={entry.user_id}>
+                <Person>
+                  <strong>{entry.display_name}</strong>
+                  <span>
+                    {completedMountains} {mountainLabel} · {entry.check_in_count} {checkInLabel}
+                  </span>
+                </Person>
+                <Points>{entry.points} pts</Points>
+              </Row>
+            );
+          })}
         </List>
       )}
     </Panel>

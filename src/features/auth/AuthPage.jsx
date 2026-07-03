@@ -1,9 +1,10 @@
-import { CheckCircle2, LogOut, Medal, Save, ShieldCheck, UserCircle } from 'lucide-react';
+import { CheckCircle2, LogOut, Map, Medal, Save, Send, ShieldCheck, UserCircle } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import styled from 'styled-components';
 import { LeaderboardPanel } from '../../components/community/LeaderboardPanel.jsx';
 import { Seo } from '../../components/common/Seo.jsx';
 import {
+  createUserHike,
   getLeaderboard,
   getProfile,
   getUserCheckIns,
@@ -17,7 +18,7 @@ import { useAuth } from './AuthProvider.jsx';
 
 const Page = styled.section`
   margin: 0 auto;
-  max-width: 760px;
+  max-width: 980px;
   padding: 48px 24px 0;
 `;
 
@@ -81,7 +82,9 @@ const Field = styled.label`
     text-transform: uppercase;
   }
 
-  input {
+  input,
+  select,
+  textarea {
     background: ${theme.colors.background};
     border: 1px solid ${theme.colors.line};
     border-radius: ${theme.radii.small};
@@ -90,6 +93,15 @@ const Field = styled.label`
     padding: 10px 11px;
     width: 100%;
   }
+
+  textarea {
+    min-height: 116px;
+    resize: vertical;
+  }
+`;
+
+const SmallTextarea = styled.textarea`
+  min-height: 92px !important;
 `;
 
 const PrimaryButton = styled.button`
@@ -185,8 +197,12 @@ const ButtonRow = styled.div`
 const StatGrid = styled.dl`
   display: grid;
   gap: 10px;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   margin: 0;
+
+  @media (max-width: 560px) {
+    grid-template-columns: 1fr;
+  }
 
   div {
     background: ${theme.colors.background};
@@ -251,6 +267,26 @@ function formatCheckInDate(value) {
   }).format(new Date(value));
 }
 
+function formatDistanceFromSummit(value) {
+  const distance = Number(value);
+
+  if (!Number.isFinite(distance)) {
+    return null;
+  }
+
+  if (distance >= 1000) {
+    return `${(distance / 1000).toFixed(1)} km from summit`;
+  }
+
+  return `${Math.round(distance)} m from summit`;
+}
+
+const initialHikeForm = {
+  title: '',
+  body: '',
+  difficulty: 'moderate',
+};
+
 export function AuthPage() {
   const { isConfigured, isLoading, user } = useAuth();
   const [mode, setMode] = useState('sign-in');
@@ -266,6 +302,8 @@ export function AuthPage() {
     isLoading: false,
     error: '',
   });
+  const [hikeForm, setHikeForm] = useState(initialHikeForm);
+  const [hikeStatus, setHikeStatus] = useState({ type: 'idle', message: '' });
 
   useEffect(() => {
     if (!isConfigured || !user) {
@@ -308,9 +346,17 @@ export function AuthPage() {
 
     return {
       checkInCount: approvedCheckIns.length,
+      completedMountains: new Set(approvedCheckIns.map((checkIn) => checkIn.mountain_id).filter(Boolean)).size,
       points: approvedCheckIns.reduce((total, checkIn) => total + (checkIn.points ?? 0), 0),
     };
   }, [accountData.checkIns]);
+
+  function updateHikeForm(field, value) {
+    setHikeForm((current) => ({
+      ...current,
+      [field]: value,
+    }));
+  }
 
   async function handleSubmit(event) {
     event.preventDefault();
@@ -356,6 +402,32 @@ export function AuthPage() {
       setStatus({ type: 'success', message: 'Profile updated.' });
     } catch (error) {
       setStatus({ type: 'error', message: error.message });
+    }
+  }
+
+  async function handleHikeSubmit(event) {
+    event.preventDefault();
+    setHikeStatus({ type: 'loading', message: '' });
+
+    try {
+      const title = hikeForm.title.trim();
+
+      if (title.length < 4) {
+        throw new Error('Add a clearer hike title.');
+      }
+
+      await createUserHike({
+        user_id: user.id,
+        title,
+        body: hikeForm.body.trim() || null,
+        difficulty: hikeForm.difficulty,
+        status: 'pending',
+      });
+
+      setHikeForm(initialHikeForm);
+      setHikeStatus({ type: 'success', message: 'Hike recommendation saved for review.' });
+    } catch (error) {
+      setHikeStatus({ type: 'error', message: error.message });
     }
   }
 
@@ -441,6 +513,10 @@ export function AuthPage() {
                   <dt>Check-ins</dt>
                   <dd>{accountStats.checkInCount}</dd>
                 </div>
+                <div>
+                  <dt>Mountains</dt>
+                  <dd>{accountStats.completedMountains}</dd>
+                </div>
               </StatGrid>
             </Card>
           </DashboardGrid>
@@ -461,6 +537,9 @@ export function AuthPage() {
                       <strong>{checkIn.mountains?.name ?? checkIn.trails?.name ?? checkIn.mountain_id}</strong>
                       <span>
                         {formatCheckInDate(checkIn.checked_in_at)} · {checkIn.points} points
+                        {formatDistanceFromSummit(checkIn.distance_to_summit_meters)
+                          ? ` · ${formatDistanceFromSummit(checkIn.distance_to_summit_meters)}`
+                          : ''}
                       </span>
                       {checkIn.note && <span>{checkIn.note}</span>}
                     </li>
@@ -470,6 +549,50 @@ export function AuthPage() {
             </Card>
 
             <LeaderboardPanel entries={accountData.leaderboard} isLoading={accountData.isLoading} />
+          </DashboardGrid>
+
+          <DashboardGrid>
+            <Card>
+              <h2>
+                <Map size={18} aria-hidden="true" /> Recommend a Hike
+              </h2>
+              <ProfileForm onSubmit={handleHikeSubmit}>
+                <Field>
+                  <span>Title</span>
+                  <input
+                    required
+                    type="text"
+                    value={hikeForm.title}
+                    placeholder="Hidden beach route, winter viewpoint, or local loop"
+                    onChange={(event) => updateHikeForm('title', event.target.value)}
+                  />
+                </Field>
+                <Field>
+                  <span>Difficulty</span>
+                  <select
+                    value={hikeForm.difficulty}
+                    onChange={(event) => updateHikeForm('difficulty', event.target.value)}
+                  >
+                    <option value="easy">Easy</option>
+                    <option value="moderate">Moderate</option>
+                    <option value="hard">Hard</option>
+                    <option value="expert">Expert</option>
+                  </select>
+                </Field>
+                <Field>
+                  <span>Notes</span>
+                  <SmallTextarea
+                    value={hikeForm.body}
+                    placeholder="Route condition, best season, parking, or why it is worth adding."
+                    onChange={(event) => updateHikeForm('body', event.target.value)}
+                  />
+                </Field>
+                <PrimaryButton type="submit" disabled={hikeStatus.type === 'loading'}>
+                  <Send size={18} aria-hidden="true" /> Send recommendation
+                </PrimaryButton>
+              </ProfileForm>
+              {hikeStatus.message && <Message $error={hikeStatus.type === 'error'}>{hikeStatus.message}</Message>}
+            </Card>
           </DashboardGrid>
         </Dashboard>
       )}

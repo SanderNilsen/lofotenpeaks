@@ -1,4 +1,4 @@
-import { CheckCircle2, LogIn, MapPin } from 'lucide-react';
+import { CheckCircle2, LogIn, MapPin, Navigation } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import styled from 'styled-components';
@@ -72,6 +72,18 @@ const Action = styled.button`
   }
 `;
 
+const SecondaryAction = styled(Action)`
+  background: ${theme.colors.background};
+  border: 1px solid ${theme.colors.line};
+  color: ${theme.colors.ink};
+`;
+
+const ActionRow = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+`;
+
 const AccountLink = styled(Link)`
   align-items: center;
   background: ${theme.colors.forest};
@@ -87,11 +99,14 @@ const AccountLink = styled(Link)`
 `;
 
 const Message = styled.p`
+  align-items: center;
   background: ${({ $error }) => ($error ? '#f2e6dc' : theme.colors.background)};
   border: 1px solid ${({ $error }) => ($error ? '#dfc4af' : theme.colors.line)};
   border-radius: ${theme.radii.small};
   color: ${({ $error }) => ($error ? theme.colors.warning : theme.colors.muted)};
+  display: flex;
   font-weight: 800;
+  gap: 8px;
   padding: 11px;
 `;
 
@@ -103,10 +118,44 @@ function getFriendlyError(error) {
   return error?.message ?? 'Could not save check-in.';
 }
 
+function formatDistanceFromSummit(value) {
+  const distance = Number(value);
+
+  if (!Number.isFinite(distance)) {
+    return null;
+  }
+
+  if (distance >= 1000) {
+    return `${(distance / 1000).toFixed(1)} km from summit`;
+  }
+
+  return `${Math.round(distance)} m from summit`;
+}
+
+function formatAccuracy(value) {
+  const accuracy = Number(value);
+
+  if (!Number.isFinite(accuracy)) {
+    return '';
+  }
+
+  return accuracy >= 1000 ? `±${(accuracy / 1000).toFixed(1)} km` : `±${Math.round(accuracy)} m`;
+}
+
+function getLocationErrorMessage(error) {
+  if (error?.message?.toLowerCase().includes('secure origins')) {
+    return 'Location only works on HTTPS or localhost. Use the Netlify site, or open local dev at http://localhost:5173 instead of a network/IP address.';
+  }
+
+  return error?.message || 'Could not read your location.';
+}
+
 function CheckInPanelContent({ trail }) {
   const { isConfigured, isLoading: authIsLoading, user } = useAuth();
   const [todayCheckIn, setTodayCheckIn] = useState(null);
   const [note, setNote] = useState('');
+  const [location, setLocation] = useState(null);
+  const [locationStatus, setLocationStatus] = useState({ type: 'idle', message: '' });
   const [status, setStatus] = useState({ type: 'idle', message: '' });
 
   useEffect(() => {
@@ -145,6 +194,7 @@ function CheckInPanelContent({ trail }) {
         mountainId: trail.mountainId,
         trailId: trail.id,
         note,
+        location,
       });
       setTodayCheckIn(checkIn);
       setNote('');
@@ -152,6 +202,39 @@ function CheckInPanelContent({ trail }) {
     } catch (error) {
       setStatus({ type: 'error', message: getFriendlyError(error) });
     }
+  }
+
+  function handleUseLocation() {
+    if (!navigator.geolocation) {
+      setLocationStatus({ type: 'error', message: 'Location is not available in this browser.' });
+      return;
+    }
+
+    setLocationStatus({ type: 'loading', message: 'Finding your location...' });
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const nextLocation = {
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+          accuracy: position.coords.accuracy,
+        };
+        setLocation(nextLocation);
+        setLocationStatus({
+          type: 'success',
+          message: `Location ready ${formatAccuracy(nextLocation.accuracy)}.`,
+        });
+      },
+      (error) => {
+        setLocation(null);
+        setLocationStatus({ type: 'error', message: getLocationErrorMessage(error) });
+      },
+      {
+        enableHighAccuracy: true,
+        maximumAge: 60000,
+        timeout: 10000,
+      },
+    );
   }
 
   return (
@@ -171,7 +254,11 @@ function CheckInPanelContent({ trail }) {
       )}
       {isConfigured && !authIsLoading && user && todayCheckIn && (
         <Message>
-          <CheckCircle2 size={17} aria-hidden="true" /> Checked in today for {todayCheckIn.points} points.
+          <CheckCircle2 size={17} aria-hidden="true" /> Checked in today for {todayCheckIn.points} points
+          {formatDistanceFromSummit(todayCheckIn.distance_to_summit_meters)
+            ? ` · ${formatDistanceFromSummit(todayCheckIn.distance_to_summit_meters)}`
+            : ''}
+          .
         </Message>
       )}
       {isConfigured && !authIsLoading && user && !todayCheckIn && (
@@ -186,11 +273,21 @@ function CheckInPanelContent({ trail }) {
               onChange={(event) => setNote(event.target.value)}
             />
           </NoteField>
-          <Action type="button" disabled={status.type === 'loading'} onClick={handleCheckIn}>
-            <CheckCircle2 size={18} aria-hidden="true" /> Check in
-          </Action>
+          <ActionRow>
+            <SecondaryAction
+              type="button"
+              disabled={locationStatus.type === 'loading' || status.type === 'loading'}
+              onClick={handleUseLocation}
+            >
+              <Navigation size={18} aria-hidden="true" /> Use my location
+            </SecondaryAction>
+            <Action type="button" disabled={status.type === 'loading'} onClick={handleCheckIn}>
+              <CheckCircle2 size={18} aria-hidden="true" /> Check in
+            </Action>
+          </ActionRow>
         </>
       )}
+      {locationStatus.message && <Message $error={locationStatus.type === 'error'}>{locationStatus.message}</Message>}
       {status.message && <Message $error={status.type === 'error'}>{status.message}</Message>}
     </Panel>
   );

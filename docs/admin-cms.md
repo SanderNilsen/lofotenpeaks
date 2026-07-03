@@ -18,6 +18,12 @@ If existing seeded trails are missing planning notes after adding the admin CMS 
 npx -y supabase db query --linked --file supabase/guide-notes.sql
 ```
 
+Community check-ins and leaderboard progress use a separate SQL layer:
+
+```bash
+npx -y supabase db query --linked --file supabase/community.sql
+```
+
 ## Grant Admin Access
 
 After `supabase/admin.sql` has been applied, add your own logged-in account to `public.admin_users`.
@@ -38,6 +44,8 @@ The current admin screen supports:
 
 - creating one mountain with one matching trail
 - editing existing mountain/trail guide fields
+- publishing and drafting guides
+- deleting whole guides when their connected community records can also be removed
 - summit and trailhead coordinates
 - difficulty, height, route summary, route note, and description
 - planning notes for parking, trailhead, best season, suitable audience, gear, access, and before-you-go checklist
@@ -48,6 +56,8 @@ The current admin screen supports:
 - editing, deleting, and reordering gallery image metadata
 - optional image source, license, and credit URL metadata
 
-Deleting whole guides, multiple trails per mountain, and moderation tools should come after the basic create/edit flow is working.
+Multiple trails per mountain and moderation tools should come after the basic create/edit flow is working.
 
 GPX files are stored in the private `trail-gpx` bucket. The public site reads the parsed `route_geojson` value from the `mountain_guides` view, not the raw GPX file.
+
+The public site reads from `public.mountain_guides`, which only returns published content. The admin page reads from `public.admin_mountain_guides`, which returns drafts too.

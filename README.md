@@ -9,13 +9,13 @@ Lofoten Peaks is being rebuilt as a React information site for mountains and hik
 - styled-components
 - React Router
 - React Leaflet + OpenStreetMap tiles
-- Supabase planned for auth, database, and storage
+- Supabase for auth, database, and storage
 
 ## Backend Direction
 
 Phase 1 uses static local data in `src/data`. This keeps the MVP simple while the content structure and UI are still changing.
 
-Later phases can move the same data shape into Supabase. The first backend/auth scaffolding is now included:
+The first backend/auth scaffolding is now included:
 
 - Supabase Auth for registration/login
 - Postgres tables for mountains, trails, user hikes, and comments
@@ -27,6 +27,9 @@ Later phases can move the same data shape into Supabase. The first backend/auth 
 See:
 
 - `docs/backend-auth-plan.md`
+- `docs/admin-cms.md`
+- `docs/database-operations.md`
+- `docs/shop-poster-plan.md`
 - `supabase/schema.sql`
 
 ## Project Structure

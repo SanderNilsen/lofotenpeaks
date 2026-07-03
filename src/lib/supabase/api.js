@@ -82,6 +82,7 @@ function transformGuideRow(row) {
     id: row.mountain_id,
     slug: row.mountain_slug,
     name: row.mountain_name,
+    published: row.mountain_published ?? true,
     weatherLocationId: row.weather_location_id,
     region: row.region,
     heightMeters: row.height_meters,
@@ -104,6 +105,7 @@ function transformGuideRow(row) {
         id: row.trail_id,
         slug: row.trail_slug,
         mountainId: row.mountain_id,
+        published: row.trail_published ?? true,
         weatherLocationId: row.weather_location_id,
         name: row.trail_name,
         summary: row.trail_summary,
@@ -261,7 +263,7 @@ export async function getRemoteMountainGuides() {
 export async function getAdminMountainGuides() {
   const client = requireSupabaseClient();
   const { data, error } = await client
-    .from('mountain_guides')
+    .from('admin_mountain_guides')
     .select('*')
     .order('mountain_name', { ascending: true });
 
@@ -392,6 +394,30 @@ export async function updateAdminMountainGuide(guide) {
   return data?.[0] ?? data;
 }
 
+export async function setAdminMountainGuidePublished({ mountainId, trailId, published }) {
+  const client = requireSupabaseClient();
+  const { error } = await client.rpc('admin_set_mountain_guide_published', {
+    p_mountain_id: mountainId,
+    p_trail_id: trailId,
+    p_published: published,
+  });
+
+  if (error) {
+    throw error;
+  }
+}
+
+export async function deleteAdminMountainGuide({ mountainId }) {
+  const client = requireSupabaseClient();
+  const { error } = await client.rpc('admin_delete_mountain_guide', {
+    p_mountain_id: mountainId,
+  });
+
+  if (error) {
+    throw error;
+  }
+}
+
 export async function addAdminTrailImage(image) {
   const client = requireSupabaseClient();
   const { data, error } = await client.rpc('admin_add_trail_image', {
@@ -472,6 +498,7 @@ export async function getUserCheckIns(userId) {
         trail_id,
         checked_in_at,
         check_in_day,
+        distance_to_summit_meters,
         points,
         note,
         status,
@@ -494,7 +521,7 @@ export async function getTodayCheckInForMountain({ userId, mountainId }) {
   const client = requireSupabaseClient();
   const { data, error } = await client
     .from('check_ins')
-    .select('id, checked_in_at, check_in_day, points')
+    .select('id, checked_in_at, check_in_day, distance_to_summit_meters, points')
     .eq('user_id', userId)
     .eq('mountain_id', mountainId)
     .eq('check_in_day', today)
@@ -518,15 +545,21 @@ export async function createCheckIn(checkIn) {
   return data;
 }
 
-export async function createMountainCheckIn({ userId, mountainId, trailId, note }) {
-  return createCheckIn({
-    user_id: userId,
-    mountain_id: mountainId,
-    trail_id: trailId,
-    note: note?.trim() || null,
-    points: 10,
-    status: 'approved',
+export async function createMountainCheckIn({ mountainId, trailId, note, location }) {
+  const client = requireSupabaseClient();
+  const { data, error } = await client.rpc('create_mountain_check_in', {
+    p_mountain_id: mountainId,
+    p_trail_id: trailId ?? null,
+    p_note: note?.trim() || null,
+    p_lat: location?.lat ?? null,
+    p_lng: location?.lng ?? null,
   });
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
 }
 
 export async function getCommentsForTrail(trailId) {

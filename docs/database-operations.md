@@ -8,7 +8,7 @@ This project uses Supabase as the backend for auth, guide content, check-ins, co
 - `supabase/admin.sql`: admin CMS policies, views, storage buckets, and admin RPC functions
 - `supabase/community.sql`: check-in RPC and leaderboard progress view
 - `supabase/guide-notes.sql`: one-time content patch for existing MVP guide planning notes
-- `supabase/seed.sql`: starter mountain/trail records
+- `supabase/seed.sql`: one-time starter mountain/trail records; conflicts are ignored so Admin edits are not overwritten
 
 ## Apply Order
 
@@ -21,6 +21,8 @@ npx -y supabase db query --linked --file supabase/admin.sql
 npx -y supabase db query --linked --file supabase/community.sql
 npx -y supabase db query --linked --file supabase/guide-notes.sql
 ```
+
+After the first import, do not use `seed.sql` as the normal way to update guide content. Edit mountains, trails, GPX routes, images, and guide notes through `/admin` so Supabase remains the live source of truth. Re-running `seed.sql` only inserts missing starter records because it uses `on conflict do nothing`.
 
 For the existing project, run only the files that changed. After this update:
 

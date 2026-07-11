@@ -78,3 +78,4 @@ jobs:
         continue-on-error: true
         run: |
           ssh -p 22 "$SSH_USERNAME@$SSH_HOST" 'command -v cache-purge >/dev/null 2>&1 && cache-purge || true'
+ 

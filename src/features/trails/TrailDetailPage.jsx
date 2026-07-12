@@ -352,11 +352,35 @@ function getTrailImages(trail, mountain) {
 }
 
 function formatCoordinate(point) {
-  if (!point) {
+  if (!isValidCoordinatePoint(point)) {
     return 'Not set';
   }
 
-  return `${point[0].toFixed(5)}, ${point[1].toFixed(5)}`;
+  return `${Number(point[0]).toFixed(5)}, ${Number(point[1]).toFixed(5)}`;
+}
+
+function isValidCoordinatePoint(point) {
+  return (
+    Array.isArray(point) &&
+    point.length >= 2 &&
+    Number.isFinite(Number(point[0])) &&
+    Number.isFinite(Number(point[1]))
+  );
+}
+
+function getFinishPointWeatherLocation(trail) {
+  if (!isValidCoordinatePoint(trail.endPoint)) {
+    return null;
+  }
+
+  const [latitude, longitude] = trail.endPoint.map(Number);
+
+  return {
+    id: `${trail.id ?? trail.slug}-finish-point`,
+    name: trail.name,
+    latitude,
+    longitude,
+  };
 }
 
 function getGuideItems(guide) {
@@ -430,6 +454,7 @@ export function TrailDetailPage() {
   const region = mountain?.region ?? 'Lofoten';
   const highPoint = mountain?.heightMeters ?? trail.elevationGainMeters;
   const weatherLocationId = trail.weatherLocationId ?? mountain?.weatherLocationId;
+  const finishPointWeatherLocation = getFinishPointWeatherLocation(trail);
   const guideItems = getGuideItems(trail.guide);
   const seoDescription = `${trail.summary ?? mountain?.summary} Route: ${formatDistance(trail.lengthKm)}, ${formatElevation(
     trail.elevationGainMeters,
@@ -602,8 +627,16 @@ export function TrailDetailPage() {
             </FactList>
           </Panel>
 
-          {weatherLocationId && (
-            <MountainWeatherPanel title="Weather Near This Hike" locationIds={[weatherLocationId]} compact />
+          {finishPointWeatherLocation ? (
+            <MountainWeatherPanel
+              title="Mountain Weather"
+              locations={[finishPointWeatherLocation]}
+              compact
+            />
+          ) : (
+            weatherLocationId && (
+              <MountainWeatherPanel title="Weather Near This Hike" locationIds={[weatherLocationId]} compact />
+            )
           )}
 
           <Panel>

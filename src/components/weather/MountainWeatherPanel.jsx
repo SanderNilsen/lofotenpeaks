@@ -244,6 +244,7 @@ async function fetchLocationWeather(location, signal) {
 export function MountainWeatherPanel({
   title = 'Lofoten Weather',
   locationIds,
+  locations,
   compact = false,
   showNotice = true,
 }) {
@@ -252,14 +253,21 @@ export function MountainWeatherPanel({
   const [updatedAt, setUpdatedAt] = useState(null);
   const headingId = useId();
   const locationIdsKey = (locationIds ?? []).join('|');
+  const customLocationsKey = (locations ?? [])
+    .map((location) => `${location.id}:${location.latitude}:${location.longitude}`)
+    .join('|');
   const selectedLocations = useMemo(() => {
+    if (locations?.length) {
+      return locations;
+    }
+
     if (!locationIdsKey) {
       return weatherLocations;
     }
 
     const selectedIds = new Set(locationIdsKey.split('|'));
     return weatherLocations.filter((location) => selectedIds.has(location.id));
-  }, [locationIdsKey]);
+  }, [customLocationsKey, locationIdsKey, locations]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -348,7 +356,7 @@ export function MountainWeatherPanel({
                   <CardTop>
                     <Location>
                       <h3>{location.name}</h3>
-                      <span>{location.area}</span>
+                      {location.area && <span>{location.area}</span>}
                     </Location>
                     <Temperature>
                       {formatNumber(location.current.temperature_2m)}

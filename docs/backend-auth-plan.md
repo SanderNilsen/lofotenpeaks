@@ -57,7 +57,7 @@ Backend tables:
 
 Recommended first rules:
 
-- 10 points per approved check-in.
+- A per-mountain point award configured in Admin (10 points by default).
 - One check-in per user per mountain per day.
 - Store optional GPS location and distance to summit.
 - Show leaderboard from approved check-ins only.

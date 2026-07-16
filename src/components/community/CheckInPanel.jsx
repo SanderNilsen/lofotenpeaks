@@ -150,6 +150,13 @@ function formatAccuracy(value) {
   return accuracy >= 1000 ? `±${(accuracy / 1000).toFixed(1)} km` : `±${Math.round(accuracy)} m`;
 }
 
+function formatPoints(value) {
+  const points = Number(value);
+  const safePoints = Number.isFinite(points) ? points : 10;
+
+  return `${safePoints} ${safePoints === 1 ? 'point' : 'points'}`;
+}
+
 function getLocationErrorMessage(error) {
   if (error?.message?.toLowerCase().includes('secure origins')) {
     return 'Location only works on HTTPS or localhost. Use the Netlify site, or open local dev at http://localhost:5173 instead of a network/IP address.';
@@ -165,6 +172,7 @@ function CheckInPanelContent({ trail }) {
   const [location, setLocation] = useState(null);
   const [locationStatus, setLocationStatus] = useState({ type: 'idle', message: '' });
   const [status, setStatus] = useState({ type: 'idle', message: '' });
+  const checkInPoints = trail?.checkInPoints ?? 10;
 
   useEffect(() => {
     if (!isConfigured || !user || !trail?.mountainId) {
@@ -214,7 +222,7 @@ function CheckInPanelContent({ trail }) {
       });
       setTodayCheckIn(checkIn);
       setNote('');
-      setStatus({ type: 'success', message: 'Check-in saved. 10 points added.' });
+      setStatus({ type: 'success', message: `Check-in saved. ${formatPoints(checkIn.points)} added.` });
     } catch (error) {
       setStatus({ type: 'error', message: getFriendlyError(error) });
     }
@@ -270,7 +278,7 @@ function CheckInPanelContent({ trail }) {
       )}
       {isConfigured && !authIsLoading && user && todayCheckIn && (
         <Message>
-          <CheckCircle2 size={17} aria-hidden="true" /> Checked in today for {todayCheckIn.points} points
+          <CheckCircle2 size={17} aria-hidden="true" /> Checked in today for {formatPoints(todayCheckIn.points)}
           {formatDistanceFromSummit(todayCheckIn.distance_to_summit_meters)
             ? ` · ${formatDistanceFromSummit(todayCheckIn.distance_to_summit_meters)}`
             : ''}
@@ -279,7 +287,10 @@ function CheckInPanelContent({ trail }) {
       )}
       {isConfigured && !authIsLoading && user && !todayCheckIn && (
         <>
-          <p>Use your location at the summit to save today&apos;s visit and add 10 points to your profile.</p>
+          <p>
+            Use your location at the summit to save today&apos;s visit and add {formatPoints(checkInPoints)} to your
+            profile.
+          </p>
           <NoteField>
             <span>Optional note</span>
             <textarea

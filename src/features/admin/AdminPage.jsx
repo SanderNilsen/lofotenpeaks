@@ -366,6 +366,7 @@ const initialForm = {
   region: '',
   heightMeters: '',
   checkInRadiusMeters: '200',
+  checkInPoints: '10',
   difficulty: 'moderate',
   summary: '',
   description: '',
@@ -439,6 +440,7 @@ function formFromGuide(guide) {
     region: mountain.region,
     heightMeters: formValue(mountain.heightMeters),
     checkInRadiusMeters: formValue(mountain.checkInRadiusMeters ?? 200),
+    checkInPoints: formValue(mountain.checkInPoints ?? 10),
     difficulty: mountain.difficulty ?? 'moderate',
     summary: mountain.summary ?? '',
     description: mountain.description ?? '',
@@ -505,6 +507,14 @@ function validateGuidePayload(payload) {
     payload.checkInRadiusMeters > 1000
   ) {
     throw new Error('Check-in radius must be between 25 and 1000 meters.');
+  }
+
+  if (
+    !Number.isInteger(payload.checkInPoints) ||
+    payload.checkInPoints < 1 ||
+    payload.checkInPoints > 1000
+  ) {
+    throw new Error('Check-in points must be a whole number between 1 and 1000.');
   }
 
   if (!Number.isFinite(payload.lengthKm) || payload.lengthKm <= 0) {
@@ -750,6 +760,7 @@ export function AdminPage() {
       region: form.region.trim(),
       heightMeters: toNumber(form.heightMeters),
       checkInRadiusMeters: toNumber(form.checkInRadiusMeters),
+      checkInPoints: toNumber(form.checkInPoints),
       summitLat: toNumber(form.summitLat),
       summitLng: toNumber(form.summitLng),
       difficulty: form.difficulty,
@@ -1108,6 +1119,18 @@ export function AdminPage() {
                       max="1000"
                       value={form.checkInRadiusMeters}
                       onChange={(event) => updateField('checkInRadiusMeters', event.target.value)}
+                    />
+                  </Field>
+                  <Field>
+                    <span>Points per check-in</span>
+                    <input
+                      required
+                      type="number"
+                      min="1"
+                      max="1000"
+                      step="1"
+                      value={form.checkInPoints}
+                      onChange={(event) => updateField('checkInPoints', event.target.value)}
                     />
                   </Field>
                   <Field>

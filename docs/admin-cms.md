@@ -47,6 +47,7 @@ The current admin screen supports:
 - publishing and drafting guides
 - deleting whole guides when their connected community records can also be removed
 - summit and trailhead coordinates
+- summit check-in radius and points awarded per check-in
 - difficulty, height, route summary, route note, and description
 - planning notes for parking, trailhead, best season, suitable audience, gear, access, and before-you-go checklist
 - safety notes shown on the public hiking guide page

@@ -6,6 +6,12 @@ drop view if exists public.leaderboard;
 alter table public.mountains
 add column if not exists check_in_radius_meters integer not null default 200;
 
+alter table public.mountains
+add column if not exists check_in_points integer not null default 10;
+
+alter table public.check_ins
+alter column points drop default;
+
 do $$
 begin
   if not exists (
@@ -17,6 +23,20 @@ begin
     alter table public.mountains
     add constraint mountains_check_in_radius_range
     check (check_in_radius_meters between 25 and 1000);
+  end if;
+end $$;
+
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_constraint
+    where conname = 'mountains_check_in_points_range'
+      and conrelid = 'public.mountains'::regclass
+  ) then
+    alter table public.mountains
+    add constraint mountains_check_in_points_range
+    check (check_in_points between 1 and 1000);
   end if;
 end $$;
 
@@ -54,6 +74,7 @@ declare
   submitted_location extensions.geography;
   summit_distance_meters numeric;
   allowed_radius_meters integer;
+  awarded_points integer;
 begin
   if auth.uid() is null then
     raise exception 'Sign in required' using errcode = '42501';
@@ -79,8 +100,9 @@ begin
       when m.summit is null then null
       else extensions.st_distance(submitted_location, m.summit)
     end,
-    m.check_in_radius_meters
-  into summit_distance_meters, allowed_radius_meters
+    m.check_in_radius_meters,
+    m.check_in_points
+  into summit_distance_meters, allowed_radius_meters, awarded_points
   from public.mountains as m
   where m.id = p_mountain_id
     and m.published = true;
@@ -126,7 +148,7 @@ begin
     m.id,
     p_trail_id,
     nullif(trim(coalesce(p_note, '')), ''),
-    10,
+    awarded_points,
     'approved',
     submitted_location,
     summit_distance_meters
@@ -146,3 +168,9 @@ grant execute on function public.create_mountain_check_in(
   numeric,
   numeric
 ) to authenticated;
+
+drop policy if exists "Users can create own check-ins" on public.check_ins;
+
+-- The security-definer RPC above is the only supported insert path. This keeps
+-- the summit-distance check and configured point award server-authoritative.
+revoke insert on table public.check_ins from public, anon, authenticated;

@@ -28,6 +28,7 @@ create table public.mountains (
   height_meters integer,
   summit extensions.geography(point, 4326),
   check_in_radius_meters integer not null default 200,
+  check_in_points integer not null default 10,
   difficulty public.difficulty_level not null default 'moderate',
   summary text,
   description text,
@@ -36,7 +37,8 @@ create table public.mountains (
   published boolean not null default true,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
-  constraint mountains_check_in_radius_range check (check_in_radius_meters between 25 and 1000)
+  constraint mountains_check_in_radius_range check (check_in_radius_meters between 25 and 1000),
+  constraint mountains_check_in_points_range check (check_in_points between 1 and 1000)
 );
 
 create table public.trails (
@@ -83,7 +85,7 @@ create table public.check_ins (
   check_in_day date not null default current_date,
   location extensions.geography(point, 4326),
   distance_to_summit_meters numeric(8, 2),
-  points integer not null default 10,
+  points integer not null,
   note text,
   photo_path text,
   status public.moderation_status not null default 'approved',
@@ -240,6 +242,7 @@ declare
   submitted_location extensions.geography;
   summit_distance_meters numeric;
   allowed_radius_meters integer;
+  awarded_points integer;
 begin
   if auth.uid() is null then
     raise exception 'Sign in required' using errcode = '42501';
@@ -265,8 +268,9 @@ begin
       when m.summit is null then null
       else extensions.st_distance(submitted_location, m.summit)
     end,
-    m.check_in_radius_meters
-  into summit_distance_meters, allowed_radius_meters
+    m.check_in_radius_meters,
+    m.check_in_points
+  into summit_distance_meters, allowed_radius_meters, awarded_points
   from public.mountains as m
   where m.id = p_mountain_id
     and m.published = true;
@@ -312,7 +316,7 @@ begin
     m.id,
     p_trail_id,
     nullif(trim(coalesce(p_note, '')), ''),
-    10,
+    awarded_points,
     'approved',
     submitted_location,
     summit_distance_meters
@@ -368,9 +372,9 @@ create policy "Approved check-ins are public"
 on public.check_ins for select
 using (status = 'approved' or auth.uid() = user_id);
 
-create policy "Users can create own check-ins"
-on public.check_ins for insert
-with check (auth.uid() = user_id and status = 'approved' and points = 10);
+-- Check-ins must go through create_mountain_check_in so clients cannot bypass
+-- summit-distance validation or choose their own point award.
+revoke insert on table public.check_ins from public, anon, authenticated;
 
 create policy "Approved comments are public"
 on public.comments for select

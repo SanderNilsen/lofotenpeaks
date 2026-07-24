@@ -3,6 +3,61 @@
 
 drop view if exists public.leaderboard;
 
+-- Public profile names must not expose an email address. This also cleans
+-- profiles created by older versions that used the account email as fallback.
+update public.profiles
+set display_name = 'Hiker'
+where display_name is null
+  or char_length(btrim(display_name)) not between 2 and 60
+  or btrim(display_name) ~* '[^[:space:]@]+@[^[:space:]@]+[.][^[:space:]@]+';
+
+update public.profiles
+set display_name = btrim(display_name)
+where display_name is distinct from btrim(display_name);
+
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_constraint
+    where conname = 'profiles_display_name_format'
+      and conrelid = 'public.profiles'::regclass
+  ) then
+    alter table public.profiles
+    add constraint profiles_display_name_format
+    check (
+      display_name is null
+      or (
+        char_length(btrim(display_name)) between 2 and 60
+        and display_name !~* '[^[:space:]@]+@[^[:space:]@]+[.][^[:space:]@]+'
+      )
+    );
+  end if;
+end $$;
+
+create or replace function public.handle_new_user()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  insert into public.profiles (id, display_name, avatar_url)
+  values (
+    new.id,
+    case
+      when char_length(btrim(coalesce(new.raw_user_meta_data->>'display_name', ''))) between 2 and 60
+        and btrim(new.raw_user_meta_data->>'display_name')
+          !~* '[^[:space:]@]+@[^[:space:]@]+[.][^[:space:]@]+'
+      then btrim(new.raw_user_meta_data->>'display_name')
+      else 'Hiker'
+    end,
+    new.raw_user_meta_data->>'avatar_url'
+  );
+  return new;
+end;
+$$;
+
 alter table public.mountains
 add column if not exists check_in_radius_meters integer not null default 200;
 
@@ -44,7 +99,7 @@ create or replace view public.leaderboard
 with (security_invoker = true) as
 select
   p.id as user_id,
-  coalesce(p.display_name, p.username, 'Hiker') as display_name,
+  coalesce(nullif(btrim(p.display_name), ''), p.username, 'Hiker') as display_name,
   p.avatar_url,
   coalesce(sum(c.points) filter (where c.status = 'approved'), 0)::integer as points,
   count(c.id) filter (where c.status = 'approved')::integer as check_in_count,

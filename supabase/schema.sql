@@ -17,7 +17,14 @@ create table public.profiles (
   points_total integer not null default 0,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
-  constraint username_format check (username is null or username ~ '^[a-zA-Z0-9_]{3,24}$')
+  constraint username_format check (username is null or username ~ '^[a-zA-Z0-9_]{3,24}$'),
+  constraint profiles_display_name_format check (
+    display_name is null
+    or (
+      char_length(btrim(display_name)) between 2 and 60
+      and display_name !~* '[^[:space:]@]+@[^[:space:]@]+[.][^[:space:]@]+'
+    )
+  )
 );
 
 create table public.mountains (
@@ -153,7 +160,7 @@ create or replace view public.leaderboard
 with (security_invoker = true) as
 select
   p.id as user_id,
-  coalesce(p.display_name, p.username, 'Hiker') as display_name,
+  coalesce(nullif(btrim(p.display_name), ''), p.username, 'Hiker') as display_name,
   p.avatar_url,
   coalesce(sum(c.points) filter (where c.status = 'approved'), 0)::integer as points,
   count(c.id) filter (where c.status = 'approved')::integer as check_in_count,
@@ -214,7 +221,13 @@ begin
   insert into public.profiles (id, display_name, avatar_url)
   values (
     new.id,
-    coalesce(new.raw_user_meta_data->>'display_name', new.email),
+    case
+      when char_length(btrim(coalesce(new.raw_user_meta_data->>'display_name', ''))) between 2 and 60
+        and btrim(new.raw_user_meta_data->>'display_name')
+          !~* '[^[:space:]@]+@[^[:space:]@]+[.][^[:space:]@]+'
+      then btrim(new.raw_user_meta_data->>'display_name')
+      else 'Hiker'
+    end,
     new.raw_user_meta_data->>'avatar_url'
   );
   return new;

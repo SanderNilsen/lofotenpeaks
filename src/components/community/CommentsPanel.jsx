@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import styled from 'styled-components';
 import { AuthProvider, useAuth } from '../../features/auth/AuthProvider.jsx';
+import { getSafePublicDisplayName } from '../../lib/profile.js';
 import { createTrailComment, getCommentsForTrail } from '../../lib/supabase/api.js';
 import { theme } from '../../styles/theme.js';
 
@@ -153,7 +154,7 @@ function formatCommentDate(value) {
 }
 
 function getDisplayName(comment) {
-  return comment.profiles?.display_name || 'Hiker';
+  return getSafePublicDisplayName(comment.profiles?.display_name);
 }
 
 function CommentsPanelContent({ trail }) {

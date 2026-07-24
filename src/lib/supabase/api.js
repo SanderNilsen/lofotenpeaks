@@ -178,7 +178,7 @@ export async function signUpWithEmail({ email, password, displayName }) {
     password,
     options: {
       data: {
-        display_name: displayName,
+        display_name: displayName.trim(),
       },
     },
   });
@@ -605,6 +605,21 @@ export async function createTrailComment({ userId, mountainId, trailId, body }) 
 export async function createUserHike(hike) {
   const client = requireSupabaseClient();
   const { data, error } = await client.from('user_hikes').insert(hike).select().single();
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
+}
+
+export async function getUserHikes(userId) {
+  const client = requireSupabaseClient();
+  const { data, error } = await client
+    .from('user_hikes')
+    .select('id, title, body, difficulty, status, created_at')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false });
 
   if (error) {
     throw error;

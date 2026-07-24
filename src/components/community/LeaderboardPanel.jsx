@@ -1,5 +1,6 @@
 import { Trophy } from 'lucide-react';
 import styled from 'styled-components';
+import { getSafePublicDisplayName } from '../../lib/profile.js';
 import { theme } from '../../styles/theme.js';
 
 const Panel = styled.section`
@@ -103,7 +104,7 @@ export function LeaderboardPanel({ entries = [], isLoading = false }) {
             return (
               <Row key={entry.user_id}>
                 <Person>
-                  <strong>{entry.display_name}</strong>
+                  <strong>{getSafePublicDisplayName(entry.display_name)}</strong>
                   <span>
                     {completedMountains} {mountainLabel} · {entry.check_in_count} {checkInLabel}
                   </span>

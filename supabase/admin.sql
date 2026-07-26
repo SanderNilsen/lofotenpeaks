@@ -11,6 +11,9 @@ alter table public.admin_users enable row level security;
 alter table public.mountains
 add column if not exists check_in_radius_meters integer not null default 200;
 
+alter table public.mountains
+add column if not exists check_in_points integer not null default 10;
+
 do $$
 begin
   if not exists (
@@ -22,6 +25,20 @@ begin
     alter table public.mountains
     add constraint mountains_check_in_radius_range
     check (check_in_radius_meters between 25 and 1000);
+  end if;
+end $$;
+
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_constraint
+    where conname = 'mountains_check_in_points_range'
+      and conrelid = 'public.mountains'::regclass
+  ) then
+    alter table public.mountains
+    add constraint mountains_check_in_points_range
+    check (check_in_points between 1 and 1000);
   end if;
 end $$;
 
@@ -283,6 +300,7 @@ select
   m.region,
   m.height_meters,
   m.check_in_radius_meters,
+  m.check_in_points,
   case when m.summit is null then null else extensions.st_y(m.summit::extensions.geometry) end as summit_lat,
   case when m.summit is null then null else extensions.st_x(m.summit::extensions.geometry) end as summit_lng,
   m.difficulty as mountain_difficulty,
@@ -339,6 +357,7 @@ group by
   m.region,
   m.height_meters,
   m.check_in_radius_meters,
+  m.check_in_points,
   m.summit,
   m.difficulty,
   m.summary,
@@ -375,6 +394,7 @@ select
   m.region,
   m.height_meters,
   m.check_in_radius_meters,
+  m.check_in_points,
   case when m.summit is null then null else extensions.st_y(m.summit::extensions.geometry) end as summit_lat,
   case when m.summit is null then null else extensions.st_x(m.summit::extensions.geometry) end as summit_lng,
   m.difficulty as mountain_difficulty,
@@ -429,6 +449,7 @@ group by
   m.region,
   m.height_meters,
   m.check_in_radius_meters,
+  m.check_in_points,
   m.summit,
   m.difficulty,
   m.summary,
@@ -550,6 +571,60 @@ drop function if exists public.admin_update_mountain_guide(
   jsonb
 );
 
+-- Drop the previous RPC signatures before adding the check-in points parameter.
+drop function if exists public.admin_create_mountain_guide(
+  text,
+  text,
+  text,
+  text,
+  integer,
+  numeric,
+  numeric,
+  public.difficulty_level,
+  text,
+  text,
+  text,
+  text,
+  numeric,
+  integer,
+  text,
+  numeric,
+  numeric,
+  integer,
+  text,
+  jsonb,
+  text,
+  jsonb,
+  jsonb
+);
+
+drop function if exists public.admin_update_mountain_guide(
+  text,
+  text,
+  text,
+  text,
+  text,
+  integer,
+  numeric,
+  numeric,
+  public.difficulty_level,
+  text,
+  text,
+  text,
+  text,
+  numeric,
+  integer,
+  text,
+  numeric,
+  numeric,
+  integer,
+  text,
+  jsonb,
+  text,
+  jsonb,
+  jsonb
+);
+
 create or replace function public.admin_create_mountain_guide(
   p_mountain_id text,
   p_slug text,
@@ -569,6 +644,7 @@ create or replace function public.admin_create_mountain_guide(
   p_start_lat numeric,
   p_start_lng numeric,
   p_check_in_radius_meters integer default 200,
+  p_check_in_points integer default 10,
   p_route_note text default null,
   p_route_geojson jsonb default null,
   p_gpx_storage_path text default null,
@@ -606,6 +682,7 @@ begin
     height_meters,
     summit,
     check_in_radius_meters,
+    check_in_points,
     difficulty,
     summary,
     description,
@@ -620,6 +697,7 @@ begin
     p_height_meters,
     extensions.st_setsrid(extensions.st_makepoint(p_summit_lng, p_summit_lat), 4326)::extensions.geography,
     coalesce(p_check_in_radius_meters, 200),
+    coalesce(p_check_in_points, 10),
     p_difficulty,
     p_summary,
     p_description,
@@ -697,6 +775,7 @@ grant execute on function public.admin_create_mountain_guide(
   numeric,
   numeric,
   integer,
+  integer,
   text,
   jsonb,
   text,
@@ -724,6 +803,7 @@ create or replace function public.admin_update_mountain_guide(
   p_start_lat numeric,
   p_start_lng numeric,
   p_check_in_radius_meters integer default 200,
+  p_check_in_points integer default null,
   p_route_note text default null,
   p_route_geojson jsonb default null,
   p_gpx_storage_path text default null,
@@ -753,7 +833,7 @@ begin
       using errcode = '22023';
   end if;
 
-  update public.mountains
+  update public.mountains as m
   set
     slug = clean_slug,
     name = p_name,
@@ -761,13 +841,14 @@ begin
     height_meters = p_height_meters,
     summit = extensions.st_setsrid(extensions.st_makepoint(p_summit_lng, p_summit_lat), 4326)::extensions.geography,
     check_in_radius_meters = coalesce(p_check_in_radius_meters, 200),
+    check_in_points = coalesce(p_check_in_points, m.check_in_points),
     difficulty = p_difficulty,
     summary = p_summary,
     description = p_description,
     weather_location_id = nullif(p_weather_location_id, ''),
     hero_image_path = nullif(p_hero_image_path, ''),
     published = true
-  where id = p_mountain_id;
+  where m.id = p_mountain_id;
 
   if not found then
     raise exception 'Mountain guide not found' using errcode = 'P0002';
@@ -827,6 +908,7 @@ grant execute on function public.admin_update_mountain_guide(
   text,
   numeric,
   numeric,
+  integer,
   integer,
   text,
   jsonb,

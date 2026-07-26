@@ -87,6 +87,7 @@ function transformGuideRow(row) {
     region: row.region,
     heightMeters: row.height_meters,
     checkInRadiusMeters: row.check_in_radius_meters ?? 200,
+    checkInPoints: row.check_in_points ?? 10,
     coordinates:
       row.summit_lat !== null && row.summit_lng !== null
         ? { lat: Number(row.summit_lat), lng: Number(row.summit_lng) }
@@ -109,6 +110,7 @@ function transformGuideRow(row) {
         published: row.trail_published ?? true,
         weatherLocationId: row.weather_location_id,
         checkInRadiusMeters: row.check_in_radius_meters ?? 200,
+        checkInPoints: row.check_in_points ?? 10,
         name: row.trail_name,
         summary: row.trail_summary,
         description: row.trail_description,
@@ -178,7 +180,7 @@ export async function signUpWithEmail({ email, password, displayName }) {
     password,
     options: {
       data: {
-        display_name: displayName,
+        display_name: displayName.trim(),
       },
     },
   });
@@ -348,6 +350,7 @@ export async function createAdminMountainGuide(guide) {
     p_start_lat: guide.startLat,
     p_start_lng: guide.startLng,
     p_check_in_radius_meters: guide.checkInRadiusMeters,
+    p_check_in_points: guide.checkInPoints,
     p_route_note: guide.routeNote,
     p_route_geojson: guide.routeGeojson,
     p_gpx_storage_path: guide.gpxStoragePath,
@@ -384,6 +387,7 @@ export async function updateAdminMountainGuide(guide) {
     p_start_lat: guide.startLat,
     p_start_lng: guide.startLng,
     p_check_in_radius_meters: guide.checkInRadiusMeters,
+    p_check_in_points: guide.checkInPoints,
     p_route_note: guide.routeNote,
     p_route_geojson: guide.routeGeojson,
     p_gpx_storage_path: guide.gpxStoragePath,
@@ -538,17 +542,6 @@ export async function getTodayCheckInForMountain({ userId, mountainId }) {
   return data;
 }
 
-export async function createCheckIn(checkIn) {
-  const client = requireSupabaseClient();
-  const { data, error } = await client.from('check_ins').insert(checkIn).select().single();
-
-  if (error) {
-    throw error;
-  }
-
-  return data;
-}
-
 export async function createMountainCheckIn({ mountainId, trailId, note, location }) {
   const client = requireSupabaseClient();
   const { data, error } = await client.rpc('create_mountain_check_in', {
@@ -605,6 +598,21 @@ export async function createTrailComment({ userId, mountainId, trailId, body }) 
 export async function createUserHike(hike) {
   const client = requireSupabaseClient();
   const { data, error } = await client.from('user_hikes').insert(hike).select().single();
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
+}
+
+export async function getUserHikes(userId) {
+  const client = requireSupabaseClient();
+  const { data, error } = await client
+    .from('user_hikes')
+    .select('id, title, body, difficulty, status, created_at')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false });
 
   if (error) {
     throw error;

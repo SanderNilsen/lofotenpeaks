@@ -3,8 +3,69 @@
 
 drop view if exists public.leaderboard;
 
+-- Public profile names must not expose an email address. This also cleans
+-- profiles created by older versions that used the account email as fallback.
+update public.profiles
+set display_name = 'Hiker'
+where display_name is null
+  or char_length(btrim(display_name)) not between 2 and 60
+  or btrim(display_name) ~* '[^[:space:]@]+@[^[:space:]@]+[.][^[:space:]@]+';
+
+update public.profiles
+set display_name = btrim(display_name)
+where display_name is distinct from btrim(display_name);
+
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_constraint
+    where conname = 'profiles_display_name_format'
+      and conrelid = 'public.profiles'::regclass
+  ) then
+    alter table public.profiles
+    add constraint profiles_display_name_format
+    check (
+      display_name is null
+      or (
+        char_length(btrim(display_name)) between 2 and 60
+        and display_name !~* '[^[:space:]@]+@[^[:space:]@]+[.][^[:space:]@]+'
+      )
+    );
+  end if;
+end $$;
+
+create or replace function public.handle_new_user()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  insert into public.profiles (id, display_name, avatar_url)
+  values (
+    new.id,
+    case
+      when char_length(btrim(coalesce(new.raw_user_meta_data->>'display_name', ''))) between 2 and 60
+        and btrim(new.raw_user_meta_data->>'display_name')
+          !~* '[^[:space:]@]+@[^[:space:]@]+[.][^[:space:]@]+'
+      then btrim(new.raw_user_meta_data->>'display_name')
+      else 'Hiker'
+    end,
+    new.raw_user_meta_data->>'avatar_url'
+  );
+  return new;
+end;
+$$;
+
 alter table public.mountains
 add column if not exists check_in_radius_meters integer not null default 200;
+
+alter table public.mountains
+add column if not exists check_in_points integer not null default 10;
+
+alter table public.check_ins
+alter column points drop default;
 
 do $$
 begin
@@ -20,11 +81,25 @@ begin
   end if;
 end $$;
 
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_constraint
+    where conname = 'mountains_check_in_points_range'
+      and conrelid = 'public.mountains'::regclass
+  ) then
+    alter table public.mountains
+    add constraint mountains_check_in_points_range
+    check (check_in_points between 1 and 1000);
+  end if;
+end $$;
+
 create or replace view public.leaderboard
 with (security_invoker = true) as
 select
   p.id as user_id,
-  coalesce(p.display_name, p.username, 'Hiker') as display_name,
+  coalesce(nullif(btrim(p.display_name), ''), p.username, 'Hiker') as display_name,
   p.avatar_url,
   coalesce(sum(c.points) filter (where c.status = 'approved'), 0)::integer as points,
   count(c.id) filter (where c.status = 'approved')::integer as check_in_count,
@@ -54,6 +129,7 @@ declare
   submitted_location extensions.geography;
   summit_distance_meters numeric;
   allowed_radius_meters integer;
+  awarded_points integer;
 begin
   if auth.uid() is null then
     raise exception 'Sign in required' using errcode = '42501';
@@ -79,8 +155,9 @@ begin
       when m.summit is null then null
       else extensions.st_distance(submitted_location, m.summit)
     end,
-    m.check_in_radius_meters
-  into summit_distance_meters, allowed_radius_meters
+    m.check_in_radius_meters,
+    m.check_in_points
+  into summit_distance_meters, allowed_radius_meters, awarded_points
   from public.mountains as m
   where m.id = p_mountain_id
     and m.published = true;
@@ -126,7 +203,7 @@ begin
     m.id,
     p_trail_id,
     nullif(trim(coalesce(p_note, '')), ''),
-    10,
+    awarded_points,
     'approved',
     submitted_location,
     summit_distance_meters
@@ -146,3 +223,9 @@ grant execute on function public.create_mountain_check_in(
   numeric,
   numeric
 ) to authenticated;
+
+drop policy if exists "Users can create own check-ins" on public.check_ins;
+
+-- The security-definer RPC above is the only supported insert path. This keeps
+-- the summit-distance check and configured point award server-authoritative.
+revoke insert on table public.check_ins from public, anon, authenticated;

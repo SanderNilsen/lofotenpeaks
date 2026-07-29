@@ -159,7 +159,7 @@ function formatPoints(value) {
 
 function getLocationErrorMessage(error) {
   if (error?.message?.toLowerCase().includes('secure origins')) {
-    return 'Location only works on HTTPS or localhost. Use the Netlify site, or open local dev at http://localhost:5173 instead of a network/IP address.';
+    return 'Location only works on HTTPS or localhost. Use lofotenpeaks.no, or open local dev at http://localhost:5173 instead of a network/IP address.';
   }
 
   return error?.message || 'Could not read your location.';

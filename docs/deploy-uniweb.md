@@ -26,8 +26,6 @@ When `lofotenpeaks.no` points to Uniweb, update Supabase Auth:
   - `https://lofotenpeaks.no/*`
   - `https://www.lofotenpeaks.no/*`
 
-Keep the Netlify URL in Supabase redirect URLs until the transition is finished.
-
 ## Routing
 
 `public/.htaccess` is included so Apache serves React routes through `index.html`. This is required for direct refreshes on routes like `/mountains/reinebringen`, `/account`, and `/admin`.

@@ -71,7 +71,7 @@ VITE_SUPABASE_URL=your-supabase-project-url
 VITE_SUPABASE_ANON_KEY=your-supabase-anon-key
 ```
 
-The site still builds without these values. Backend calls should only be used after the variables are configured locally and in Netlify.
+The site still builds without these values. Backend calls should only be used after the variables are configured locally and in the production deployment secrets.
 
 ## Build
 

@@ -118,11 +118,11 @@
   - Priority: Medium
   - Check keyboard navigation, form labels, alt text, heading order, focus visibility, and color contrast.
 
-- [ ] Netlify deployment QA
+- [ ] Uniweb deployment QA
   - Phase: Phase 1 MVP
   - Type: Deploy
   - Priority: High
-  - Build locally, deploy to Netlify, verify routes, refresh behavior, assets, weather calls, image credits, and maps.
+  - Build locally, deploy to Uniweb, verify routes, refresh behavior, assets, weather calls, image credits, and maps.
 
 - [ ] MVP README update
   - Phase: Phase 1 MVP

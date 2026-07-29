@@ -21,7 +21,7 @@ Tasks:
 - Add frontend environment variables:
   - `VITE_SUPABASE_URL`
   - `VITE_SUPABASE_ANON_KEY`
-- Add the same environment variables in Netlify.
+- Add the same environment variables in GitHub deployment secrets for Uniweb.
 - Keep existing static mountain/trail data until the database content is verified.
 
 ## Phase 2B - Authentication

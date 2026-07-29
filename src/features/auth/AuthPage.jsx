@@ -106,7 +106,7 @@ const BenefitsPanel = styled(Panel)`
   }
 
   p {
-    color: rgba(255, 255, 255, 0.78);
+    color: #fff;
     line-height: 1.6;
   }
 `;
@@ -156,6 +156,12 @@ const FormHeading = styled.div`
     color: ${theme.colors.muted};
     font-size: 0.92rem;
     line-height: 1.5;
+  }
+`;
+
+const BenefitsHeading = styled(FormHeading)`
+  p {
+    color: #fff;
   }
 `;
 
@@ -1049,7 +1055,7 @@ export function AuthPage() {
             <li>Create a Supabase project.</li>
             <li>Run `supabase/schema.sql` in the SQL editor.</li>
             <li>Copy `.env.example` to `.env.local`.</li>
-            <li>Add `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` locally and in Netlify.</li>
+            <li>Add `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` locally and in GitHub deployment secrets.</li>
           </SetupList>
         </Panel>
       )}
@@ -1462,10 +1468,10 @@ export function AuthPage() {
       {isConfigured && !isLoading && !user && (
         <AuthLayout>
           <BenefitsPanel>
-            <FormHeading>
+            <BenefitsHeading>
               <h2>Your Lofoten logbook</h2>
               <p>Keep your summit memories and community contributions together in one place.</p>
-            </FormHeading>
+            </BenefitsHeading>
             <BenefitList>
               <Benefit>
                 <CheckCircle2 size={21} aria-hidden="true" />

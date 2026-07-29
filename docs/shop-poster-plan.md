@@ -17,7 +17,7 @@ For now, raw user GPX files are not stored in Supabase Storage. Add private user
 Recommended provider path:
 
 - Stripe Checkout for payment
-- Netlify Functions or Supabase Edge Functions for secure order creation
+- Supabase Edge Functions for secure order creation
 - `shop_orders.provider = 'stripe'`
 - `shop_orders.provider_order_id = checkout_session.id`
 - Webhook updates `shop_orders.status`

@@ -751,20 +751,6 @@ function formatStatus(value) {
   return value.charAt(0).toUpperCase() + value.slice(1);
 }
 
-function formatDistanceFromSummit(value) {
-  const distance = Number(value);
-
-  if (!Number.isFinite(distance)) {
-    return null;
-  }
-
-  if (distance >= 1000) {
-    return `${(distance / 1000).toFixed(1)} km from summit`;
-  }
-
-  return `${Math.round(distance)} m from summit`;
-}
-
 const initialHikeForm = {
   title: '',
   body: '',
@@ -1186,7 +1172,6 @@ export function AuthPage() {
                         const mountainName =
                           checkIn.mountains?.name ?? checkIn.trails?.name ?? checkIn.mountain_id;
                         const mountainSlug = checkIn.mountains?.slug ?? checkIn.trails?.slug;
-                        const distanceLabel = formatDistanceFromSummit(checkIn.distance_to_summit_meters);
 
                         return (
                           <li key={checkIn.id}>
@@ -1202,10 +1187,7 @@ export function AuthPage() {
                                 <StatusBadge $status={checkIn.status}>{formatStatus(checkIn.status)}</StatusBadge>
                               )}
                             </CheckInHeading>
-                            <span>
-                              {formatCheckInDate(checkIn.checked_in_at)}
-                              {distanceLabel ? ` · ${distanceLabel}` : ''}
-                            </span>
+                            <span>{formatCheckInDate(checkIn.checked_in_at)}</span>
                             {checkIn.note && <Note>{checkIn.note}</Note>}
                           </li>
                         );

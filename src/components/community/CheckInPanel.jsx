@@ -126,20 +126,6 @@ function getFriendlyError(error) {
   return error?.message ?? 'Could not save check-in.';
 }
 
-function formatDistanceFromSummit(value) {
-  const distance = Number(value);
-
-  if (!Number.isFinite(distance)) {
-    return null;
-  }
-
-  if (distance >= 1000) {
-    return `${(distance / 1000).toFixed(1)} km from summit`;
-  }
-
-  return `${Math.round(distance)} m from summit`;
-}
-
 function formatAccuracy(value) {
   const accuracy = Number(value);
 
@@ -278,11 +264,7 @@ function CheckInPanelContent({ trail }) {
       )}
       {isConfigured && !authIsLoading && user && todayCheckIn && (
         <Message>
-          <CheckCircle2 size={17} aria-hidden="true" /> Checked in today for {formatPoints(todayCheckIn.points)}
-          {formatDistanceFromSummit(todayCheckIn.distance_to_summit_meters)
-            ? ` · ${formatDistanceFromSummit(todayCheckIn.distance_to_summit_meters)}`
-            : ''}
-          .
+          <CheckCircle2 size={17} aria-hidden="true" /> Checked in today for {formatPoints(todayCheckIn.points)}.
         </Message>
       )}
       {isConfigured && !authIsLoading && user && !todayCheckIn && (

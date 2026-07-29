@@ -24,6 +24,7 @@ import {
   addAdminTrailImage,
   createAdminMountainGuide,
   deleteAdminMountainGuide,
+  deleteAdminTrailGpx,
   deleteAdminTrailImage,
   getAdminMountainGuides,
   getIsAdmin,
@@ -579,30 +580,6 @@ const GalleryManager = styled.div`
   grid-column: 1 / -1;
 `;
 
-const GalleryManagerToggle = styled.div`
-  align-items: center;
-  background: ${theme.colors.background};
-  border: 1px solid ${theme.colors.line};
-  border-radius: ${theme.radii.small};
-  display: flex;
-  gap: 12px;
-  grid-column: 1 / -1;
-  justify-content: space-between;
-  padding: 12px;
-
-  p {
-    color: ${theme.colors.muted};
-    font-size: 0.84rem;
-    line-height: 1.45;
-    margin: 0;
-  }
-
-  @media (max-width: 680px) {
-    align-items: stretch;
-    flex-direction: column;
-  }
-`;
-
 const GalleryItem = styled.article`
   background: ${theme.colors.background};
   border: 1px solid ${theme.colors.line};
@@ -633,6 +610,88 @@ const GalleryActions = styled.div`
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+`;
+
+const HeroChoice = styled.label`
+  align-items: center;
+  background: ${({ $active }) => ($active ? '#e4eee6' : theme.colors.surface)};
+  border: 1px solid ${({ $active }) => ($active ? theme.colors.forest : theme.colors.line)};
+  border-radius: 999px;
+  color: ${({ $active }) => ($active ? theme.colors.forest : theme.colors.ink)};
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 0.78rem;
+  font-weight: 900;
+  gap: 7px;
+  min-height: 36px;
+  padding: 7px 10px;
+
+  input {
+    accent-color: ${theme.colors.forest};
+    margin: 0;
+  }
+`;
+
+const GalleryFileName = styled.strong`
+  font-size: 0.95rem;
+  overflow-wrap: anywhere;
+`;
+
+const SavedAsset = styled.div`
+  align-items: center;
+  background: ${theme.colors.background};
+  border: 1px solid ${theme.colors.line};
+  border-radius: ${theme.radii.medium};
+  display: flex;
+  gap: 12px;
+  grid-column: 1 / -1;
+  justify-content: space-between;
+  padding: 12px;
+
+  > div {
+    display: grid;
+    gap: 4px;
+    min-width: 0;
+  }
+
+  strong {
+    font-size: 0.95rem;
+  }
+
+  span {
+    color: ${theme.colors.muted};
+    font-size: 0.84rem;
+    font-weight: 700;
+    line-height: 1.45;
+    overflow-wrap: anywhere;
+  }
+
+  @media (max-width: 680px) {
+    align-items: stretch;
+    flex-direction: column;
+  }
+`;
+
+const HeroPreview = styled(SavedAsset)`
+  align-items: start;
+  justify-content: start;
+
+  @media (max-width: 680px) {
+    align-items: stretch;
+  }
+`;
+
+const HeroPreviewImage = styled.img`
+  aspect-ratio: 16 / 10;
+  border-radius: ${theme.radii.small};
+  flex: 0 0 180px;
+  object-fit: cover;
+  width: 180px;
+
+  @media (max-width: 680px) {
+    flex-basis: auto;
+    width: 100%;
+  }
 `;
 
 const ToggleField = styled.label`
@@ -824,7 +883,7 @@ function validateGuidePayload(payload) {
   }
 
   if (!payload.heroImagePath) {
-    throw new Error('Add a hero image before saving this guide.');
+    throw new Error('Add at least one gallery image and choose a hero image before saving this guide.');
   }
 
   if (!Number.isFinite(payload.heightMeters) || payload.heightMeters <= 0) {
@@ -868,11 +927,34 @@ function validateGuidePayload(payload) {
   }
 }
 
+function getStorageFileName(path) {
+  return path?.split('/').filter(Boolean).pop() ?? '';
+}
+
+function getImageReference(image) {
+  return image?.filePath || image?.src || '';
+}
+
+function imageMatchesPath(image, path) {
+  return Boolean(path && (image?.filePath === path || image?.src === path));
+}
+
 function getSavedGpxStatus(guide) {
+  const routePointCount = getRoutePointCount(guide?.trail?.routeGeojson);
+
+  if (guide?.trail?.gpxStoragePath) {
+    return {
+      type: 'success',
+      message: `${routePointCount || 'Saved'} route points are connected from ${getStorageFileName(
+        guide.trail.gpxStoragePath,
+      )}.`,
+    };
+  }
+
   return guide?.trail?.routeGeojson
     ? {
         type: 'success',
-        message: `${getRoutePointCount(guide.trail.routeGeojson)} saved route points are connected to this guide.`,
+        message: `${routePointCount} saved route points are connected to this guide.`,
       }
     : { type: 'idle', message: '' };
 }
@@ -880,7 +962,6 @@ function getSavedGpxStatus(guide) {
 export function AdminPage() {
   const { isConfigured, isLoading: authIsLoading, user } = useAuth();
   const editorRef = useRef(null);
-  const heroImageInputRef = useRef(null);
   const galleryImagesInputRef = useRef(null);
   const gpxInputRef = useRef(null);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -893,12 +974,12 @@ export function AdminPage() {
   const [selectedMountainId, setSelectedMountainId] = useState('');
   const [form, setForm] = useState(initialForm);
   const [savedForm, setSavedForm] = useState(initialForm);
-  const [heroImage, setHeroImage] = useState(null);
   const [galleryImages, setGalleryImages] = useState([]);
+  const [galleryImagePreviews, setGalleryImagePreviews] = useState([]);
   const [existingGalleryImages, setExistingGalleryImages] = useState([]);
   const [savedGalleryImages, setSavedGalleryImages] = useState([]);
-  const [galleryManagerOpen, setGalleryManagerOpen] = useState(false);
   const [galleryMeta, setGalleryMeta] = useState(initialGalleryMeta);
+  const [heroNewImageIndex, setHeroNewImageIndex] = useState(null);
   const [gpxFile, setGpxFile] = useState(null);
   const [routeGeojson, setRouteGeojson] = useState(null);
   const [gpxStatus, setGpxStatus] = useState({ type: 'idle', message: '' });
@@ -910,6 +991,21 @@ export function AdminPage() {
   );
   const previewSlug = useMemo(() => form.slug || slugify(form.name), [form.name, form.slug]);
   const existingImageCount = existingGalleryImages.length;
+  const selectedNewHeroIndex = useMemo(() => {
+    if (galleryImages.length === 0) {
+      return null;
+    }
+
+    return Number.isInteger(heroNewImageIndex) &&
+      heroNewImageIndex >= 0 &&
+      heroNewImageIndex < galleryImages.length
+      ? heroNewImageIndex
+      : null;
+  }, [galleryImages.length, heroNewImageIndex]);
+  const currentHeroGalleryImage = useMemo(
+    () => existingGalleryImages.find((image) => imageMatchesPath(image, form.heroImagePath)),
+    [existingGalleryImages, form.heroImagePath],
+  );
   const filteredGuides = useMemo(() => {
     const query = guideQuery.trim().toLowerCase();
 
@@ -935,14 +1031,14 @@ export function AdminPage() {
       JSON.stringify(form) !== JSON.stringify(savedForm) ||
       JSON.stringify(existingGalleryImages) !== JSON.stringify(savedGalleryImages) ||
       JSON.stringify(galleryMeta) !== JSON.stringify(initialGalleryMeta) ||
-      Boolean(heroImage || galleryImages.length > 0 || gpxFile),
+      Boolean(heroNewImageIndex !== null || galleryImages.length > 0 || gpxFile),
     [
       existingGalleryImages,
       form,
       galleryImages.length,
       galleryMeta,
       gpxFile,
-      heroImage,
+      heroNewImageIndex,
       savedForm,
       savedGalleryImages,
     ],
@@ -963,7 +1059,11 @@ export function AdminPage() {
     galleryImages.length > 0
       ? `${galleryImages.length} new image${galleryImages.length === 1 ? '' : 's'} selected. They upload when you ${
           mode === 'edit' ? 'update' : 'create'
-        } the guide.`
+        } the guide.${
+          selectedNewHeroIndex !== null
+            ? ` ${galleryImages[selectedNewHeroIndex]?.name ?? 'One selected image'} will be used as the hero.`
+            : ' Choose one below if it should replace the current hero.'
+        }`
       : `${existingImageCount} gallery image${existingImageCount === 1 ? '' : 's'} saved for this guide.`;
 
   const loadGuides = useCallback(async () => {
@@ -1018,6 +1118,20 @@ export function AdminPage() {
   }, [isAdmin, loadGuides]);
 
   useEffect(() => {
+    const previews = galleryImages.map((file, index) => ({
+      index,
+      name: file.name,
+      src: URL.createObjectURL(file),
+    }));
+
+    setGalleryImagePreviews(previews);
+
+    return () => {
+      previews.forEach((preview) => URL.revokeObjectURL(preview.src));
+    };
+  }, [galleryImages]);
+
+  useEffect(() => {
     if (!hasUnsavedChanges) {
       return undefined;
     }
@@ -1040,10 +1154,6 @@ export function AdminPage() {
   }
 
   function clearUploadInputs() {
-    if (heroImageInputRef.current) {
-      heroImageInputRef.current.value = '';
-    }
-
     if (galleryImagesInputRef.current) {
       galleryImagesInputRef.current.value = '';
     }
@@ -1058,6 +1168,17 @@ export function AdminPage() {
       ...current,
       [name]: value,
     }));
+  }
+
+  function handleSelectExistingHeroImage(image) {
+    setHeroNewImageIndex(null);
+    updateField('heroImagePath', getImageReference(image));
+    setStatus({ type: 'idle', message: '' });
+  }
+
+  function handleSelectNewHeroImage(index) {
+    setHeroNewImageIndex(index);
+    setStatus({ type: 'idle', message: '' });
   }
 
   function updateExistingGalleryImage(imageId, field, value) {
@@ -1113,32 +1234,17 @@ export function AdminPage() {
     }
   }
 
-  function handleHeroImageChange(file) {
-    try {
-      if (file) {
-        assertFileSize(file, MAX_IMAGE_SIZE_BYTES, 'Hero image');
-      }
-
-      setHeroImage(file);
-      setStatus({ type: 'idle', message: '' });
-    } catch (error) {
-      setHeroImage(null);
-      if (heroImageInputRef.current) {
-        heroImageInputRef.current.value = '';
-      }
-      setStatus({ type: 'error', message: error.message });
-    }
-  }
-
   function handleGalleryImagesChange(fileList) {
     try {
       const files = [...(fileList ?? [])];
       files.forEach((file) => assertFileSize(file, MAX_IMAGE_SIZE_BYTES, 'Gallery image'));
       setGalleryImages(files);
+      setHeroNewImageIndex(files.length > 0 && (mode === 'create' || !form.heroImagePath) ? 0 : null);
       setStatus({ type: 'idle', message: '' });
     } catch (error) {
       setGalleryImages([]);
       setGalleryMeta(initialGalleryMeta);
+      setHeroNewImageIndex(null);
       if (galleryImagesInputRef.current) {
         galleryImagesInputRef.current.value = '';
       }
@@ -1172,12 +1278,11 @@ export function AdminPage() {
     setSelectedMountainId('');
     setForm(initialForm);
     setSavedForm(initialForm);
-    setHeroImage(null);
     setGalleryImages([]);
     setExistingGalleryImages([]);
     setSavedGalleryImages([]);
-    setGalleryManagerOpen(false);
     setGalleryMeta(initialGalleryMeta);
+    setHeroNewImageIndex(null);
     setGpxFile(null);
     setRouteGeojson(null);
     setGpxStatus({ type: 'idle', message: '' });
@@ -1203,12 +1308,11 @@ export function AdminPage() {
     setSelectedMountainId(guide.mountain.id);
     setForm(nextForm);
     setSavedForm(nextForm);
-    setHeroImage(null);
     setGalleryImages([]);
     setExistingGalleryImages(nextGalleryImages);
     setSavedGalleryImages(nextGalleryImages);
-    setGalleryManagerOpen(false);
     setGalleryMeta(initialGalleryMeta);
+    setHeroNewImageIndex(null);
     setGpxFile(null);
     setRouteGeojson(null);
     setGpxStatus(getSavedGpxStatus(guide));
@@ -1219,10 +1323,10 @@ export function AdminPage() {
 
   function discardChanges() {
     setForm(savedForm);
-    setHeroImage(null);
     setGalleryImages([]);
     setExistingGalleryImages(savedGalleryImages);
     setGalleryMeta(initialGalleryMeta);
+    setHeroNewImageIndex(null);
     setGpxFile(null);
     setRouteGeojson(null);
     setGpxStatus(mode === 'edit' ? getSavedGpxStatus(selectedGuide) : { type: 'idle', message: '' });
@@ -1271,18 +1375,35 @@ export function AdminPage() {
     };
   }
 
-  async function saveGalleryImages({ trailId, slug }) {
+  async function uploadGalleryImageFiles({ slug }) {
+    const uploadedImages = [];
+
     for (const [index, file] of galleryImages.entries()) {
       const filePath = await uploadAdminMountainImage({ file, slug });
 
-      await addAdminTrailImage({
-        trailId,
+      uploadedImages.push({
         filePath,
         alt: galleryMeta.alt.trim() || `${form.name.trim()} trail view`,
         source: galleryMeta.source.trim(),
         license: galleryMeta.license.trim(),
         creditUrl: galleryMeta.creditUrl.trim(),
         sortOrder: (existingImageCount + index + 1) * 10,
+      });
+    }
+
+    return uploadedImages;
+  }
+
+  async function saveGalleryImages({ trailId, uploadedImages }) {
+    for (const image of uploadedImages) {
+      await addAdminTrailImage({
+        trailId,
+        filePath: image.filePath,
+        alt: image.alt,
+        source: image.source,
+        license: image.license,
+        creditUrl: image.creditUrl,
+        sortOrder: image.sortOrder,
       });
     }
   }
@@ -1314,13 +1435,27 @@ export function AdminPage() {
         setSavedGalleryImages(existingGalleryImages);
       }
 
-      setStatus({ type: 'success', message: 'Gallery changes saved.' });
+      setStatus({
+        type: 'success',
+        message:
+          form.heroImagePath !== savedForm.heroImagePath
+            ? 'Gallery changes saved. Click Update guide to save the hero image change.'
+            : 'Gallery changes saved.',
+      });
     } catch (error) {
       setStatus({ type: 'error', message: error.message });
     }
   }
 
   async function handleDeleteGalleryImage(image) {
+    if (imageMatchesPath(image, form.heroImagePath) || imageMatchesPath(image, savedForm.heroImagePath)) {
+      setStatus({
+        type: 'error',
+        message: 'Choose and update another hero image before deleting this photo.',
+      });
+      return;
+    }
+
     const shouldDelete = window.confirm('Delete this image from the public guide?');
 
     if (!shouldDelete) {
@@ -1339,6 +1474,60 @@ export function AdminPage() {
     }
   }
 
+  async function handleDeleteSavedGpx() {
+    const trailId = selectedGuide?.trail?.id ?? form.trailId;
+    const storagePath = selectedGuide?.trail?.gpxStoragePath;
+    const shouldDelete = window.confirm(
+      'Remove the saved GPX route from this guide? This happens immediately. The public map will fall back to the start and summit line until a new GPX is uploaded.',
+    );
+
+    if (!shouldDelete) {
+      return;
+    }
+
+    if (!trailId) {
+      setStatus({ type: 'error', message: 'No saved trail was found for this GPX route.' });
+      return;
+    }
+
+    if (
+      hasUnsavedChanges &&
+      !window.confirm(
+        'You have unsaved form changes. The GPX will be removed immediately, while your current form edits stay in the editor. Continue?',
+      )
+    ) {
+      return;
+    }
+
+    const shouldRefreshForm = !hasUnsavedChanges;
+
+    setStatus({ type: 'loading', message: '' });
+
+    try {
+      await deleteAdminTrailGpx({ trailId, storagePath });
+      const nextGuides = await loadGuides();
+      const savedGuide = nextGuides.find((guide) => guide.mountain.id === form.mountainId);
+
+      if (savedGuide && shouldRefreshForm) {
+        const nextForm = formFromGuide(savedGuide);
+        setForm(nextForm);
+        setSavedForm(nextForm);
+      }
+
+      setGpxFile(null);
+      setRouteGeojson(null);
+      setGpxStatus(savedGuide ? getSavedGpxStatus(savedGuide) : { type: 'idle', message: '' });
+
+      if (gpxInputRef.current) {
+        gpxInputRef.current.value = '';
+      }
+
+      setStatus({ type: 'success', message: 'Saved GPX route removed.' });
+    } catch (error) {
+      setStatus({ type: 'error', message: error.message });
+    }
+  }
+
   async function handleSubmit(event) {
     event.preventDefault();
     setStatus({ type: 'loading', message: '' });
@@ -1349,12 +1538,15 @@ export function AdminPage() {
       }
 
       const slug = previewSlug;
-      const preflightPayload = createPayload(heroImage ? 'pending-upload' : form.heroImagePath, undefined);
+      const preflightHeroImagePath = selectedNewHeroIndex !== null ? 'pending-upload' : form.heroImagePath;
+      const preflightPayload = createPayload(preflightHeroImagePath, undefined);
       validateGuidePayload(preflightPayload);
 
-      const heroImagePath = heroImage
-        ? await uploadAdminMountainImage({ file: heroImage, slug })
-        : form.heroImagePath;
+      const uploadedGalleryImages = await uploadGalleryImageFiles({ slug });
+      const heroImagePath =
+        selectedNewHeroIndex !== null
+          ? uploadedGalleryImages[selectedNewHeroIndex]?.filePath
+          : form.heroImagePath;
       const gpxStoragePath = gpxFile ? await uploadAdminTrailGpx({ file: gpxFile, slug }) : undefined;
       const payload = createPayload(heroImagePath, gpxStoragePath);
       validateGuidePayload(payload);
@@ -1370,7 +1562,7 @@ export function AdminPage() {
         published: form.published,
       });
 
-      await saveGalleryImages({ trailId, slug });
+      await saveGalleryImages({ trailId, uploadedImages: uploadedGalleryImages });
       if (mode === 'edit') {
         await saveExistingGalleryImages();
       }
@@ -1396,10 +1588,9 @@ export function AdminPage() {
         setSavedGalleryImages([]);
       }
 
-      setHeroImage(null);
       setGalleryImages([]);
-      setGalleryManagerOpen(false);
       setGalleryMeta(initialGalleryMeta);
+      setHeroNewImageIndex(null);
       setGpxFile(null);
       setRouteGeojson(null);
       setGpxStatus(savedGuide ? getSavedGpxStatus(savedGuide) : { type: 'idle', message: '' });
@@ -1438,12 +1629,11 @@ export function AdminPage() {
       setSelectedMountainId('');
       setForm(initialForm);
       setSavedForm(initialForm);
-      setHeroImage(null);
       setGalleryImages([]);
       setExistingGalleryImages([]);
       setSavedGalleryImages([]);
-      setGalleryManagerOpen(false);
       setGalleryMeta(initialGalleryMeta);
+      setHeroNewImageIndex(null);
       setGpxFile(null);
       setRouteGeojson(null);
       setGpxStatus({ type: 'idle', message: '' });
@@ -1759,37 +1949,6 @@ export function AdminPage() {
                       onChange={(event) => updateField('description', event.target.value)}
                     />
                   </FullField>
-                  <FullField>
-                    <span>{mode === 'edit' ? 'Replace hero image' : 'Hero image'}</span>
-                    <input
-                      ref={heroImageInputRef}
-                      accept="image/jpeg,image/png,image/webp"
-                      type="file"
-                      onChange={(event) => handleHeroImageChange(event.target.files?.[0] ?? null)}
-                    />
-                    <small>
-                      {mode === 'edit'
-                        ? 'Leave empty to keep the current hero image.'
-                        : 'JPEG, PNG, or WebP up to 5 MB.'}
-                    </small>
-                  </FullField>
-                  {heroImage && (
-                    <UploadControls>
-                      <UploadNote as="span">{heroImage.name} selected as the new hero image.</UploadNote>
-                      <SecondaryButton
-                        type="button"
-                        onClick={() => {
-                          setHeroImage(null);
-                          if (heroImageInputRef.current) {
-                            heroImageInputRef.current.value = '';
-                          }
-                        }}
-                      >
-                        <Camera size={16} aria-hidden="true" />
-                        {mode === 'edit' ? 'Keep current hero' : 'Clear selected hero'}
-                      </SecondaryButton>
-                    </UploadControls>
-                  )}
                 </Grid>
               </Fieldset>
 
@@ -1863,6 +2022,35 @@ export function AdminPage() {
                     />
                     <small>Uploading a new GPX replaces the saved route when you update the guide.</small>
                   </FullField>
+                  {mode === 'edit' &&
+                    (selectedGuide?.trail?.routeGeojson || selectedGuide?.trail?.gpxStoragePath) && (
+                      <SavedAsset>
+                        <div>
+                          <strong>{selectedGuide.trail.gpxStoragePath ? 'Saved GPX route' : 'Saved route data'}</strong>
+                          <span>
+                            {selectedGuide.trail.gpxStoragePath
+                              ? getStorageFileName(selectedGuide.trail.gpxStoragePath)
+                              : 'Route coordinates saved without an attached GPX file'}
+                            {getRoutePointCount(selectedGuide.trail.routeGeojson)
+                              ? ` · ${getRoutePointCount(selectedGuide.trail.routeGeojson)} route points`
+                              : ''}
+                          </span>
+                          <span>
+                            {gpxFile
+                              ? 'A new GPX is selected and will replace this saved route when you update the guide.'
+                              : 'This route is used for the public map.'}
+                          </span>
+                        </div>
+                        <DangerButton
+                          disabled={status.type === 'loading'}
+                          type="button"
+                          onClick={handleDeleteSavedGpx}
+                        >
+                          <Trash2 size={16} aria-hidden="true" />
+                          {selectedGuide.trail.gpxStoragePath ? 'Remove GPX' : 'Remove route'}
+                        </DangerButton>
+                      </SavedAsset>
+                    )}
                   {gpxStatus.message && (
                     <UploadNote as="div">
                       <Message $error={gpxStatus.type === 'error'}>{gpxStatus.message}</Message>
@@ -1956,110 +2144,121 @@ export function AdminPage() {
                   Manage existing photo details or select new images to upload with the guide.
                 </SectionIntro>
                 <Grid>
+                  {mode === 'edit' && form.heroImagePath && !currentHeroGalleryImage && (
+                    <HeroPreview>
+                      <HeroPreviewImage src={form.heroImagePath} alt={`${form.name || 'Mountain'} hero image`} />
+                      <div>
+                        <strong>Current hero image</strong>
+                        <span>{getStorageFileName(form.heroImagePath) || form.heroImagePath}</span>
+                        <span>
+                          This image is not saved as a gallery photo. Choose a saved or newly selected gallery image
+                          below, then update the guide to replace it.
+                        </span>
+                      </div>
+                    </HeroPreview>
+                  )}
+                  {mode === 'create' && galleryImages.length === 0 && (
+                    <UploadNote>Upload at least one gallery photo. The selected photo becomes the hero image.</UploadNote>
+                  )}
                   {mode === 'edit' && existingGalleryImages.length > 0 && (
-                    <>
-                      <GalleryManagerToggle>
-                        <div>
-                          <strong>
-                            {existingGalleryImages.length} saved image
-                            {existingGalleryImages.length === 1 ? '' : 's'}
-                          </strong>
-                          <p>Edit alt text, credits, ordering, or remove saved images.</p>
-                        </div>
-                        <SecondaryButton
-                          type="button"
-                          aria-expanded={galleryManagerOpen}
-                          onClick={() => setGalleryManagerOpen((open) => !open)}
-                        >
-                          <Camera size={16} aria-hidden="true" />
-                          {galleryManagerOpen ? 'Hide saved images' : 'Manage saved images'}
-                        </SecondaryButton>
-                      </GalleryManagerToggle>
-                      {galleryManagerOpen && (
-                        <GalleryManager>
-                          {existingGalleryImages.map((image, index) => (
-                            <GalleryItem key={image.id}>
-                              <GalleryThumb src={image.src} alt={image.alt || 'Trail gallery image'} />
-                              <GalleryFields>
-                                <Grid>
-                                  <Field>
-                                    <span>Alt text</span>
-                                    <input
-                                      value={image.alt}
-                                      onChange={(event) =>
-                                        updateExistingGalleryImage(image.id, 'alt', event.target.value)
-                                      }
-                                    />
-                                  </Field>
-                                  <Field>
-                                    <span>Source</span>
-                                    <input
-                                      value={image.source}
-                                      onChange={(event) =>
-                                        updateExistingGalleryImage(image.id, 'source', event.target.value)
-                                      }
-                                    />
-                                  </Field>
-                                  <Field>
-                                    <span>License</span>
-                                    <input
-                                      value={image.license}
-                                      onChange={(event) =>
-                                        updateExistingGalleryImage(image.id, 'license', event.target.value)
-                                      }
-                                    />
-                                  </Field>
-                                  <Field>
-                                    <span>Credit URL</span>
-                                    <input
-                                      type="url"
-                                      value={image.creditUrl}
-                                      onChange={(event) =>
-                                        updateExistingGalleryImage(image.id, 'creditUrl', event.target.value)
-                                      }
-                                    />
-                                  </Field>
-                                </Grid>
-                                <GalleryActions>
-                                  <IconButton
-                                    disabled={index === 0 || status.type === 'loading'}
-                                    type="button"
-                                    onClick={() => moveExistingGalleryImage(index, -1)}
-                                  >
-                                    <ArrowUp size={16} aria-hidden="true" /> Up
-                                  </IconButton>
-                                  <IconButton
-                                    disabled={
-                                      index === existingGalleryImages.length - 1 || status.type === 'loading'
+                    <GalleryManager>
+                      <UploadNote>
+                        {existingGalleryImages.length} saved image
+                        {existingGalleryImages.length === 1 ? '' : 's'}. Choose one as the hero, edit details, reorder,
+                        or delete below.
+                      </UploadNote>
+                      {existingGalleryImages.map((image, index) => {
+                        const isHeroImage = selectedNewHeroIndex === null && imageMatchesPath(image, form.heroImagePath);
+
+                        return (
+                          <GalleryItem key={image.id}>
+                            <GalleryThumb src={image.src} alt={image.alt || 'Trail gallery image'} />
+                            <GalleryFields>
+                              <Grid>
+                                <Field>
+                                  <span>Alt text</span>
+                                  <input
+                                    value={image.alt}
+                                    onChange={(event) =>
+                                      updateExistingGalleryImage(image.id, 'alt', event.target.value)
                                     }
-                                    type="button"
-                                    onClick={() => moveExistingGalleryImage(index, 1)}
-                                  >
-                                    <ArrowDown size={16} aria-hidden="true" /> Down
-                                  </IconButton>
-                                  <DangerButton
-                                    disabled={status.type === 'loading'}
-                                    type="button"
-                                    onClick={() => handleDeleteGalleryImage(image)}
-                                  >
-                                    <Trash2 size={16} aria-hidden="true" /> Delete
-                                  </DangerButton>
-                                </GalleryActions>
-                              </GalleryFields>
-                            </GalleryItem>
-                          ))}
-                          <ButtonRow>
-                            <SecondaryButton
-                              disabled={status.type === 'loading'}
-                              type="button"
-                              onClick={handleSaveGalleryChanges}
-                            >
-                              <Save size={16} aria-hidden="true" /> Save image details and order
-                            </SecondaryButton>
-                          </ButtonRow>
-                        </GalleryManager>
-                      )}
-                    </>
+                                  />
+                                </Field>
+                                <Field>
+                                  <span>Source</span>
+                                  <input
+                                    value={image.source}
+                                    onChange={(event) =>
+                                      updateExistingGalleryImage(image.id, 'source', event.target.value)
+                                    }
+                                  />
+                                </Field>
+                                <Field>
+                                  <span>License</span>
+                                  <input
+                                    value={image.license}
+                                    onChange={(event) =>
+                                      updateExistingGalleryImage(image.id, 'license', event.target.value)
+                                    }
+                                  />
+                                </Field>
+                                <Field>
+                                  <span>Credit URL</span>
+                                  <input
+                                    type="url"
+                                    value={image.creditUrl}
+                                    onChange={(event) =>
+                                      updateExistingGalleryImage(image.id, 'creditUrl', event.target.value)
+                                    }
+                                  />
+                                </Field>
+                              </Grid>
+                              <GalleryActions>
+                                <HeroChoice $active={isHeroImage}>
+                                  <input
+                                    checked={isHeroImage}
+                                    name="hero-image"
+                                    type="radio"
+                                    onChange={() => handleSelectExistingHeroImage(image)}
+                                  />
+                                  {isHeroImage ? 'Hero image' : 'Use as hero'}
+                                </HeroChoice>
+                                <IconButton
+                                  disabled={index === 0 || status.type === 'loading'}
+                                  type="button"
+                                  onClick={() => moveExistingGalleryImage(index, -1)}
+                                >
+                                  <ArrowUp size={16} aria-hidden="true" /> Up
+                                </IconButton>
+                                <IconButton
+                                  disabled={index === existingGalleryImages.length - 1 || status.type === 'loading'}
+                                  type="button"
+                                  onClick={() => moveExistingGalleryImage(index, 1)}
+                                >
+                                  <ArrowDown size={16} aria-hidden="true" /> Down
+                                </IconButton>
+                                <DangerButton
+                                  disabled={status.type === 'loading'}
+                                  type="button"
+                                  onClick={() => handleDeleteGalleryImage(image)}
+                                >
+                                  <Trash2 size={16} aria-hidden="true" /> Delete
+                                </DangerButton>
+                              </GalleryActions>
+                            </GalleryFields>
+                          </GalleryItem>
+                        );
+                      })}
+                      <ButtonRow>
+                        <SecondaryButton
+                          disabled={status.type === 'loading'}
+                          type="button"
+                          onClick={handleSaveGalleryChanges}
+                        >
+                          <Save size={16} aria-hidden="true" /> Save image details and order
+                        </SecondaryButton>
+                      </ButtonRow>
+                    </GalleryManager>
                   )}
                   <FullField>
                     <span>Add gallery images</span>
@@ -2072,6 +2271,34 @@ export function AdminPage() {
                     />
                   </FullField>
                   <UploadNote>{galleryUploadSummary}</UploadNote>
+                  {galleryImagePreviews.length > 0 && (
+                    <GalleryManager>
+                      <UploadNote>Selected images. Choose which one should be the hero when the guide is saved.</UploadNote>
+                      {galleryImagePreviews.map((preview) => {
+                        const isHeroImage = selectedNewHeroIndex === preview.index;
+
+                        return (
+                          <GalleryItem key={`${preview.name}-${preview.index}`}>
+                            <GalleryThumb src={preview.src} alt="" />
+                            <GalleryFields>
+                              <GalleryFileName>{preview.name}</GalleryFileName>
+                              <GalleryActions>
+                                <HeroChoice $active={isHeroImage}>
+                                  <input
+                                    checked={isHeroImage}
+                                    name="hero-image"
+                                    type="radio"
+                                    onChange={() => handleSelectNewHeroImage(preview.index)}
+                                  />
+                                  {isHeroImage ? 'Hero image' : 'Use as hero'}
+                                </HeroChoice>
+                              </GalleryActions>
+                            </GalleryFields>
+                          </GalleryItem>
+                        );
+                      })}
+                    </GalleryManager>
+                  )}
                   {galleryImages.length > 0 && (
                     <UploadControls>
                       <SecondaryButton
@@ -2079,6 +2306,7 @@ export function AdminPage() {
                         onClick={() => {
                           setGalleryImages([]);
                           setGalleryMeta(initialGalleryMeta);
+                          setHeroNewImageIndex(null);
                           if (galleryImagesInputRef.current) {
                             galleryImagesInputRef.current.value = '';
                           }
@@ -2170,7 +2398,7 @@ export function AdminPage() {
                   >
                     {gpxFile ? (
                       <FileUp size={18} aria-hidden="true" />
-                    ) : galleryImages.length > 0 || heroImage ? (
+                    ) : galleryImages.length > 0 ? (
                       <ImagePlus size={18} aria-hidden="true" />
                     ) : (
                       <Save size={18} aria-hidden="true" />

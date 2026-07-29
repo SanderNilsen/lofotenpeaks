@@ -329,6 +329,36 @@ export async function uploadAdminTrailGpx({ file, slug }) {
   return filePath;
 }
 
+export async function deleteAdminTrailGpx({ trailId, storagePath }) {
+  const client = requireSupabaseClient();
+  const { data, error } = await client
+    .from('trails')
+    .update({
+      gpx_storage_path: null,
+      route_geojson: null,
+      route_note: 'Route line uses start and summit coordinates until GPX route data is uploaded. Verify locally before hiking.',
+    })
+    .eq('id', trailId)
+    .select('id')
+    .maybeSingle();
+
+  if (error) {
+    throw error;
+  }
+
+  if (!data) {
+    throw new Error('Trail GPX route not found.');
+  }
+
+  if (storagePath) {
+    const { error: storageError } = await client.storage.from('trail-gpx').remove([storagePath]);
+
+    if (storageError) {
+      throw storageError;
+    }
+  }
+}
+
 export async function createAdminMountainGuide(guide) {
   const client = requireSupabaseClient();
   const { data, error } = await client.rpc('admin_create_mountain_guide', {

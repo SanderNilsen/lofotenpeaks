@@ -56,6 +56,19 @@ const SourceLink = styled.a`
   &:hover {
     text-decoration: underline;
   }
+
+  &:focus-visible {
+    border-radius: ${theme.radii.small};
+    outline: 3px solid ${theme.colors.fjord};
+    outline-offset: 3px;
+  }
+`;
+
+const Description = styled.p`
+  color: ${theme.colors.muted};
+  line-height: 1.6;
+  margin: -2px 0 18px;
+  max-width: 720px;
 `;
 
 const Grid = styled.div`
@@ -243,6 +256,7 @@ async function fetchLocationWeather(location, signal) {
 
 export function MountainWeatherPanel({
   title = 'Lofoten Weather',
+  description,
   locationIds,
   locations,
   compact = false,
@@ -322,6 +336,8 @@ export function MountainWeatherPanel({
           Open-Meteo <ExternalLink size={14} aria-hidden="true" />
         </SourceLink>
       </Header>
+
+      {description && <Description>{description}</Description>}
 
       {status === 'loading' && (
         <Status>

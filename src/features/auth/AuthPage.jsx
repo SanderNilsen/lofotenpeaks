@@ -199,11 +199,23 @@ const Form = styled.form`
   gap: 14px;
 `;
 
-const PrivacyNote = styled.p`
+const TermsAgreement = styled.label`
+  align-items: start;
   color: ${theme.colors.muted};
+  cursor: pointer;
+  display: grid;
   font-size: 0.84rem;
+  gap: 9px;
+  grid-template-columns: auto minmax(0, 1fr);
   line-height: 1.55;
   margin: 0;
+
+  input {
+    accent-color: ${theme.colors.forest};
+    height: 18px;
+    margin: 2px 0 0;
+    width: 18px;
+  }
 
   a {
     color: ${theme.colors.fjord};
@@ -808,6 +820,7 @@ export function AuthPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [passwordVisible, setPasswordVisible] = useState(false);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [status, setStatus] = useState({ type: 'idle', message: '' });
   const [profileForm, setProfileForm] = useState(initialProfileForm);
   const [profileStatus, setProfileStatus] = useState({ type: 'idle', message: '' });
@@ -917,6 +930,7 @@ export function AuthPage() {
     setMode(nextMode);
     setPassword('');
     setPasswordVisible(false);
+    setAcceptedTerms(false);
     setStatus({ type: 'idle', message: '' });
   }
 
@@ -927,6 +941,10 @@ export function AuthPage() {
     try {
       if (mode === 'register') {
         const cleanDisplayName = displayName.trim();
+
+        if (!acceptedTerms) {
+          throw new Error('You must agree to the Terms of Service to create an account.');
+        }
 
         if (cleanDisplayName.length < 2 || cleanDisplayName.length > 60) {
           throw new Error('Display name must be between 2 and 60 characters.');
@@ -939,6 +957,7 @@ export function AuthPage() {
         await signUpWithEmail({ displayName: cleanDisplayName, email: email.trim(), password });
         setPassword('');
         setPasswordVisible(false);
+        setAcceptedTerms(false);
         setStatus({
           type: 'success',
           message: 'Account created. Check your email if Supabase email confirmation is enabled.',
@@ -1039,7 +1058,7 @@ export function AuthPage() {
     <Page>
       <Seo
         title="Account"
-        description="Create or access a Lofoten Peaks account for future mountain check-ins, points, comments, and GPX uploads."
+        description="Create or access a Lofoten Peaks account for mountain check-ins, points, comments, profiles, and hike recommendations."
       />
       <Header>
         <h1>{user ? 'Your account' : 'Account'}</h1>
@@ -1586,11 +1605,19 @@ export function AuthPage() {
                 {mode === 'register' && <small>Use at least 6 characters.</small>}
               </Field>
               {mode === 'register' && (
-                <PrivacyNote>
-                  By creating an account, you acknowledge that you have read the{' '}
-                  <Link to="/privacy">Privacy Policy</Link>, including how public profile, leaderboard, comment, and
-                  summit check-in data is handled.
-                </PrivacyNote>
+                <TermsAgreement>
+                  <input
+                    required
+                    type="checkbox"
+                    checked={acceptedTerms}
+                    disabled={status.type === 'loading'}
+                    onChange={(event) => setAcceptedTerms(event.target.checked)}
+                  />
+                  <span>
+                    I agree to the <Link to="/terms">Terms of Service</Link> and acknowledge that I have read the{' '}
+                    <Link to="/privacy">Privacy Policy</Link>.
+                  </span>
+                </TermsAgreement>
               )}
               <PrimaryButton type="submit" disabled={status.type === 'loading'}>
                 <UserCircle size={18} aria-hidden="true" />

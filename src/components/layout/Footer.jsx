@@ -77,6 +77,7 @@ export function Footer() {
         <Logo src="/images/logo-white.png" alt="Lofoten Peaks logo" />
         <FooterLinks aria-label="Legal and privacy links">
           <Link to="/privacy">Privacy Policy</Link>
+          <Link to="/terms">Terms of Service</Link>
           <button type="button" onClick={openCookieSettings}>
             Cookie settings
           </button>

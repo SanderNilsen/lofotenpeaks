@@ -22,6 +22,7 @@ import styled from 'styled-components';
 import { DifficultyBadge } from '../../components/common/Badge.jsx';
 import { ImageCredits } from '../../components/common/ImageCredits.jsx';
 import { Seo } from '../../components/common/Seo.jsx';
+import { SafetyNotice } from '../../components/trails/SafetyNotice.jsx';
 import { TrailMap } from '../../components/trails/TrailMap.jsx';
 import { MountainWeatherPanel } from '../../components/weather/MountainWeatherPanel.jsx';
 import { mountains } from '../../data/mountains.js';
@@ -502,6 +503,8 @@ export function TrailDetailPage() {
           </Stats>
         </HeroContent>
       </Hero>
+
+      <SafetyNotice />
 
       <ContentGrid>
         <GuideColumn>

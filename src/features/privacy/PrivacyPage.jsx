@@ -459,22 +459,18 @@ export function PrivacyPage() {
           <Section id="controller">
             <h2>1. Who is responsible for processing?</h2>
             <p>
-              Lofoten Peaks is operated by Sander as a private individual in Norway. Sander determines
-              why and how personal data is processed through lofotenpeaks.no and is the data controller under the EU
+              Lofoten Peaks is operated by a private individual in Norway. The operator determines why and how
+              personal data is processed through lofotenpeaks.no and is responsible for that processing under the EU
               General Data Protection Regulation (GDPR) and the Norwegian Personal Data Act.
             </p>
             <ControllerDetails>
               <div>
-                <dt>Data controller</dt>
-                <dd>Sander</dd>
+                <dt>Operator</dt>
+                <dd>Private individual</dd>
               </div>
               <div>
                 <dt>Website</dt>
                 <dd>Lofoten Peaks</dd>
-              </div>
-              <div>
-                <dt>Capacity</dt>
-                <dd>Private individual</dd>
               </div>
               <div>
                 <dt>Location</dt>

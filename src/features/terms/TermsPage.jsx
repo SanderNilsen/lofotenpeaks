@@ -301,8 +301,8 @@ export function TermsPage() {
           <Section id="about">
             <h2>2. About Lofoten Peaks</h2>
             <p>
-              Lofoten Peaks is an online hiking guide operated by Sander as a private individual in Norway. It helps
-              visitors discover mountain hikes and route information in Lofoten. Guide pages may include descriptions,
+              Lofoten Peaks is an online hiking guide operated by a private individual in Norway. It helps visitors
+              discover mountain hikes and route information in Lofoten. Guide pages may include descriptions,
               photographs, difficulty ratings, distances, elevation, maps, route lines, planning notes, safety notes,
               and weather information.
             </p>
@@ -523,9 +523,8 @@ export function TermsPage() {
             <h2>14. Contact Information</h2>
             <p>Questions, content reports, and account-related requests can be sent to:</p>
             <ContactDetails>
-              <strong>Sander</strong>
-              <span>Operating Lofoten Peaks as a private individual</span>
-              <span>Norway</span>
+              <strong>Lofoten Peaks</strong>
+              <span>Operated by a private individual in Norway</span>
               <a href="mailto:contact@lofotenpeaks.no">contact@lofotenpeaks.no</a>
             </ContactDetails>
           </Section>

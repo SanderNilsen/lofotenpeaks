@@ -8,10 +8,11 @@ const FooterFrame = styled.footer`
 `;
 
 const FooterImage = styled.img`
-  height: clamp(130px, 18vw, 250px);
-  object-fit: cover;
-  width: 100%;
+  height: clamp(130px, 13.23vw, 571px);
   margin-bottom: -6px;
+  object-fit: cover;
+  object-position: center top;
+  width: 100%;
 `;
 
 const FooterInner = styled.div`

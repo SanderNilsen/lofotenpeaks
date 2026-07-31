@@ -235,7 +235,7 @@ export function MountainListPage() {
     <Page>
       <Seo
         title="Lofoten Hikes"
-        description="Browse Lofoten mountain hiking guides by difficulty, region, route length, weather, photos, and map details."
+        description="Browse Lofoten mountain hiking guides by difficulty, island, route length, weather, photos, and map details."
         image="/images/reinebringen-gallery-1.jpg"
         imageAlt="View across Reine and Reinefjorden from the mountains"
         canonicalPath="/mountains"
@@ -266,7 +266,7 @@ export function MountainListPage() {
             <input
               type="search"
               value={searchTerm}
-              placeholder="Search mountain, region, or keyword"
+              placeholder="Search mountain, island, or keyword"
               onChange={(event) => setSearchTerm(event.target.value)}
             />
           </SearchField>
@@ -282,9 +282,9 @@ export function MountainListPage() {
             </select>
           </Field>
           <Field>
-            <span>Region</span>
+            <span>Island</span>
             <select value={regionFilter} onChange={(event) => setRegionFilter(event.target.value)}>
-              <option value="all">All regions</option>
+              <option value="all">All islands</option>
               {regionOptions.map((region) => (
                 <option key={region} value={region}>
                   {region}

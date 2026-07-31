@@ -1907,15 +1907,16 @@ export function AdminPage() {
                     <small>The reward added to the user&apos;s profile after a valid check-in.</small>
                   </Field>
                   <Field>
-                    <span>Weather area</span>
+                    <span>Fallback weather location</span>
                     <select
                       value={form.weatherLocationId}
                       onChange={(event) => updateField('weatherLocationId', event.target.value)}
                     >
-                      <option value="west-lofoten">West Lofoten</option>
-                      <option value="central-lofoten">Central Lofoten</option>
-                      <option value="east-lofoten">East Lofoten</option>
+                      <option value="west-lofoten">Reine, Moskenesøya</option>
+                      <option value="central-lofoten">Haukland, Vestvågøya</option>
+                      <option value="east-lofoten">Svolvær, Austvågøya</option>
                     </select>
+                    <small>Used only when route finish-point coordinates are unavailable.</small>
                   </Field>
                   <Field>
                     <span>Summit latitude</span>

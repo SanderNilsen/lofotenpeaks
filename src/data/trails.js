@@ -330,7 +330,7 @@ export const trails = [
     name: 'Himmeltindan',
     summary: 'Long climb from Haukland Beach toward one of Vestvågøy\'s biggest viewpoints.',
     description:
-      'Himmeltindan is one of the major summit hikes in central Lofoten. The common route starts at Haukland Beach and climbs steadily through open terrain to the upper ridge. Many hikers stop at the accessible viewpoint below the restricted highest summit area.',
+      'Himmeltindan is one of the major summit hikes on Vestvågøya. The common route starts at Haukland Beach and climbs steadily through open terrain to the upper ridge. Many hikers stop at the accessible viewpoint below the restricted highest summit area.',
     lengthKm: 8.5,
     elevationGainMeters: 945,
     estimatedDuration: '3-5 hours round trip',

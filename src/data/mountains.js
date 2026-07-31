@@ -71,7 +71,7 @@ export const mountains = [
     difficulty: 'hard',
     summary: 'Short, steep summit hike above Henningsvær with dramatic views over the fishing village.',
     description:
-      'Festvågtind rises sharply above the road to Henningsvær and is one of the most popular short summit hikes in eastern Lofoten. The route climbs through rough, rocky terrain past the Heiavatnet area before reaching the summit ridge. The reward is a wide view over Henningsvær, the Vestfjord and surrounding islands.',
+      'Festvågtind rises sharply above the road to Henningsvær and is one of the area’s most popular short summit hikes. The route climbs through rough, rocky terrain past the Heiavatnet area before reaching the summit ridge. The reward is a wide view over Henningsvær, the Vestfjord and surrounding islands.',
     heroImage: trailImage('festvagtind-hero.jpg', 'View over Henningsvaer islands from Festvagtind'),
     images: [
       trailImage('festvagtind-hero.jpg', 'View over Henningsvaer islands from Festvagtind'),
@@ -152,7 +152,7 @@ export const mountains = [
     difficulty: 'hard',
     summary: 'Highest mountain on Vestvågøy, climbing steeply from Haukland Beach to a major Lofoten panorama.',
     description:
-      'Himmeltindan is the highest mountain on Vestvågøy and one of the major summit hikes in central Lofoten. The common route starts at Haukland Beach and climbs steadily through open terrain to the upper ridge. The highest military/radar summit may be restricted, so many hikers stop at the accessible 931 m top/viewpoint.',
+      'Himmeltindan is the highest mountain on Vestvågøy and one of the island’s major summit hikes. The common route starts at Haukland Beach and climbs steadily through open terrain to the upper ridge. The highest military/radar summit may be restricted, so many hikers stop at the accessible 931 m top/viewpoint.',
     heroImage: trailImage('himmeltindan-hero.jpg', 'View from Himmeltindan over Vestvagoy and the sea'),
     images: [
       trailImage('himmeltindan-hero.jpg', 'View from Himmeltindan over Vestvagoy and the sea'),

@@ -1,4 +1,3 @@
-import { Scale, ShieldAlert } from 'lucide-react';
 import { useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import styled from 'styled-components';
@@ -8,10 +7,11 @@ import { theme } from '../../styles/theme.js';
 const Page = styled.div`
   margin: 0 auto;
   max-width: ${theme.pageWidth};
+  min-width: 0;
   padding: 56px 24px 24px;
 
   @media (max-width: 640px) {
-    padding-top: 36px;
+    padding: 32px 16px 16px;
   }
 `;
 
@@ -27,7 +27,7 @@ const Hero = styled.header`
     margin: 0;
   }
 
-  p {
+  > p {
     color: ${theme.colors.muted};
     font-size: 1.08rem;
     line-height: 1.7;
@@ -36,8 +36,17 @@ const Hero = styled.header`
   }
 
   @media (max-width: 640px) {
+    gap: 14px;
+    padding-bottom: 24px;
+
     h1 {
-      font-size: 2.5rem;
+      font-size: 2.25rem;
+      line-height: 1.08;
+    }
+
+    > p {
+      font-size: 1rem;
+      line-height: 1.6;
     }
   }
 `;
@@ -57,8 +66,9 @@ const TermsLayout = styled.div`
   padding-top: 38px;
 
   @media (max-width: 860px) {
-    gap: 34px;
-    grid-template-columns: 1fr;
+    gap: 30px;
+    grid-template-columns: minmax(0, 1fr);
+    padding-top: 28px;
   }
 `;
 
@@ -101,27 +111,39 @@ const Contents = styled.nav`
 
   @media (max-width: 860px) {
     position: static;
+
+    ol {
+      column-gap: 24px;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (max-width: 420px) {
+    ol {
+      grid-template-columns: 1fr;
+    }
   }
 `;
 
 const Article = styled.article`
   display: grid;
   gap: 44px;
+  min-width: 0;
+
+  @media (max-width: 640px) {
+    gap: 36px;
+  }
 `;
 
 const Section = styled.section`
+  min-width: 0;
+  overflow-wrap: anywhere;
   scroll-margin-top: 104px;
 
   h2 {
     font-size: 1.65rem;
     line-height: 1.25;
     margin: 0 0 16px;
-  }
-
-  h3 {
-    font-size: 1.1rem;
-    line-height: 1.35;
-    margin: 26px 0 10px;
   }
 
   p,
@@ -136,7 +158,7 @@ const Section = styled.section`
   ul {
     display: grid;
     gap: 8px;
-    margin: 12px 0 0;
+    margin: 12px 0 16px;
     padding-left: 22px;
   }
 
@@ -151,6 +173,23 @@ const Section = styled.section`
     outline: 3px solid ${theme.colors.fjord};
     outline-offset: 3px;
   }
+
+  @media (max-width: 640px) {
+    h2 {
+      font-size: 1.45rem;
+      line-height: 1.3;
+      margin-bottom: 14px;
+    }
+
+    p,
+    li {
+      line-height: 1.65;
+    }
+
+    ul {
+      padding-left: 20px;
+    }
+  }
 `;
 
 const Summary = styled.div`
@@ -158,47 +197,15 @@ const Summary = styled.div`
   border-left: 4px solid ${theme.colors.forest};
   border-radius: 0 ${theme.radii.medium} ${theme.radii.medium} 0;
   color: #183f35;
-  display: grid;
-  gap: 10px;
   padding: 18px 20px;
 
   p {
+    line-height: 1.65;
     margin: 0;
   }
-`;
 
-const SafetySection = styled(Section)`
-  background: #fff7ed;
-  border: 1px solid #d79b62;
-  border-left: 5px solid ${theme.colors.warning};
-  border-radius: ${theme.radii.medium};
-  padding: 24px;
-
-  h2 {
-    align-items: center;
-    color: #5b351a;
-    display: flex;
-    gap: 10px;
-  }
-`;
-
-const LegalLimit = styled.div`
-  background: ${theme.colors.surface};
-  border: 1px solid ${theme.colors.line};
-  border-radius: ${theme.radii.medium};
-  display: grid;
-  gap: 10px;
-  margin-top: 20px;
-  padding: 18px;
-
-  strong {
-    align-items: center;
-    display: flex;
-    gap: 8px;
-  }
-
-  p {
-    margin: 0;
+  @media (max-width: 560px) {
+    padding: 16px;
   }
 `;
 
@@ -215,19 +222,17 @@ const ContactDetails = styled.address`
 
 const tocItems = [
   ['acceptance', 'Acceptance'],
-  ['service', 'About the service'],
+  ['about', 'About Lofoten Peaks'],
   ['accounts', 'User accounts'],
   ['user-content', 'User content'],
-  ['hiking-disclaimer', 'Hiking information'],
-  ['safety', 'Safety disclaimer'],
-  ['liability', 'Limitation of liability'],
-  ['gpx', 'GPX and route data'],
-  ['community', 'Community content'],
+  ['hiking-safety', 'Hiking information and safety'],
+  ['gpx-community', 'GPX and community information'],
+  ['acceptable-use', 'Acceptable use'],
   ['intellectual-property', 'Intellectual property'],
-  ['prohibited-conduct', 'Prohibited conduct'],
+  ['liability', 'Limitation of liability'],
+  ['external-services', 'External services'],
   ['termination', 'Suspension and termination'],
-  ['service-changes', 'Changes to the service'],
-  ['terms-changes', 'Changes to these Terms'],
+  ['changes', 'Changes'],
   ['governing-law', 'Governing law'],
   ['contact', 'Contact'],
 ];
@@ -248,25 +253,20 @@ export function TermsPage() {
     <Page>
       <Seo
         title="Terms of Service"
-        description="Terms for using Lofoten Peaks, including account, community, route information, GPX, hiking safety, and liability rules."
+        description="Terms for using Lofoten Peaks, including accounts, community contributions, hiking information, GPX tracks, safety, and acceptable use."
       />
 
       <Hero>
         <h1>Terms of Service</h1>
         <p>
-          These Terms govern your use of Lofoten Peaks. They explain the rules for accounts and community
-          contributions, the limitations of hiking information, and the safety decisions every hiker must make for
-          themselves.
+          These Terms explain how you may use Lofoten Peaks, contribute to the community, and make informed decisions
+          when planning outdoor activities.
         </p>
         <Updated>Last updated: 31 July 2026</Updated>
         <Summary>
           <p>
-            <strong>Important:</strong> Lofoten Peaks is an informational hiking guide, not a professional guiding,
-            emergency, rescue, or official trail-authority service.
-          </p>
-          <p>
-            Mountain travel involves inherent risk. Conditions and access can change quickly, and no map, route line,
-            GPX-derived track, forecast, comment, or difficulty rating can replace your own judgement and preparation.
+            Lofoten Peaks is a practical planning resource. Route information can help you prepare, but conditions and
+            access may change, so always check current information and use your own judgement before setting out.
           </p>
         </Summary>
       </Hero>
@@ -288,8 +288,8 @@ export function TermsPage() {
             <h2>1. Acceptance of the Terms</h2>
             <p>
               By accessing or using lofotenpeaks.no, creating an account, checking in, commenting, or submitting a hike
-              recommendation, you agree to these Terms. If you do not agree, do not create an account or use the
-              community features.
+              recommendation, you agree to these Terms. If you do not agree, you should not use account or community
+              features.
             </p>
             <p>
               If you are not legally able to accept these Terms yourself, you may use account features only with the
@@ -298,24 +298,22 @@ export function TermsPage() {
             </p>
           </Section>
 
-          <Section id="service">
-            <h2>2. About the Service</h2>
+          <Section id="about">
+            <h2>2. About Lofoten Peaks</h2>
             <p>
-              Lofoten Peaks is an online hiking guide operated by Sander as a private individual in Norway. It
-              helps visitors discover mountain hikes and route information in Lofoten. Public guide pages may include
-              descriptions, photographs, difficulty ratings, distances, elevation, maps, GPX-derived route lines,
-              planning notes, safety notes, and weather information.
+              Lofoten Peaks is an online hiking guide operated by Sander as a private individual in Norway. It helps
+              visitors discover mountain hikes and route information in Lofoten. Guide pages may include descriptions,
+              photographs, difficulty ratings, distances, elevation, maps, route lines, planning notes, safety notes,
+              and weather information.
             </p>
             <p>
-              Registered users can currently maintain a public-facing profile identity, make summit check-ins using
-              location verification, collect virtual points, appear on a leaderboard, post comments, and submit text
-              hike recommendations for review. Points are recognition within the service only. They have no monetary
-              value and cannot be transferred or exchanged.
+              Registered users can maintain a public-facing profile identity, make location-verified summit check-ins,
+              collect virtual points, appear on a leaderboard, post comments, and submit text hike recommendations for
+              review. Points have no monetary value and cannot be transferred or exchanged.
             </p>
             <p>
-              Public users cannot currently upload GPX files, route photographs, or star-rating reviews. GPX and
-              gallery uploads in the current application are restricted to the site administrator. Available features
-              may differ between accounts and may change as described in section 13.
+              Public users cannot currently upload GPX files, route photographs, or reviews. GPX and gallery uploads
+              are restricted to the site administrator. Available features may change as described in section 12.
             </p>
           </Section>
 
@@ -327,156 +325,104 @@ export function TermsPage() {
               <li>use a display name and username that do not impersonate or mislead others;</li>
               <li>keep your password and access to your email account secure;</li>
               <li>notify Lofoten Peaks promptly if you believe your account has been compromised; and</li>
-              <li>take responsibility for activity performed through your account unless caused by a security failure for which Lofoten Peaks is legally responsible.</li>
+              <li>
+                take responsibility for activity through your account unless it results from a security failure for
+                which Lofoten Peaks is legally responsible.
+              </li>
             </ul>
             <p>
               Accounts are personal and must not be sold or transferred. The current website does not provide
               self-service password reset or account deletion. Account and deletion requests can be sent to the contact
-              address in section 16. Personal data is handled as described in the{' '}
-              <Link to="/privacy">Privacy Policy</Link>.
+              address in section 14. Personal data is handled as described in the <Link to="/privacy">Privacy Policy</Link>.
             </p>
           </Section>
 
           <Section id="user-content">
-            <h2>4. User-generated content</h2>
+            <h2>4. User Content</h2>
             <p>
-              User-generated content currently includes profile names and biographies, summit check-in notes, comments,
-              and hike recommendations. You remain responsible for the accuracy, legality, and safety implications of
-              everything you submit.
+              User content currently includes profile names and biographies, summit check-in notes, comments, and hike
+              recommendations. You remain responsible for the content you submit and confirm that you have the rights
+              and permissions needed to publish it.
             </p>
-            <p>By submitting content, you confirm that:</p>
+            <p>
+              Content must not unlawfully disclose another person's personal or location information, infringe
+              copyright or other rights, or be deliberately false, dangerous, defamatory, unlawful, or misleading.
+              Route and safety information should be shared honestly and with appropriate uncertainty.
+            </p>
+            <p>
+              Lofoten Peaks may review, reject, hide, or remove content that breaches these Terms, creates a credible
+              safety concern, infringes rights, is unlawful, or is otherwise unsuitable for the hiking guide. Approval
+              or publication does not mean that content has been professionally verified.
+            </p>
+          </Section>
+
+          <Section id="hiking-safety">
+            <h2>5. Hiking Information and Safety</h2>
+            <p>
+              Lofoten Peaks is designed to help users discover and explore hiking routes in Lofoten. We aim to provide
+              useful information, but route descriptions, GPX tracks, maps, difficulty ratings, weather information,
+              and community content may occasionally be incomplete, inaccurate, or out of date.
+            </p>
+            <p>
+              Mountain and coastal conditions can change quickly because of weather, snow, ice, rockfall, tides,
+              visibility, trail conditions, or other natural factors.
+            </p>
+            <p>
+              Before starting a hike, assess current conditions, check relevant forecasts and warnings, carry suitable
+              equipment, and make decisions based on your own experience and abilities. Be prepared to change plans or
+              turn back when conditions are not suitable.
+            </p>
+            <p>
+              Route descriptions and GPX tracks are helpful references only. They do not replace suitable maps,
+              navigation skills, local knowledge, official information, or professional guidance where appropriate.
+              If you are unfamiliar with the area, terrain, or conditions, consider advice from a qualified local
+              guide.
+            </p>
+          </Section>
+
+          <Section id="gpx-community">
+            <h2>6. GPX Tracks and Community Information</h2>
+            <p>
+              Route lines may be derived from an administrator-uploaded GPX file, stored route coordinates, or known
+              points. They may include recording errors, gaps, deviations, or information that no longer reflects the
+              terrain, access rules, or current conditions. Verify route information independently and carry an
+              appropriate backup navigation method.
+            </p>
+            <p>
+              Comments, check-in notes, profile information, and hike recommendations reflect individual users' views
+              and experiences. They may contain mistakes and are not professional advice. A check-in or points award
+              does not show that current conditions are suitable for another person.
+            </p>
+            <p>
+              Hike recommendations may be reviewed before publication, while comments are currently visible when
+              submitted. Moderation concerns publication only and is not a professional safety or accuracy check. To
+              report unlawful, rights-infringing, or seriously misleading content, email{' '}
+              <a href="mailto:contact@lofotenpeaks.no">contact@lofotenpeaks.no</a> with the page link and a clear
+              description of the concern.
+            </p>
+          </Section>
+
+          <Section id="acceptable-use">
+            <h2>7. Acceptable Use</h2>
+            <p>You must not use Lofoten Peaks to:</p>
             <ul>
-              <li>you created it or have the rights and permissions needed to publish it;</li>
-              <li>it does not unlawfully disclose another person's personal or location information;</li>
-              <li>it does not infringe copyright, privacy, publicity, or other rights;</li>
-              <li>it is not deliberately false, dangerous, defamatory, unlawful, or misleading; and</li>
-              <li>any safety or route information is presented honestly and with appropriate uncertainty.</li>
+              <li>break the law, facilitate illegal activity, trespass, or encourage breaches of local restrictions;</li>
+              <li>harass, threaten, discriminate against, or impersonate another person;</li>
+              <li>publish spam, scams, unauthorised advertising, or deceptive links;</li>
+              <li>infringe copyright, privacy, data-protection, or other rights;</li>
+              <li>upload or transmit malware or content intended to disrupt the service;</li>
+              <li>gain unauthorised access to accounts, administration tools, databases, or infrastructure;</li>
+              <li>submit false summit locations, spoof check-ins, manipulate points, or interfere with the leaderboard;</li>
+              <li>publish intentionally false or dangerously misleading route or safety information; or</li>
+              <li>collect or expose another person's private information without a lawful basis.</li>
             </ul>
-            <p>
-              Lofoten Peaks may review, reject, hide, or remove content that violates these Terms, creates a credible
-              safety risk, infringes rights, is unlawful, or is otherwise unsuitable for the hiking guide. Approval or
-              publication does not mean that content has been professionally verified.
-            </p>
-          </Section>
-
-          <Section id="hiking-disclaimer">
-            <h2>5. Hiking information disclaimer</h2>
-            <p>
-              Hiking and mountain travel involve inherent risks, including serious injury and death. Information on
-              Lofoten Peaks is provided for general informational and trip-planning purposes only. It is not a promise
-              that a route is open, safe, suitable, accurately mapped, or appropriate for you.
-            </p>
-            <ul>
-              <li>Mountain and coastal conditions can change rapidly.</li>
-              <li>Route descriptions, access details, and safety notes may become incomplete or outdated.</li>
-              <li>Difficulty ratings are subjective and cannot account for your experience, fitness, equipment, or the current conditions.</li>
-              <li>Maps, coordinates, and GPX-derived route lines may contain omissions, measurement errors, or an incorrect path.</li>
-              <li>Weather can change unexpectedly, including when a displayed forecast appears favourable.</li>
-              <li>Snow, ice, avalanche danger, rockfall, tides, flooding, erosion, construction, land access, and seasonal closures can alter or block a route.</li>
-              <li>Mobile coverage, batteries, online maps, weather data, and satellite positioning cannot be relied upon.</li>
-            </ul>
-            <p>
-              You must independently verify information and make your own decisions about whether to start, continue,
-              change, or abandon a hike.
-            </p>
-          </Section>
-
-          <SafetySection id="safety">
-            <h2>
-              <ShieldAlert size={25} aria-hidden="true" /> 6. Safety disclaimer
-            </h2>
-            <p>
-              Mountain conditions in Northern Norway can change rapidly and may be very different from conditions at
-              the trailhead. Before and during a hike, you should:
-            </p>
-            <ul>
-              <li>check current weather forecasts, warnings, and local trail conditions;</li>
-              <li>check current avalanche conditions whenever snow or avalanche terrain may be relevant;</li>
-              <li>consider tides, river levels, flooding, daylight, seasonal closures, and local access rules;</li>
-              <li>carry clothing, footwear, food, water, navigation tools, and emergency equipment appropriate for the route and season;</li>
-              <li>carry a suitable map and know how to navigate without mobile data, GPS, or a GPX track;</li>
-              <li>understand your own fitness, experience, and skill level and those of your group;</li>
-              <li>tell a reliable person where you are going and when you expect to return;</li>
-              <li>turn back early if weather, visibility, terrain, equipment, health, or group conditions deteriorate; and</li>
-              <li>hire a qualified local mountain guide if you lack relevant experience or are uncertain about the route or conditions.</li>
-            </ul>
-            <p>
-              Never rely solely on Lofoten Peaks, a phone, a displayed map, or GPX-derived data. You are responsible for
-              your hiking decisions, preparation, route choice, and response to changing conditions.
-            </p>
-          </SafetySection>
-
-          <Section id="liability">
-            <h2>7. Limitation of liability</h2>
-            <p>
-              Lofoten Peaks uses reasonable efforts to present useful information but does not guarantee that the
-              service or its content is accurate, complete, current, continuously available, or free from technical
-              errors. Weather, maps, third-party data, and community content may be delayed, unavailable, or incorrect.
-            </p>
-            <p>
-              To the extent permitted by Norwegian law, Lofoten Peaks is not responsible for injury, accidents, death,
-              rescue or evacuation costs, property damage, equipment loss, navigation mistakes, missed transport,
-              inaccurate route descriptions, inaccurate GPX-derived data, outdated information, changing natural
-              conditions, or reliance on user-generated or third-party content when these result from the user's hiking
-              decisions, failure to prepare, or risks inherent in outdoor activity.
-            </p>
-            <p>
-              Lofoten Peaks is also not responsible for content, availability, security, or conduct on external websites
-              and services that it does not control.
-            </p>
-            <LegalLimit>
-              <strong>
-                <Scale size={19} aria-hidden="true" /> Limits required by law
-              </strong>
-              <p>
-                Nothing in these Terms excludes or limits liability for intentional misconduct, gross negligence,
-                death or personal injury caused by an act or omission for which liability cannot lawfully be excluded,
-                or any other liability or mandatory right that Norwegian or applicable consumer law does not allow to
-                be excluded or limited.
-              </p>
-            </LegalLimit>
-          </Section>
-
-          <Section id="gpx">
-            <h2>8. GPX and digital route disclaimer</h2>
-            <p>
-              Route lines displayed by Lofoten Peaks may be derived from an administrator-uploaded GPX file, stored
-              route coordinates, or a simple line between known points. These lines are guidance only. They may contain
-              recording errors, low-accuracy points, gaps, unsuitable deviations, or routes that no longer reflect the
-              terrain, access rules, or current conditions.
-            </p>
-            <p>
-              GPX-derived data must never replace navigation skills, a suitable map, local signs, or direct assessment
-              of the terrain. Verify the route independently, carry an appropriate backup navigation method, and be
-              prepared to turn back. The public account interface does not currently accept user GPX uploads.
-            </p>
-          </Section>
-
-          <Section id="community">
-            <h2>9. Community content</h2>
-            <p>
-              Comments, check-in notes, profile information, and hike recommendations express the views and experiences
-              of individual users. They may contain mistakes and are not professional advice. A check-in or points award
-              does not prove that a person safely completed a route or that conditions are suitable for anyone else.
-            </p>
-            <p>
-              Hike recommendations can be held for review before publication, while comments are currently published as
-              approved by default under the database rules. Moderation status concerns publication only; it is not a
-              professional safety, accuracy, or legal verification.
-            </p>
-            <p>
-              To report content that you reasonably believe is unlawful, rights-infringing, or dangerously misleading,
-              email <a href="mailto:contact@lofotenpeaks.no">contact@lofotenpeaks.no</a> with the page link, a clear
-              description, and the reason for the report. Reports will be assessed in context, and content may be
-              restricted while a serious report is reviewed.
-            </p>
           </Section>
 
           <Section id="intellectual-property">
-            <h2>10. Intellectual property</h2>
+            <h2>8. Intellectual Property</h2>
             <p>
               Except for user content and clearly credited third-party material, the Lofoten Peaks name, branding,
-              logos, original graphics, page design, text, and software are owned by or licensed to the operator and are
+              logos, original graphics, page design, text, and software are owned by or licensed to the operator and
               protected by applicable intellectual-property law. You may use the public website for personal,
               non-commercial trip planning. You may not copy or republish substantial parts of the service without
               permission or another lawful basis.
@@ -484,8 +430,8 @@ export function TermsPage() {
             <p>
               You retain ownership of content you submit. You grant Lofoten Peaks a non-exclusive, worldwide,
               royalty-free licence to host, store, reproduce, technically format, display, and distribute that content
-              only as reasonably necessary to operate, secure, moderate, and present the service. This licence ends when
-              the content is deleted, except for temporary backups, legal retention, and copies already lawfully shared
+              as reasonably necessary to operate, secure, moderate, and present the service. This licence ends when the
+              content is deleted, except for temporary backups, lawful retention, and copies already lawfully shared
               through the service.
             </p>
             <p>
@@ -494,74 +440,87 @@ export function TermsPage() {
             </p>
           </Section>
 
-          <Section id="prohibited-conduct">
-            <h2>11. Prohibited conduct</h2>
-            <p>You must not use Lofoten Peaks to:</p>
-            <ul>
-              <li>break the law, facilitate illegal activity, trespass, or encourage violations of local restrictions;</li>
-              <li>harass, threaten, discriminate against, or impersonate another person;</li>
-              <li>publish spam, scams, unauthorised advertising, or deceptive links;</li>
-              <li>infringe copyright, privacy, data-protection, or other rights;</li>
-              <li>upload or transmit malware, harmful code, or content intended to disrupt the service;</li>
-              <li>gain unauthorised access to accounts, administration tools, databases, or service infrastructure;</li>
-              <li>submit false summit locations, spoof check-ins, manipulate points, or interfere with the leaderboard;</li>
-              <li>publish intentionally false, reckless, or dangerously misleading route or safety information; or</li>
-              <li>collect or expose another person's private information without a lawful basis.</li>
-            </ul>
+          <Section id="liability">
+            <h2>9. Limitation of Liability</h2>
+            <p>
+              To the extent permitted by applicable law, Lofoten Peaks is not responsible for losses or damage arising
+              from use of the platform, reliance on its content, or participation in outdoor activities.
+            </p>
+            <p>
+              Users remain responsible for planning their activities, assessing current conditions, choosing routes
+              that suit their experience and abilities, and making safe decisions.
+            </p>
+            <p>
+              Lofoten Peaks is not responsible for the content, availability, security, or practices of third-party
+              websites or services that it does not control.
+            </p>
+            <p>
+              Nothing in these Terms excludes or limits any liability, remedy, or consumer right that cannot legally be
+              excluded or limited under Norwegian or other applicable law.
+            </p>
+          </Section>
+
+          <Section id="external-services">
+            <h2>10. External Services</h2>
+            <p>
+              Lofoten Peaks uses external providers for functions such as hosting, authentication, data storage, maps,
+              weather information, and optional analytics. Their availability and information may change, and Lofoten
+              Peaks does not control their websites, systems, terms, or privacy practices.
+            </p>
+            <p>
+              External links are provided for convenience. Review the terms and privacy information of a third-party
+              service before using it or providing personal data. Providers currently used by the website are described
+              in the <Link to="/privacy#providers">Privacy Policy</Link>.
+            </p>
           </Section>
 
           <Section id="termination">
-            <h2>12. Suspension and termination</h2>
+            <h2>11. Account Suspension or Termination</h2>
             <p>
               Lofoten Peaks may restrict content, suspend features, or suspend or close an account where reasonably
               necessary to address a material or repeated breach of these Terms, protect users or the service, prevent
-              fraud or manipulation, respond to a credible safety risk, or comply with law. Where appropriate, the user
-              should receive an explanation and a reasonable opportunity to respond.
+              fraud or manipulation, respond to a credible safety concern, or comply with law. Where appropriate, the
+              user should receive an explanation and a reasonable opportunity to respond.
             </p>
             <p>
               You may stop using the service at any time. Because self-service account deletion is not implemented,
-              requests to delete an account or contribution must be sent to the contact address in section 16. The
-              handling and retention of personal data after termination are described in the{' '}
-              <Link to="/privacy">Privacy Policy</Link>.
+              requests to delete an account or contribution must be sent to the contact address in section 14. Handling
+              and retention of personal data after termination are described in the <Link to="/privacy">Privacy Policy</Link>.
             </p>
           </Section>
 
-          <Section id="service-changes">
-            <h2>13. Changes to the Service</h2>
+          <Section id="changes">
+            <h2>12. Changes to the Service and Terms</h2>
             <p>
               Features, content, integrations, availability, point rules, and moderation processes may be corrected,
-              changed, suspended, or discontinued. Changes may be necessary for safety, maintenance, security, legal
-              compliance, provider changes, or improvements to the hiking guide. Reasonable notice should be given when
-              a change materially affects registered users, unless urgent safety, security, or legal action is needed.
-            </p>
-          </Section>
-
-          <Section id="terms-changes">
-            <h2>14. Changes to these Terms</h2>
-            <p>
-              These Terms may be updated when the service, legal requirements, or safety practices change. The revised
-              Terms will show a new "Last updated" date. Material changes should be communicated through a prominent
-              website notice and, where appropriate, by email or a new account acknowledgement before they take effect.
+              changed, suspended, or discontinued. Reasonable notice should be given when a change materially affects
+              registered users, unless urgent safety, security, or legal action is needed.
             </p>
             <p>
-              Continued use after an updated version takes effect means the updated Terms apply to future use, but this
+              These Terms may be updated when the service, legal requirements, or operating practices change. The
+              revised Terms will show a new "Last updated" date. Material changes should be communicated through a
+              prominent website notice and, where appropriate, by email or a new account acknowledgement before they
+              take effect.
+            </p>
+            <p>
+              Continued use after an updated version takes effect means the updated Terms apply to future use. This
               does not remove rights or remedies that arose before the change or permit retroactive changes prohibited
               by law.
             </p>
           </Section>
 
           <Section id="governing-law">
-            <h2>15. Governing law</h2>
+            <h2>13. Governing Law</h2>
             <p>
-              These Terms are governed by Norwegian law. Any mandatory consumer protections or rights to bring a claim
-              in another competent forum remain unaffected. The parties should first try to resolve a dispute by
+              These Terms are governed by Norwegian law. Mandatory consumer protections and rights to bring a claim in
+              another competent forum remain unaffected. The parties should first try to resolve a dispute by
               contacting each other in writing. If it cannot be resolved, it may be brought before the competent courts
               under applicable procedural law.
             </p>
           </Section>
 
           <Section id="contact">
-            <h2>16. Operator and contact</h2>
+            <h2>14. Contact Information</h2>
             <p>Questions, content reports, and account-related requests can be sent to:</p>
             <ContactDetails>
               <strong>Sander</strong>

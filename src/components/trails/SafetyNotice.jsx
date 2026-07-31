@@ -1,16 +1,16 @@
-import { ShieldAlert } from 'lucide-react';
+import { Compass } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import styled from 'styled-components';
 import { theme } from '../../styles/theme.js';
 
 const Notice = styled.aside`
-  background: #fff7ed;
-  border: 1px solid #d79b62;
-  border-left: 5px solid ${theme.colors.warning};
+  background: #e8f2ef;
+  border: 1px solid #afcfc4;
+  border-left: 5px solid ${theme.colors.forest};
   border-radius: ${theme.radii.medium};
-  color: #4b2d18;
+  color: #183f35;
   display: grid;
-  gap: 14px;
+  gap: 12px;
   margin-top: 28px;
   padding: 20px 22px;
 
@@ -26,25 +26,9 @@ const Heading = styled.div`
   gap: 10px;
 
   h2 {
-    font-size: 1.35rem;
+    font-size: 1.25rem;
     line-height: 1.25;
     margin: 0;
-  }
-`;
-
-const SafetyList = styled.ul`
-  display: grid;
-  gap: 8px 28px;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  margin: 0;
-  padding-left: 22px;
-
-  li {
-    line-height: 1.55;
-  }
-
-  @media (max-width: 720px) {
-    grid-template-columns: 1fr;
   }
 `;
 
@@ -65,25 +49,15 @@ export function SafetyNotice() {
   return (
     <Notice aria-labelledby="route-safety-notice-title">
       <Heading>
-        <ShieldAlert size={24} aria-hidden="true" />
-        <h2 id="route-safety-notice-title">Safety Notice</h2>
+        <Compass size={23} aria-hidden="true" />
+        <h2 id="route-safety-notice-title">Plan before you go</h2>
       </Heading>
       <p>
-        Mountain conditions in Lofoten can change rapidly. This route description, map or GPX-derived line, and
-        difficulty rating are informational only and may not reflect current conditions.
+        Conditions in Lofoten can change quickly. Check current weather and local conditions, carry suitable equipment,
+        and make decisions based on your own experience. Route descriptions and GPX tracks are helpful references and
+        should not replace navigation skills or professional advice where appropriate.
       </p>
-      <SafetyList>
-        <li>Check the latest weather forecast and local trail conditions.</li>
-        <li>Check avalanche conditions when snow or avalanche terrain is relevant.</li>
-        <li>Carry suitable clothing, navigation tools, and emergency equipment.</li>
-        <li>Know your skill level and tell someone where you are going.</li>
-        <li>Never rely solely on a phone, GPS, or GPX track.</li>
-        <li>Turn back if conditions, visibility, or the group become unsafe.</li>
-        <li>Use a map and the navigation skills needed for the terrain.</li>
-        <li>Consider a qualified local mountain guide if you are uncertain or inexperienced.</li>
-      </SafetyList>
-      <p>You are responsible for your own preparation, route choices, and safety decisions while hiking.</p>
-      <TermsLink to="/terms#safety">Read the full safety disclaimer</TermsLink>
+      <TermsLink to="/terms#hiking-safety">Read the hiking information and safety terms</TermsLink>
     </Notice>
   );
 }

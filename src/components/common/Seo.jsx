@@ -61,6 +61,7 @@ export function Seo({
   type = 'website',
   canonicalPath,
   structuredData,
+  noIndex = false,
 }) {
   const serializedStructuredData = structuredData ? JSON.stringify(structuredData) : '';
 
@@ -73,7 +74,10 @@ export function Seo({
     setCanonical(canonicalUrl);
     setStructuredData(serializedStructuredData);
     setMeta('meta[name="description"]', { name: 'description', content: description });
-    setMeta('meta[name="robots"]', { name: 'robots', content: 'index, follow' });
+    setMeta('meta[name="robots"]', {
+      name: 'robots',
+      content: noIndex ? 'noindex, nofollow' : 'index, follow',
+    });
     setMeta('meta[property="og:site_name"]', { property: 'og:site_name', content: siteName });
     setMeta('meta[property="og:type"]', { property: 'og:type', content: type });
     setMeta('meta[property="og:title"]', { property: 'og:title', content: fullTitle });
@@ -86,7 +90,7 @@ export function Seo({
     setMeta('meta[name="twitter:description"]', { name: 'twitter:description', content: description });
     setMeta('meta[name="twitter:image"]', { name: 'twitter:image', content: absoluteImage });
     setMeta('meta[name="twitter:image:alt"]', { name: 'twitter:image:alt', content: imageAlt });
-  }, [canonicalPath, description, image, imageAlt, serializedStructuredData, title, type]);
+  }, [canonicalPath, description, image, imageAlt, noIndex, serializedStructuredData, title, type]);
 
   return null;
 }

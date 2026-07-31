@@ -349,6 +349,22 @@ create policy "Approved check-ins are public"
 on public.check_ins for select
 using (status = 'approved' or auth.uid() = user_id);
 
+-- Approved check-in summaries support the public leaderboard, but precise
+-- submitted coordinates and server-calculated summit distance remain private.
+revoke select on table public.check_ins from anon, authenticated;
+grant select (
+  id,
+  user_id,
+  mountain_id,
+  trail_id,
+  checked_in_at,
+  check_in_day,
+  points,
+  note,
+  status,
+  created_at
+) on table public.check_ins to anon, authenticated;
+
 -- Check-ins must go through create_mountain_check_in so clients cannot bypass
 -- summit-distance validation or choose their own point award.
 revoke insert on table public.check_ins from public, anon, authenticated;

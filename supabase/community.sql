@@ -112,6 +112,23 @@ order by points desc, completed_mountains desc, check_in_count desc, last_check_
 
 grant select on public.leaderboard to anon, authenticated;
 
+-- Keep the approved activity fields used by profiles and the leaderboard
+-- readable without exposing precise submitted coordinates, summit distance,
+-- or future private photo storage paths through the REST API.
+revoke select on table public.check_ins from anon, authenticated;
+grant select (
+  id,
+  user_id,
+  mountain_id,
+  trail_id,
+  checked_in_at,
+  check_in_day,
+  points,
+  note,
+  status,
+  created_at
+) on table public.check_ins to anon, authenticated;
+
 create or replace function public.create_mountain_check_in(
   p_mountain_id text,
   p_trail_id text default null,

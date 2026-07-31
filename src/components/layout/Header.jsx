@@ -192,7 +192,7 @@ export function Header() {
             <ShieldCheck size={16} aria-hidden="true" /> Safety
           </NavLink>
           <NavLink to="/account" onClick={() => setMenuOpen(false)}>
-            <UserCircle size={16} aria-hidden="true" /> Account
+            <UserCircle size={16} aria-hidden="true" /> {user ? 'Profile' : 'Account'}
           </NavLink>
           {isAdmin && (
             <NavLink to="/admin" onClick={() => setMenuOpen(false)}>

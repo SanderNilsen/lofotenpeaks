@@ -214,7 +214,11 @@ export async function signOut() {
 
 export async function getProfile(userId) {
   const client = requireSupabaseClient();
-  const { data, error } = await client.from('profiles').select('*').eq('id', userId).single();
+  const { data, error } = await client
+    .from('profiles')
+    .select('display_name, username, avatar_url, bio, created_at, updated_at')
+    .eq('id', userId)
+    .single();
 
   if (error) {
     throw error;
@@ -225,7 +229,12 @@ export async function getProfile(userId) {
 
 export async function updateProfile(userId, updates) {
   const client = requireSupabaseClient();
-  const { data, error } = await client.from('profiles').update(updates).eq('id', userId).select().single();
+  const { data, error } = await client
+    .from('profiles')
+    .update(updates)
+    .eq('id', userId)
+    .select('display_name, username, avatar_url, bio, created_at, updated_at')
+    .single();
 
   if (error) {
     throw error;
@@ -536,11 +545,10 @@ export async function getUserCheckIns(userId) {
         trail_id,
         checked_in_at,
         check_in_day,
-        distance_to_summit_meters,
         points,
         note,
         status,
-        mountains(name, slug),
+        mountains(name, slug, region, height_meters, difficulty, hero_image_path),
         trails(name, slug)
       `,
     )
@@ -559,7 +567,7 @@ export async function getTodayCheckInForMountain({ userId, mountainId }) {
   const client = requireSupabaseClient();
   const { data, error } = await client
     .from('check_ins')
-    .select('id, checked_in_at, check_in_day, distance_to_summit_meters, points')
+    .select('id, checked_in_at, check_in_day, points')
     .eq('user_id', userId)
     .eq('mountain_id', mountainId)
     .eq('check_in_day', today)
@@ -623,6 +631,33 @@ export async function createTrailComment({ userId, mountainId, trailId, body }) 
     body: body.trim(),
     status: 'approved',
   });
+}
+
+export async function getUserComments(userId, { limit = 12 } = {}) {
+  const client = requireSupabaseClient();
+  const { data, error } = await client
+    .from('comments')
+    .select(
+      `
+        id,
+        body,
+        status,
+        created_at,
+        mountain_id,
+        trail_id,
+        mountains(name, slug),
+        trails(name, slug)
+      `,
+    )
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+    .limit(limit);
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
 }
 
 export async function createUserHike(hike) {

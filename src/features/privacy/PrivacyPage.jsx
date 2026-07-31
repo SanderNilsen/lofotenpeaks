@@ -1,4 +1,4 @@
-import { AlertTriangle, ExternalLink } from 'lucide-react';
+import { AlertTriangle, ExternalLink, ShieldCheck } from 'lucide-react';
 import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import styled from 'styled-components';
@@ -670,6 +670,11 @@ export function PrivacyPage() {
               </li>
               <li>Leaderboard points, number of check-ins, completed mountains, and latest check-in time.</li>
               <li>
+                Approved check-in summaries can include a user reference, mountain/trail reference, check-in date,
+                points, status, and optional note. Precise submitted coordinates and calculated summit distance are not
+                available through the public website API.
+              </li>
+              <li>
                 Approved comments, their timestamp, and the commenter&apos;s display name/avatar. The underlying public
                 comment row also contains its user and guide references.
               </li>
@@ -683,14 +688,13 @@ export function PrivacyPage() {
               to their author and authorised administrators rather than the public.
             </p>
             <Notice>
-              <AlertTriangle size={22} aria-hidden="true" />
+              <ShieldCheck size={22} aria-hidden="true" />
               <div>
-                <strong>Current backend exposure requiring correction</strong>
+                <strong>Location data is kept out of public check-in responses</strong>
                 <p>
-                  The audited Supabase row-level policy allows approved check-in rows to be read through the public API.
-                  Those rows can include the user ID, precise submitted coordinates, calculated distance, timestamp,
-                  points, and optional note even though the website UI does not show those fields publicly. The
-                  controller should restrict direct check-in access and expose only the intended leaderboard aggregate.
+                  Database column permissions prevent anonymous and signed-in website clients from selecting precise
+                  submitted coordinates, calculated summit distance, and stored photo paths. Approved activity summary
+                  fields remain readable for community and leaderboard features.
                 </p>
               </div>
             </Notice>
@@ -706,9 +710,10 @@ export function PrivacyPage() {
               verified summit check-in.
             </p>
             <p>
-              Precise location can reveal where you were at a particular time. The current backend stores the submitted
-              coordinate and calculated distance. See the public-access warning above. Users cannot delete individual
-              check-ins through the current interface and must use the privacy contact.
+              Precise location can reveal where you were at a particular time. The backend stores the submitted
+              coordinate and calculated distance as validation evidence, but website clients cannot select those
+              columns through the public API. Authorised backend administrators may still access them where necessary.
+              Users cannot delete individual check-ins through the current interface and must use the privacy contact.
             </p>
 
             <h3>GPX and route information</h3>
@@ -1025,9 +1030,8 @@ export function PrivacyPage() {
             </p>
             <p>
               Access rules, provider accounts, deployment credentials, and software dependencies should be reviewed and
-              updated regularly. The public check-in policy described above is a known issue. No internet transmission
-              or storage system can be guaranteed completely secure, and this policy does not claim a certification
-              that has not been independently verified.
+              updated regularly. No internet transmission or storage system can be guaranteed completely secure, and
+              this policy does not claim a certification that has not been independently verified.
             </p>
           </Section>
 

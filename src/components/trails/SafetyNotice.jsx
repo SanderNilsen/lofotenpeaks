@@ -11,7 +11,6 @@ const Notice = styled.aside`
   color: #183f35;
   display: grid;
   gap: 12px;
-  margin-top: 28px;
   padding: 20px 22px;
 
   p {

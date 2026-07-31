@@ -1,4 +1,5 @@
 import {
+  ArrowRight,
   Backpack,
   Bus,
   Camera,
@@ -19,10 +20,10 @@ import { lazy, Suspense, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import styled from 'styled-components';
 import { DifficultyBadge } from '../../components/common/Badge.jsx';
-import { ImageCredits } from '../../components/common/ImageCredits.jsx';
 import { Seo } from '../../components/common/Seo.jsx';
 import { MountainCard } from '../../components/mountains/MountainCard.jsx';
 import { SafetyNotice } from '../../components/trails/SafetyNotice.jsx';
+import { TrailPhotoGallery } from '../../components/trails/TrailPhotoGallery.jsx';
 import { MountainWeatherPanel } from '../../components/weather/MountainWeatherPanel.jsx';
 import { mountains } from '../../data/mountains.js';
 import { getTrailBySlug } from '../../data/trails.js';
@@ -38,14 +39,54 @@ const TrailMap = lazy(() =>
 );
 
 const Page = styled.article`
+  min-width: 0;
+`;
+
+const Hero = styled.header`
+  background: ${theme.colors.ink};
+  color: ${theme.colors.surface};
+  min-height: 520px;
+  overflow: hidden;
+  position: relative;
+
+  @media (max-width: 640px) {
+    min-height: 500px;
+  }
+`;
+
+const HeroImage = styled.img`
+  height: 100%;
+  inset: 0;
+  object-fit: cover;
+  object-position: center;
+  position: absolute;
+  width: 100%;
+`;
+
+const HeroOverlay = styled.div`
+  background:
+    linear-gradient(90deg, rgba(18, 24, 23, 0.76) 0%, rgba(18, 24, 23, 0.36) 65%, rgba(18, 24, 23, 0.18) 100%),
+    linear-gradient(0deg, rgba(18, 24, 23, 0.78) 0%, rgba(18, 24, 23, 0.08) 65%);
+  inset: 0;
+  position: absolute;
+`;
+
+const HeroInner = styled.div`
+  display: grid;
+  grid-template-rows: auto 1fr auto;
   margin: 0 auto;
   max-width: ${theme.pageWidth};
-  padding: 32px 24px 0;
+  min-height: 520px;
+  padding: 28px 24px 58px;
+  position: relative;
+
+  @media (max-width: 640px) {
+    min-height: 500px;
+    padding: 22px 16px 42px;
+  }
 `;
 
 const Breadcrumbs = styled.nav`
-  margin-bottom: 20px;
-
   ol {
     align-items: center;
     display: flex;
@@ -57,70 +98,75 @@ const Breadcrumbs = styled.nav`
   }
 
   li {
-    color: ${theme.colors.muted};
-    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.84);
+    font-size: 0.88rem;
+    font-weight: 700;
   }
 
   li + li::before {
+    color: rgba(255, 255, 255, 0.58);
     content: '/';
     margin-right: 7px;
   }
 
   a {
-    color: ${theme.colors.forest};
-    font-weight: 800;
+    color: ${theme.colors.surface};
     text-underline-offset: 3px;
   }
 
   a:focus-visible {
-    border-radius: ${theme.radii.small};
-    outline: 3px solid ${theme.colors.fjord};
+    border-radius: 2px;
+    outline: 3px solid ${theme.colors.surface};
     outline-offset: 3px;
   }
 `;
 
-const Hero = styled.header`
-  display: grid;
-  gap: 24px;
-  grid-template-columns: minmax(0, 1.12fr) minmax(320px, 0.88fr);
-
-  @media (max-width: 900px) {
-    grid-template-columns: 1fr;
-  }
-`;
-
-const HeroImage = styled.img`
-  aspect-ratio: 16 / 10;
-  border-radius: ${theme.radii.medium};
-  object-fit: cover;
-  width: 100%;
-`;
-
 const HeroContent = styled.div`
-  align-content: center;
+  align-self: end;
   display: grid;
-  gap: 16px;
+  gap: 15px;
+  max-width: 780px;
 
   h1 {
-    font-size: clamp(2.35rem, 5vw, 4.8rem);
-    line-height: 1;
+    font-size: 4.5rem;
+    line-height: 1.02;
     margin: 0;
   }
 
-  p {
-    font-size: 1.05rem;
-    line-height: 1.65;
+  > p {
+    font-size: 1.12rem;
+    line-height: 1.62;
     margin: 0;
+    max-width: 680px;
+  }
+
+  @media (max-width: 900px) {
+    h1 {
+      font-size: 3.4rem;
+    }
+  }
+
+  @media (max-width: 640px) {
+    gap: 12px;
+
+    h1 {
+      font-size: 2.65rem;
+      line-height: 1.07;
+    }
+
+    > p {
+      font-size: 1rem;
+      line-height: 1.55;
+    }
   }
 `;
 
 const MetaLine = styled.div`
   align-items: center;
-  color: ${theme.colors.muted};
   display: flex;
   flex-wrap: wrap;
-  font-weight: 700;
-  gap: 10px;
+  font-weight: 750;
+  gap: 9px 16px;
 
   span {
     align-items: center;
@@ -129,130 +175,304 @@ const MetaLine = styled.div`
   }
 `;
 
-const Stats = styled.dl`
-  display: grid;
+const HeroActions = styled.div`
+  display: flex;
+  flex-wrap: wrap;
   gap: 10px;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  margin: 10px 0 0;
+  margin-top: 5px;
+`;
 
-  div {
-    background: ${theme.colors.surface};
-    border: 1px solid ${theme.colors.line};
-    border-radius: ${theme.radii.medium};
-    padding: 14px;
+const HeroAction = styled.a`
+  align-items: center;
+  background: ${({ $secondary }) => ($secondary ? 'rgba(255, 255, 255, 0.1)' : theme.colors.surface)};
+  border: 1px solid ${({ $secondary }) => ($secondary ? 'rgba(255, 255, 255, 0.75)' : theme.colors.surface)};
+  border-radius: ${theme.radii.small};
+  color: ${({ $secondary }) => ($secondary ? theme.colors.surface : theme.colors.ink)};
+  display: inline-flex;
+  font-weight: 850;
+  gap: 8px;
+  justify-content: center;
+  min-height: 46px;
+  padding: 10px 15px;
+  text-decoration: none;
+
+  &:hover {
+    background: ${({ $secondary }) => ($secondary ? 'rgba(255, 255, 255, 0.2)' : '#f4f4f2')};
+  }
+
+  &:focus-visible {
+    outline: 3px solid ${theme.colors.surface};
+    outline-offset: 3px;
+  }
+`;
+
+const FactsBand = styled.section`
+  background: ${theme.colors.surface};
+  border-bottom: 1px solid ${theme.colors.line};
+`;
+
+const Facts = styled.dl`
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin: 0 auto;
+  max-width: ${theme.pageWidth};
+  padding: 0 24px;
+
+  > div {
+    align-items: center;
+    display: grid;
+    gap: 2px 12px;
+    grid-template-columns: 24px minmax(0, 1fr);
+    min-height: 108px;
+    padding: 22px 24px;
+  }
+
+  > div + div {
+    border-left: 1px solid ${theme.colors.line};
+  }
+
+  svg {
+    color: ${theme.colors.forest};
+    grid-row: 1 / span 2;
   }
 
   dt {
     color: ${theme.colors.muted};
-    font-size: 0.8rem;
-    font-weight: 700;
+    font-size: 0.76rem;
+    font-weight: 800;
     text-transform: uppercase;
   }
 
   dd {
-    font-size: 1.15rem;
-    font-weight: 800;
-    margin: 5px 0 0;
+    font-size: 1.08rem;
+    font-weight: 850;
+    line-height: 1.3;
+    margin: 0;
   }
 
-  @media (max-width: 980px) {
+  @media (max-width: 760px) {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    padding: 0 16px;
+
+    > div {
+      min-height: 96px;
+      padding: 18px 14px;
+    }
+
+    > div:nth-child(3) {
+      border-left: 0;
+    }
+
+    > div:nth-child(n + 3) {
+      border-top: 1px solid ${theme.colors.line};
+    }
   }
 
-  @media (max-width: 560px) {
-    grid-template-columns: 1fr;
+  @media (max-width: 420px) {
+    > div {
+      gap: 2px 8px;
+      grid-template-columns: 20px minmax(0, 1fr);
+      padding-left: 9px;
+      padding-right: 9px;
+    }
+
+    dd {
+      font-size: 0.98rem;
+    }
   }
 `;
 
-const ContentGrid = styled.div`
-  display: grid;
-  gap: 28px;
-  grid-template-columns: minmax(0, 1.45fr) minmax(280px, 0.55fr);
-  padding-top: 44px;
+const GuideNavBand = styled.div`
+  border-bottom: 1px solid ${theme.colors.line};
+`;
 
-  @media (max-width: 900px) {
+const GuideNav = styled.nav`
+  display: flex;
+  gap: 3px;
+  margin: 0 auto;
+  max-width: ${theme.pageWidth};
+  overflow-x: auto;
+  padding: 0 24px;
+  scrollbar-width: thin;
+
+  a {
+    align-items: center;
+    color: ${theme.colors.ink};
+    display: inline-flex;
+    flex: 0 0 auto;
+    font-size: 0.9rem;
+    font-weight: 800;
+    min-height: 54px;
+    padding: 0 13px;
+    text-decoration: none;
+  }
+
+  a:hover {
+    color: ${theme.colors.forest};
+  }
+
+  a:focus-visible {
+    border-radius: ${theme.radii.small};
+    outline: 3px solid ${theme.colors.fjord};
+    outline-offset: -3px;
+  }
+
+  @media (max-width: 640px) {
+    padding: 0 8px;
+
+    a {
+      font-size: 0.84rem;
+      padding-left: 8px;
+      padding-right: 8px;
+    }
+  }
+`;
+
+const MainContent = styled.div`
+  margin: 0 auto;
+  max-width: ${theme.pageWidth};
+  padding: 40px 24px 0;
+
+  @media (max-width: 640px) {
+    padding: 30px 16px 0;
+  }
+`;
+
+const NoticeWrap = styled.div`
+  margin-bottom: 52px;
+
+  @media (max-width: 640px) {
+    margin-bottom: 40px;
+  }
+`;
+
+const OverviewGrid = styled.div`
+  align-items: start;
+  display: grid;
+  gap: 56px;
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 350px);
+
+  @media (max-width: 920px) {
+    gap: 38px;
     grid-template-columns: 1fr;
   }
 `;
 
 const GuideColumn = styled.div`
   display: grid;
-  gap: 38px;
+  gap: 52px;
+  min-width: 0;
+`;
+
+const ToolColumn = styled.aside`
+  display: grid;
+  gap: 18px;
+  min-width: 0;
 `;
 
 const Section = styled.section`
+  scroll-margin-top: 104px;
+`;
+
+const SectionHeading = styled.div`
+  margin-bottom: 20px;
+
   h2 {
     align-items: center;
     display: flex;
-    font-size: 1.75rem;
+    font-size: 2rem;
     gap: 10px;
-    margin: 0 0 14px;
-  }
-
-  p {
-    line-height: 1.7;
+    line-height: 1.18;
     margin: 0;
   }
-`;
 
-const MapNote = styled.p`
-  color: ${theme.colors.muted};
-  font-size: 0.92rem;
-  margin: 0 0 14px;
-`;
-
-const MapFallback = styled.div`
-  align-items: center;
-  background: ${theme.colors.surface};
-  border: 1px solid ${theme.colors.line};
-  border-radius: ${theme.radii.medium};
-  color: ${theme.colors.muted};
-  display: flex;
-  font-weight: 700;
-  height: 420px;
-  justify-content: center;
+  > p {
+    color: ${theme.colors.muted};
+    line-height: 1.6;
+    margin: 8px 0 0;
+    max-width: 720px;
+  }
 
   @media (max-width: 640px) {
-    height: 320px;
+    h2 {
+      font-size: 1.7rem;
+    }
   }
 `;
 
-const GuideGrid = styled.div`
+const Lead = styled.p`
+  font-size: 1.08rem;
+  line-height: 1.8;
+  margin: 0;
+`;
+
+const PlanningList = styled.div`
+  border-bottom: 1px solid ${theme.colors.line};
   display: grid;
-  gap: 14px;
   grid-template-columns: repeat(2, minmax(0, 1fr));
 
-  @media (max-width: 720px) {
+  @media (max-width: 680px) {
     grid-template-columns: 1fr;
   }
 `;
 
-const GuideCard = styled.article`
-  background: ${theme.colors.surface};
-  border: 1px solid ${theme.colors.line};
-  border-radius: ${theme.radii.medium};
+const PlanningItem = styled.div`
+  border-top: 1px solid ${theme.colors.line};
   display: grid;
-  gap: 8px;
-  grid-column: ${({ $wide }) => ($wide ? '1 / -1' : 'auto')};
-  padding: 16px;
+  gap: 4px 12px;
+  grid-template-columns: 24px minmax(0, 1fr);
+  padding: 18px 18px 18px 0;
+
+  &:nth-child(even) {
+    border-left: 1px solid ${theme.colors.line};
+    padding-left: 18px;
+  }
+
+  svg {
+    color: ${theme.colors.forest};
+    grid-row: 1 / span 2;
+    margin-top: 1px;
+  }
 
   h3 {
-    align-items: center;
-    display: flex;
-    font-size: 1rem;
-    gap: 8px;
+    font-size: 0.9rem;
     margin: 0;
   }
 
   p {
     color: ${theme.colors.muted};
-    line-height: 1.6;
+    line-height: 1.58;
+    margin: 0;
+  }
+
+  @media (max-width: 680px) {
+    padding: 16px 0;
+
+    &:nth-child(even) {
+      border-left: 0;
+      padding-left: 0;
+    }
+  }
+`;
+
+const BeforeYouGo = styled.div`
+  background: #e8f2ef;
+  border-left: 4px solid ${theme.colors.forest};
+  margin-top: 22px;
+  padding: 20px 22px;
+
+  h3 {
+    align-items: center;
+    display: flex;
+    font-size: 1.08rem;
+    gap: 8px;
+    margin: 0 0 13px;
   }
 `;
 
 const Checklist = styled.ul`
   display: grid;
-  gap: 8px;
+  gap: 9px;
   list-style: none;
   margin: 0;
   padding: 0;
@@ -275,124 +495,159 @@ const Checklist = styled.ul`
   }
 `;
 
-const Gallery = styled.div`
-  display: grid;
-  gap: 12px;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-
-  img {
-    aspect-ratio: 4 / 3;
-    border-radius: ${theme.radii.medium};
-    object-fit: cover;
-    width: 100%;
-  }
-
-  img:first-child {
-    aspect-ratio: auto;
-    grid-column: span 2;
-    grid-row: span 2;
-    height: 100%;
-    min-height: 360px;
-  }
-
-  @media (max-width: 760px) {
-    grid-template-columns: 1fr;
-
-    img:first-child {
-      aspect-ratio: 16 / 10;
-      grid-column: auto;
-      grid-row: auto;
-      min-height: 0;
-    }
-  }
-`;
-
-const SideBar = styled.aside`
-  display: grid;
-  gap: 18px;
-  height: fit-content;
-
-  @media (min-width: 901px) {
-    position: sticky;
-    top: 24px;
-  }
-`;
-
-const Panel = styled.section`
-  background: ${theme.colors.surface};
-  border: 1px solid ${theme.colors.line};
-  border-radius: ${theme.radii.medium};
-  padding: 18px;
+const RouteSafety = styled.section`
+  border-bottom: 1px solid ${theme.colors.line};
+  border-top: 1px solid ${theme.colors.line};
+  padding: 28px 0;
 
   h2 {
     align-items: center;
     display: flex;
-    font-size: 1.2rem;
-    gap: 8px;
-    margin: 0 0 14px;
-  }
-`;
-
-const FactList = styled.div`
-  display: grid;
-  gap: 14px;
-
-  > div {
-    align-items: start;
-    display: grid;
-    gap: 10px;
-    grid-template-columns: 22px minmax(0, 1fr);
-  }
-
-  small {
-    color: ${theme.colors.muted};
-    display: block;
-    font-size: 0.78rem;
-    font-weight: 800;
-    text-transform: uppercase;
-  }
-
-  strong {
-    display: block;
-    font-weight: 800;
-    line-height: 1.35;
-    margin-top: 3px;
+    font-size: 1.55rem;
+    gap: 9px;
+    margin: 0 0 18px;
   }
 `;
 
 const SafetyList = styled.ul`
   display: grid;
-  gap: 10px;
+  gap: 11px 28px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   list-style: none;
   margin: 0;
   padding: 0;
 
   li {
-    border-top: 1px solid ${theme.colors.line};
-    line-height: 1.55;
-    padding-top: 10px;
+    line-height: 1.6;
+    padding-left: 20px;
+    position: relative;
   }
 
-  li:first-child {
-    border-top: 0;
-    padding-top: 0;
+  li::before {
+    color: ${theme.colors.warning};
+    content: '\u2022';
+    font-size: 1.45rem;
+    left: 2px;
+    line-height: 1;
+    position: absolute;
+    top: 0.2em;
+  }
+
+  @media (max-width: 680px) {
+    grid-template-columns: 1fr;
   }
 `;
 
-const RelatedSection = styled.section`
+const FullSection = styled.section`
   border-top: 1px solid ${theme.colors.line};
-  margin-top: 52px;
-  padding-top: 38px;
+  margin-top: 64px;
+  padding-top: 54px;
+  scroll-margin-top: 104px;
+
+  @media (max-width: 640px) {
+    margin-top: 48px;
+    padding-top: 40px;
+  }
+`;
+
+const MapNote = styled.p`
+  color: ${theme.colors.muted};
+  font-size: 0.93rem;
+  line-height: 1.55;
+  margin: 0 0 16px;
+`;
+
+const MapFallback = styled.div`
+  align-items: center;
+  background: ${theme.colors.surface};
+  border: 1px solid ${theme.colors.line};
+  border-radius: ${theme.radii.medium};
+  color: ${theme.colors.muted};
+  display: flex;
+  font-weight: 700;
+  height: 500px;
+  justify-content: center;
+
+  @media (max-width: 640px) {
+    height: 360px;
+  }
+`;
+
+const ToolFallback = styled.div`
+  background: ${theme.colors.surface};
+  border: 1px solid ${theme.colors.line};
+  border-radius: ${theme.radii.medium};
+  color: ${theme.colors.muted};
+  min-height: 132px;
+  padding: 20px;
+
+  strong {
+    color: ${theme.colors.ink};
+    display: block;
+    margin-bottom: 8px;
+  }
+`;
+
+const RelatedBand = styled.section`
+  background: ${theme.colors.surface};
+  border-top: 1px solid ${theme.colors.line};
+  margin-top: 72px;
+`;
+
+const RelatedSection = styled.div`
+  margin: 0 auto;
+  max-width: ${theme.pageWidth};
+  padding: 58px 24px 72px;
+
+  @media (max-width: 640px) {
+    padding: 44px 16px 56px;
+  }
+`;
+
+const RelatedHeader = styled.div`
+  align-items: end;
+  display: flex;
+  gap: 24px;
+  justify-content: space-between;
+  margin-bottom: 22px;
 
   h2 {
-    font-size: 1.75rem;
-    margin: 0 0 8px;
+    font-size: 2rem;
+    margin: 0;
   }
 
-  > p {
+  p {
     color: ${theme.colors.muted};
     line-height: 1.6;
-    margin: 0 0 20px;
+    margin: 7px 0 0;
+  }
+
+  a {
+    align-items: center;
+    color: ${theme.colors.forest};
+    display: inline-flex;
+    flex: 0 0 auto;
+    font-weight: 800;
+    gap: 7px;
+    min-height: 44px;
+    text-decoration: none;
+  }
+
+  a:hover {
+    text-decoration: underline;
+    text-underline-offset: 4px;
+  }
+
+  a:focus-visible {
+    border-radius: ${theme.radii.small};
+    outline: 3px solid ${theme.colors.fjord};
+    outline-offset: 3px;
+  }
+
+  @media (max-width: 680px) {
+    align-items: start;
+    flex-direction: column;
+    gap: 8px;
   }
 `;
 
@@ -410,6 +665,63 @@ const RelatedGrid = styled.div`
   }
 `;
 
+const StatePage = styled.div`
+  align-content: center;
+  display: grid;
+  justify-items: start;
+  margin: 0 auto;
+  max-width: ${theme.pageWidth};
+  min-height: 58vh;
+  padding: 64px 24px;
+
+  h1 {
+    font-size: 2.5rem;
+    margin: 0;
+  }
+
+  p {
+    color: ${theme.colors.muted};
+    line-height: 1.65;
+    margin: 12px 0 22px;
+    max-width: 560px;
+  }
+
+  a {
+    align-items: center;
+    background: ${theme.colors.forest};
+    border-radius: ${theme.radii.small};
+    color: ${theme.colors.surface};
+    display: inline-flex;
+    font-weight: 800;
+    gap: 8px;
+    min-height: 46px;
+    padding: 10px 15px;
+    text-decoration: none;
+  }
+
+  a:focus-visible {
+    outline: 3px solid ${theme.colors.fjord};
+    outline-offset: 3px;
+  }
+
+  @media (max-width: 640px) {
+    padding: 48px 16px;
+
+    h1 {
+      font-size: 2rem;
+    }
+  }
+`;
+
+const LoadingLine = styled.div`
+  background: ${theme.colors.line};
+  border-radius: ${theme.radii.small};
+  height: 18px;
+  margin-bottom: 12px;
+  max-width: 100%;
+  width: ${({ $width }) => $width};
+`;
+
 function getFileName(src) {
   return src.split('/').pop();
 }
@@ -425,14 +737,6 @@ function getTrailImages(trail, mountain) {
   const mountainImagesByFile = new Map((mountain?.images ?? []).map((image) => [getFileName(image.src), image]));
 
   return (trail.imageFiles ?? []).map((fileName) => mountainImagesByFile.get(fileName) ?? imageFromFile(fileName, trail.name));
-}
-
-function formatCoordinate(point) {
-  if (!isValidCoordinatePoint(point)) {
-    return 'Not set';
-  }
-
-  return `${Number(point[0]).toFixed(5)}, ${Number(point[1]).toFixed(5)}`;
 }
 
 function isValidCoordinatePoint(point) {
@@ -472,6 +776,17 @@ function getGuideItems(guide) {
     { label: 'Gear notes', value: guide.gearNotes, Icon: Backpack },
     { label: 'Access', value: guide.access, Icon: Bus },
   ].filter((item) => item.value);
+}
+
+function LoadingState() {
+  return (
+    <StatePage role="status" aria-live="polite">
+      <LoadingLine $width="180px" />
+      <LoadingLine $width="min(520px, 92vw)" />
+      <LoadingLine $width="min(380px, 72vw)" />
+      <span>Loading hiking guide...</span>
+    </StatePage>
+  );
 }
 
 export function TrailDetailPage() {
@@ -514,19 +829,32 @@ export function TrailDetailPage() {
   }, [slug]);
 
   const trail = remoteGuide?.trail ?? staticTrail;
+  const mountain = trail
+    ? remoteGuide?.mountain ?? mountains.find((item) => item.id === trail.mountainId)
+    : null;
+  const trailImages = trail ? getTrailImages(trail, mountain) : [];
+  const heroImage = trailImages[0] ?? mountain?.heroImage;
+  const galleryImages = trailImages.length > 1 ? trailImages.slice(1) : trailImages;
 
   if (!trail && !remoteIsLoading) {
-    return <Page>Trail not found.</Page>;
+    return (
+      <>
+        <Seo title="Hike not found" description="This Lofoten hiking guide could not be found." noIndex />
+        <StatePage>
+          <h1>Hike not found</h1>
+          <p>The guide may have moved or is not published. Browse the current hiking guides instead.</p>
+          <Link to="/mountains">
+            Explore hikes <ArrowRight size={18} aria-hidden="true" />
+          </Link>
+        </StatePage>
+      </>
+    );
   }
 
   if (!trail) {
-    return <Page>Loading hiking guide...</Page>;
+    return <LoadingState />;
   }
 
-  const mountain = remoteGuide?.mountain ?? mountains.find((item) => item.id === trail.mountainId);
-  const trailImages = getTrailImages(trail, mountain);
-  const heroImage = trailImages[0] ?? mountain?.heroImage;
-  const galleryImages = trailImages.length > 1 ? trailImages.slice(1) : trailImages;
   const region = mountain?.region ?? 'Lofoten';
   const highPoint = mountain?.heightMeters ?? trail.elevationGainMeters;
   const weatherLocationId = trail.weatherLocationId ?? mountain?.weatherLocationId;
@@ -580,250 +908,249 @@ export function TrailDetailPage() {
           ],
         }}
       />
-      <Breadcrumbs aria-label="Breadcrumb">
-        <ol>
-          <li>
-            <Link to="/">Home</Link>
-          </li>
-          <li>
-            <Link to="/mountains">Hikes</Link>
-          </li>
-          <li aria-current="page">{trail.name}</li>
-        </ol>
-      </Breadcrumbs>
+
       <Hero>
         {heroImage && (
           <HeroImage
             src={heroImage.src}
-            alt={heroImage.alt}
-            width="1600"
-            height="1000"
-            fetchPriority="high"
+            alt=""
+            aria-hidden="true"
+            width="1920"
+            height="1200"
+            fetchpriority="high"
             decoding="async"
           />
         )}
-        <HeroContent>
-          <DifficultyBadge difficulty={trail.difficulty} />
-          <h1>{trail.name}</h1>
-          <MetaLine>
-            <span>
-              <MapPin size={16} aria-hidden="true" /> {region}
-            </span>
-            {mountain && (
+        <HeroOverlay />
+        <HeroInner>
+          <Breadcrumbs aria-label="Breadcrumb">
+            <ol>
+              <li>
+                <Link to="/">Home</Link>
+              </li>
+              <li>
+                <Link to="/mountains">Hikes</Link>
+              </li>
+              <li aria-current="page">{trail.name}</li>
+            </ol>
+          </Breadcrumbs>
+          <div />
+          <HeroContent>
+            <DifficultyBadge difficulty={trail.difficulty} />
+            <h1>{trail.name}</h1>
+            <MetaLine>
               <span>
-                <MountainIcon size={16} aria-hidden="true" /> {mountain.name}
+                <MapPin size={17} aria-hidden="true" /> {region}
               </span>
-            )}
-          </MetaLine>
-          <p>{trail.summary ?? mountain?.summary}</p>
-          <Stats>
-            <div>
-              <dt>Length</dt>
-              <dd>{formatDistance(trail.lengthKm)}</dd>
-            </div>
-            <div>
-              <dt>Elevation gain</dt>
-              <dd>{formatElevation(trail.elevationGainMeters)}</dd>
-            </div>
-            <div>
-              <dt>Time</dt>
-              <dd>{trail.estimatedDuration}</dd>
-            </div>
-            <div>
-              <dt>High point</dt>
-              <dd>{formatElevation(highPoint)}</dd>
-            </div>
-          </Stats>
-        </HeroContent>
+              <span>
+                <MountainIcon size={17} aria-hidden="true" /> {formatElevation(highPoint)} high point
+              </span>
+            </MetaLine>
+            <p>{trail.summary ?? mountain?.summary}</p>
+            <HeroActions>
+              <HeroAction href="#route-map">
+                <MapPin size={18} aria-hidden="true" /> View route map
+              </HeroAction>
+              <HeroAction href="#planning" $secondary>
+                <ListChecks size={18} aria-hidden="true" /> Plan this hike
+              </HeroAction>
+            </HeroActions>
+          </HeroContent>
+        </HeroInner>
       </Hero>
 
-      <SafetyNotice />
+      <FactsBand aria-label="Route facts">
+        <Facts>
+          <div>
+            <RouteIcon size={22} aria-hidden="true" />
+            <dt>Distance</dt>
+            <dd>{formatDistance(trail.lengthKm)}</dd>
+          </div>
+          <div>
+            <TrendingUp size={22} aria-hidden="true" />
+            <dt>Elevation gain</dt>
+            <dd>{formatElevation(trail.elevationGainMeters)}</dd>
+          </div>
+          <div>
+            <Clock size={22} aria-hidden="true" />
+            <dt>Estimated time</dt>
+            <dd>{trail.estimatedDuration}</dd>
+          </div>
+          <div>
+            <Flag size={22} aria-hidden="true" />
+            <dt>High point</dt>
+            <dd>{formatElevation(highPoint)}</dd>
+          </div>
+        </Facts>
+      </FactsBand>
 
-      <ContentGrid>
-        <GuideColumn>
-          <Section>
-            <h2>
-              <RouteIcon size={22} aria-hidden="true" /> Route Overview
-            </h2>
-            <p>{trail.description ?? mountain?.description}</p>
-          </Section>
+      <GuideNavBand>
+        <GuideNav aria-label="On this hiking guide">
+          <a href="#route-overview">Overview</a>
+          {trail.guide && <a href="#planning">Planning</a>}
+          <a href="#route-map">Route map</a>
+          {galleryImages.length > 0 && <a href="#photos">Photos</a>}
+          <a href="#comments">Comments</a>
+        </GuideNav>
+      </GuideNavBand>
 
-          {trail.guide && (
-            <Section>
-              <h2>
-                <ListChecks size={22} aria-hidden="true" /> Planning Notes
-              </h2>
-              <GuideGrid>
-                {guideItems.map(({ label, value, Icon }) => (
-                  <GuideCard key={label}>
-                    <h3>
-                      <Icon size={18} aria-hidden="true" /> {label}
-                    </h3>
-                    <p>{value}</p>
-                  </GuideCard>
-                ))}
+      <MainContent>
+        <NoticeWrap>
+          <SafetyNotice />
+        </NoticeWrap>
+
+        <OverviewGrid>
+          <GuideColumn>
+            <Section id="route-overview" aria-labelledby="route-overview-heading">
+              <SectionHeading>
+                <h2 id="route-overview-heading">
+                  <RouteIcon size={24} aria-hidden="true" /> Route overview
+                </h2>
+              </SectionHeading>
+              <Lead>{trail.description ?? mountain?.description}</Lead>
+            </Section>
+
+            {trail.guide && (
+              <Section id="planning" aria-labelledby="planning-heading">
+                <SectionHeading>
+                  <h2 id="planning-heading">
+                    <ListChecks size={24} aria-hidden="true" /> Plan your hike
+                  </h2>
+                  <p>Practical details to review before travelling to the trailhead.</p>
+                </SectionHeading>
+                {guideItems.length > 0 && (
+                  <PlanningList>
+                    {guideItems.map(({ label, value, Icon }) => (
+                      <PlanningItem key={label}>
+                        <Icon size={19} aria-hidden="true" />
+                        <h3>{label}</h3>
+                        <p>{value}</p>
+                      </PlanningItem>
+                    ))}
+                  </PlanningList>
+                )}
                 {trail.guide.beforeYouGo?.length > 0 && (
-                  <GuideCard $wide>
+                  <BeforeYouGo>
                     <h3>
-                      <ListChecks size={18} aria-hidden="true" /> Before You Go
+                      <ListChecks size={19} aria-hidden="true" /> Before you go
                     </h3>
                     <Checklist>
                       {trail.guide.beforeYouGo.map((item) => (
                         <li key={item}>{item}</li>
                       ))}
                     </Checklist>
-                  </GuideCard>
+                  </BeforeYouGo>
                 )}
-              </GuideGrid>
-            </Section>
-          )}
+              </Section>
+            )}
 
-          <Section>
-            <h2>
-              <MapPin size={22} aria-hidden="true" /> Map
-            </h2>
-            <MapNote>{trail.routeNote}</MapNote>
-            <Suspense fallback={<MapFallback role="status">Loading route map...</MapFallback>}>
-              <TrailMap trail={trail} />
+            {trail.safetyNotes?.length > 0 && (
+              <RouteSafety aria-labelledby="route-safety-heading">
+                <h2 id="route-safety-heading">
+                  <ShieldAlert size={22} aria-hidden="true" /> Route-specific safety
+                </h2>
+                <SafetyList>
+                  {trail.safetyNotes.map((note) => (
+                    <li key={note}>{note}</li>
+                  ))}
+                </SafetyList>
+              </RouteSafety>
+            )}
+          </GuideColumn>
+
+          <ToolColumn aria-label="Hike tools">
+            <Suspense
+              fallback={
+                <ToolFallback role="status">
+                  <strong>Summit check-in</strong>
+                  Loading account tools...
+                </ToolFallback>
+              }
+            >
+              <CheckInPanel trail={trail} />
             </Suspense>
-          </Section>
 
-          {galleryImages.length > 0 && (
-            <Section>
-              <h2>
-                <Camera size={22} aria-hidden="true" /> Photos
+            {finishPointWeatherLocation ? (
+              <MountainWeatherPanel title="Summit weather" locations={[finishPointWeatherLocation]} compact />
+            ) : (
+              weatherLocationId && (
+                <MountainWeatherPanel title="Weather near this hike" locationIds={[weatherLocationId]} compact />
+              )
+            )}
+          </ToolColumn>
+        </OverviewGrid>
+
+        <FullSection id="route-map" aria-labelledby="route-map-heading">
+          <SectionHeading>
+            <h2 id="route-map-heading">
+              <MapPin size={24} aria-hidden="true" /> Route map
+            </h2>
+            <p>Use the map to understand the route shape and trailhead area. Carry a separate map or navigation tool.</p>
+          </SectionHeading>
+          {trail.routeNote && <MapNote>{trail.routeNote}</MapNote>}
+          <Suspense fallback={<MapFallback role="status">Loading route map...</MapFallback>}>
+            <TrailMap trail={trail} />
+          </Suspense>
+        </FullSection>
+
+        {galleryImages.length > 0 && (
+          <FullSection id="photos" aria-labelledby="photos-heading">
+            <SectionHeading>
+              <h2 id="photos-heading">
+                <Camera size={24} aria-hidden="true" /> From the route
               </h2>
-              <Gallery>
-                {galleryImages.map((image) => (
-                  <img
-                    key={image.src}
-                    src={image.src}
-                    alt={image.alt}
-                    width="800"
-                    height="600"
-                    loading="lazy"
-                    decoding="async"
-                  />
-                ))}
-              </Gallery>
-            </Section>
-          )}
+              <p>Views from the mountain and the surrounding landscape.</p>
+            </SectionHeading>
+            <TrailPhotoGallery
+              images={galleryImages}
+              credits={trail.imageCredits ?? mountain?.imageCredits ?? []}
+              imageFiles={trail.imageFiles ?? []}
+            />
+          </FullSection>
+        )}
 
+        <FullSection id="comments" aria-label="Comments and trail updates">
           <Suspense
             fallback={
-              <Panel>
-                <h2>
+              <ToolFallback role="status">
+                <strong>
                   <MessageCircle size={18} aria-hidden="true" /> Comments
-                </h2>
-                <MapNote>Loading comments...</MapNote>
-              </Panel>
+                </strong>
+                Loading trail comments...
+              </ToolFallback>
             }
           >
             <CommentsPanel trail={trail} />
           </Suspense>
-        </GuideColumn>
-
-        <SideBar>
-          <Suspense
-            fallback={
-              <Panel>
-                <h2>
-                  <MapPin size={18} aria-hidden="true" /> Summit Check-In
-                </h2>
-                <MapNote>Loading account tools...</MapNote>
-              </Panel>
-            }
-          >
-            <CheckInPanel trail={trail} />
-          </Suspense>
-
-          <Panel>
-            <h2>
-              <RouteIcon size={18} aria-hidden="true" /> Trail Facts
-            </h2>
-            <FactList>
-              <div>
-                <Clock size={18} aria-hidden="true" />
-                <span>
-                  <small>Estimated time</small>
-                  <strong>{trail.estimatedDuration}</strong>
-                </span>
-              </div>
-              <div>
-                <TrendingUp size={18} aria-hidden="true" />
-                <span>
-                  <small>Elevation gain</small>
-                  <strong>{formatElevation(trail.elevationGainMeters)}</strong>
-                </span>
-              </div>
-              <div>
-                <MapPin size={18} aria-hidden="true" />
-                <span>
-                  <small>Start point</small>
-                  <strong>{formatCoordinate(trail.startPoint)}</strong>
-                </span>
-              </div>
-              <div>
-                <Flag size={18} aria-hidden="true" />
-                <span>
-                  <small>Finish point</small>
-                  <strong>{formatCoordinate(trail.endPoint)}</strong>
-                </span>
-              </div>
-            </FactList>
-          </Panel>
-
-          {finishPointWeatherLocation ? (
-            <MountainWeatherPanel
-              title="Mountain Weather"
-              locations={[finishPointWeatherLocation]}
-              compact
-            />
-          ) : (
-            weatherLocationId && (
-              <MountainWeatherPanel title="Weather Near This Hike" locationIds={[weatherLocationId]} compact />
-            )
-          )}
-
-          <Panel>
-            <h2>
-              <ShieldAlert size={18} aria-hidden="true" /> Safety Notes
-            </h2>
-            <SafetyList>
-              {trail.safetyNotes.map((note) => (
-                <li key={note}>{note}</li>
-              ))}
-            </SafetyList>
-          </Panel>
-
-          <Panel>
-            <h2>
-              <Camera size={18} aria-hidden="true" /> Photo Credits
-            </h2>
-            <ImageCredits
-              credits={trail.imageCredits ?? mountain?.imageCredits ?? []}
-              imageFiles={trail.imageFiles ?? []}
-            />
-          </Panel>
-        </SideBar>
-      </ContentGrid>
+        </FullSection>
+      </MainContent>
 
       {relatedMountains.length > 0 && (
-        <RelatedSection aria-labelledby="related-hikes-heading">
-          <h2 id="related-hikes-heading">Explore more Lofoten hikes</h2>
-          <p>Compare another route before deciding which mountain fits your day.</p>
-          <RelatedGrid>
-            {relatedMountains.map((relatedMountain) => (
-              <MountainCard
-                key={relatedMountain.id}
-                mountain={relatedMountain}
-                trail={getTrailBySlug(relatedMountain.slug)}
-                headingLevel={3}
-              />
-            ))}
-          </RelatedGrid>
-        </RelatedSection>
+        <RelatedBand aria-labelledby="related-hikes-heading">
+          <RelatedSection>
+            <RelatedHeader>
+              <div>
+                <h2 id="related-hikes-heading">Explore more Lofoten hikes</h2>
+                <p>Compare another route and find the right mountain for your next day out.</p>
+              </div>
+              <Link to="/mountains">
+                View all hikes <ArrowRight size={18} aria-hidden="true" />
+              </Link>
+            </RelatedHeader>
+            <RelatedGrid>
+              {relatedMountains.map((relatedMountain) => (
+                <MountainCard
+                  key={relatedMountain.id}
+                  mountain={relatedMountain}
+                  trail={getTrailBySlug(relatedMountain.slug)}
+                  headingLevel={3}
+                />
+              ))}
+            </RelatedGrid>
+          </RelatedSection>
+        </RelatedBand>
       )}
+
     </Page>
   );
 }

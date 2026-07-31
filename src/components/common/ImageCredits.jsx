@@ -42,6 +42,12 @@ const CreditLink = styled.a`
   &:hover {
     text-decoration: underline;
   }
+
+  &:focus-visible {
+    border-radius: 2px;
+    outline: 3px solid ${theme.colors.fjord};
+    outline-offset: 3px;
+  }
 `;
 
 const CreditText = styled.span`

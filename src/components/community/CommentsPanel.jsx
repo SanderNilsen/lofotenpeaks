@@ -2,7 +2,7 @@ import { LogIn, MessageCircle, Send } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import styled from 'styled-components';
-import { AuthProvider, useAuth } from '../../features/auth/AuthProvider.jsx';
+import { useAuth } from '../../features/auth/AuthProvider.jsx';
 import { getSafePublicDisplayName } from '../../lib/profile.js';
 import { createTrailComment, getCommentsForTrail } from '../../lib/supabase/api.js';
 import { theme } from '../../styles/theme.js';
@@ -13,14 +13,22 @@ const Panel = styled.section`
   border-radius: ${theme.radii.medium};
   display: grid;
   gap: 16px;
-  padding: 18px;
+  padding: 24px;
 
   h2 {
     align-items: center;
     display: flex;
-    font-size: 1.45rem;
+    font-size: 1.75rem;
     gap: 10px;
     margin: 0;
+  }
+
+  @media (max-width: 640px) {
+    padding: 18px;
+
+    h2 {
+      font-size: 1.5rem;
+    }
   }
 `;
 
@@ -91,10 +99,17 @@ const Field = styled.label`
     border: 1px solid ${theme.colors.line};
     border-radius: ${theme.radii.small};
     color: ${theme.colors.ink};
+    font: inherit;
     min-height: 110px;
     padding: 11px;
     resize: vertical;
     width: 100%;
+
+    &:focus-visible {
+      border-color: ${theme.colors.fjord};
+      outline: 3px solid rgba(36, 95, 130, 0.2);
+      outline-offset: 1px;
+    }
   }
 `;
 
@@ -117,6 +132,11 @@ const Button = styled.button`
     cursor: not-allowed;
     opacity: 0.65;
   }
+
+  &:focus-visible {
+    outline: 3px solid ${theme.colors.fjord};
+    outline-offset: 3px;
+  }
 `;
 
 const AccountLink = styled(Link)`
@@ -132,6 +152,11 @@ const AccountLink = styled(Link)`
   min-height: 44px;
   padding: 10px 14px;
   text-decoration: none;
+
+  &:focus-visible {
+    outline: 3px solid ${theme.colors.fjord};
+    outline-offset: 3px;
+  }
 `;
 
 const Message = styled.p`
@@ -181,7 +206,7 @@ function CommentsPanelContent({ trail }) {
       })
       .catch((error) => {
         if (isMounted) {
-          setStatus({ type: 'error', message: error.message });
+          setStatus({ type: 'error', message: 'We could not load the trail comments. Please try again.' });
         }
       });
 
@@ -212,7 +237,7 @@ function CommentsPanelContent({ trail }) {
       setBody('');
       setStatus({ type: 'success', message: 'Comment posted.' });
     } catch (error) {
-      setStatus({ type: 'error', message: error.message });
+      setStatus({ type: 'error', message: 'We could not post your comment. Please try again.' });
     }
   }
 
@@ -225,9 +250,13 @@ function CommentsPanelContent({ trail }) {
 
       {!isConfigured && <Message>Account features are not connected yet.</Message>}
       {isConfigured && status.message && status.type !== 'idle' && status.type !== 'loading' && (
-        <Message $error={status.type === 'error'}>{status.message}</Message>
+        <Message role="status" aria-live="polite" $error={status.type === 'error'}>
+          {status.message}
+        </Message>
       )}
-      {isConfigured && status.type === 'loading' && comments.length === 0 && <Message>Loading comments...</Message>}
+      {isConfigured && status.type === 'loading' && comments.length === 0 && (
+        <Message role="status">Loading comments...</Message>
+      )}
       {isConfigured && status.type !== 'loading' && comments.length === 0 && (
         <Message>No comments yet. Add the first practical note for this route.</Message>
       )}
@@ -275,11 +304,7 @@ function CommentsPanelContent({ trail }) {
 }
 
 export function CommentsPanel({ trail }) {
-  return (
-    <AuthProvider>
-      <CommentsPanelContent trail={trail} />
-    </AuthProvider>
-  );
+  return <CommentsPanelContent trail={trail} />;
 }
 
 export default CommentsPanel;

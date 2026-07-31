@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import styled from 'styled-components';
 import { createMountainCheckIn, getTodayCheckInForMountain } from '../../lib/supabase/api.js';
 import { theme } from '../../styles/theme.js';
-import { AuthProvider, useAuth } from '../../features/auth/AuthProvider.jsx';
+import { useAuth } from '../../features/auth/AuthProvider.jsx';
 
 const Panel = styled.section`
   background: ${theme.colors.surface};
@@ -45,10 +45,17 @@ const NoteField = styled.label`
     border: 1px solid ${theme.colors.line};
     border-radius: ${theme.radii.small};
     color: ${theme.colors.ink};
+    font: inherit;
     min-height: 84px;
     padding: 10px 11px;
     resize: vertical;
     width: 100%;
+
+    &:focus-visible {
+      border-color: ${theme.colors.fjord};
+      outline: 3px solid rgba(36, 95, 130, 0.2);
+      outline-offset: 1px;
+    }
   }
 `;
 
@@ -69,6 +76,11 @@ const Action = styled.button`
   &:disabled {
     cursor: not-allowed;
     opacity: 0.65;
+  }
+
+  &:focus-visible {
+    outline: 3px solid ${theme.colors.fjord};
+    outline-offset: 3px;
   }
 `;
 
@@ -96,6 +108,11 @@ const AccountLink = styled(Link)`
   min-height: 44px;
   padding: 10px 14px;
   text-decoration: none;
+
+  &:focus-visible {
+    outline: 3px solid ${theme.colors.fjord};
+    outline-offset: 3px;
+  }
 `;
 
 const Message = styled.p`
@@ -120,10 +137,10 @@ function getFriendlyError(error) {
   }
 
   if (error?.message?.includes('within') && error?.message?.includes('summit')) {
-    return error.message;
+    return 'You need to be near the summit to check in.';
   }
 
-  return error?.message ?? 'Could not save check-in.';
+  return 'Could not save your check-in. Please try again.';
 }
 
 function formatAccuracy(value) {
@@ -178,14 +195,14 @@ function CheckInPanelContent({ trail }) {
       })
       .catch((error) => {
         if (isMounted) {
-          setStatus({ type: 'error', message: error.message });
+          setStatus({ type: 'error', message: 'We could not load today\'s check-in. Please try again.' });
         }
       });
 
     return () => {
       isMounted = false;
     };
-  }, [isConfigured, trail?.mountainId, user]);
+  }, [isConfigured, trail?.mountainId, user?.id]);
 
   async function handleCheckIn() {
     if (!location) {
@@ -296,18 +313,22 @@ function CheckInPanelContent({ trail }) {
           </ActionRow>
         </>
       )}
-      {locationStatus.message && <Message $error={locationStatus.type === 'error'}>{locationStatus.message}</Message>}
-      {status.message && <Message $error={status.type === 'error'}>{status.message}</Message>}
+      {locationStatus.message && (
+        <Message role="status" aria-live="polite" $error={locationStatus.type === 'error'}>
+          {locationStatus.message}
+        </Message>
+      )}
+      {status.message && (
+        <Message role="status" aria-live="polite" $error={status.type === 'error'}>
+          {status.message}
+        </Message>
+      )}
     </Panel>
   );
 }
 
 export function CheckInPanel({ trail }) {
-  return (
-    <AuthProvider>
-      <CheckInPanelContent trail={trail} />
-    </AuthProvider>
-  );
+  return <CheckInPanelContent trail={trail} />;
 }
 
 export default CheckInPanel;

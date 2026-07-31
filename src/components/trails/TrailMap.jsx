@@ -7,7 +7,7 @@ import { theme } from '../../styles/theme.js';
 const MapFrame = styled.div`
   border: 1px solid ${theme.colors.line};
   border-radius: ${theme.radii.medium};
-  height: 420px;
+  height: 500px;
   overflow: hidden;
 
   .leaflet-container {
@@ -16,7 +16,7 @@ const MapFrame = styled.div`
   }
 
   @media (max-width: 640px) {
-    height: 320px;
+    height: 360px;
   }
 `;
 

@@ -610,7 +610,7 @@ export function HomePage() {
           alt="Rocky mountain ridge overlooking lakes, peaks, and the Lofoten coast"
           width="1512"
           height="509"
-          fetchPriority="high"
+          fetchpriority="high"
           decoding="async"
         />
         <HeroOverlay />

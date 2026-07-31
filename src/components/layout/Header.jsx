@@ -1,7 +1,7 @@
-import { Menu, ShieldCheck, UserCircle, X } from 'lucide-react';
-import { NavLink } from 'react-router-dom';
+import { Map, Menu, ShieldCheck, UserCircle, X } from 'lucide-react';
+import { Link, NavLink, useLocation } from 'react-router-dom';
 import styled from 'styled-components';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { getIsAdmin } from '../../lib/supabase/api.js';
 import { theme } from '../../styles/theme.js';
 import { useAuth } from '../../features/auth/AuthProvider.jsx';
@@ -55,6 +55,7 @@ const Nav = styled.nav`
     display: inline-flex;
     font-weight: 700;
     gap: 6px;
+    min-height: 44px;
     padding: 10px 12px;
     text-decoration: none;
   }
@@ -92,9 +93,14 @@ const MenuButton = styled.button`
   color: ${theme.colors.ink};
   cursor: pointer;
   display: none;
-  height: 40px;
+  height: 44px;
   justify-content: center;
-  width: 40px;
+  width: 44px;
+
+  &:focus-visible {
+    outline: 3px solid ${theme.colors.fjord};
+    outline-offset: 3px;
+  }
 
   @media (max-width: 720px) {
     display: inline-flex;
@@ -103,8 +109,33 @@ const MenuButton = styled.button`
 
 export function Header() {
   const { isConfigured, user } = useAuth();
+  const { hash, pathname } = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const menuButtonRef = useRef(null);
+  const navRef = useRef(null);
+
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [hash, pathname]);
+
+  useEffect(() => {
+    if (!menuOpen) {
+      return undefined;
+    }
+
+    navRef.current?.querySelector('a')?.focus();
+
+    function handleKeyDown(event) {
+      if (event.key === 'Escape') {
+        setMenuOpen(false);
+        menuButtonRef.current?.focus();
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [menuOpen]);
 
   useEffect(() => {
     if (!isConfigured || !user) {
@@ -135,15 +166,30 @@ export function Header() {
     <HeaderFrame>
       <HeaderInner>
         <Brand to="/" onClick={() => setMenuOpen(false)}>
-          <Logo src="/images/lofoten-peaks-logo.svg" alt="Lofoten Peaks logo" />
+          <Logo
+            src="/images/lofoten-peaks-logo.svg"
+            alt="Lofoten Peaks logo"
+            width="58"
+            height="58"
+          />
           <BrandText>Lofoten Peaks</BrandText>
         </Brand>
-        <Nav $open={menuOpen} aria-label="Main navigation">
-          <NavLink to="/" onClick={() => setMenuOpen(false)}>
-            Home
-          </NavLink>
+        <Nav id="main-navigation" ref={navRef} $open={menuOpen} aria-label="Main navigation">
           <NavLink to="/mountains" onClick={() => setMenuOpen(false)}>
-            <NavIcon src="/images/lofoten-peaks-mountain-icon.svg" alt="" aria-hidden="true" /> Mountains
+            <NavIcon
+              src="/images/lofoten-peaks-mountain-icon.svg"
+              alt=""
+              aria-hidden="true"
+              width="16"
+              height="16"
+            />{' '}
+            Hikes
+          </NavLink>
+          <Link to="/#hike-map" onClick={() => setMenuOpen(false)}>
+            <Map size={16} aria-hidden="true" /> Map
+          </Link>
+          <NavLink to="/terms#hiking-safety" onClick={() => setMenuOpen(false)}>
+            <ShieldCheck size={16} aria-hidden="true" /> Safety
           </NavLink>
           <NavLink to="/account" onClick={() => setMenuOpen(false)}>
             <UserCircle size={16} aria-hidden="true" /> Account
@@ -155,7 +201,10 @@ export function Header() {
           )}
         </Nav>
         <MenuButton
+          ref={menuButtonRef}
           aria-label={menuOpen ? 'Close navigation menu' : 'Open navigation menu'}
+          aria-controls="main-navigation"
+          aria-expanded={menuOpen}
           type="button"
           onClick={() => setMenuOpen((open) => !open)}
         >

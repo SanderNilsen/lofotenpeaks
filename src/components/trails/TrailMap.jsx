@@ -1,3 +1,4 @@
+import 'leaflet/dist/leaflet.css';
 import { useEffect } from 'react';
 import { CircleMarker, MapContainer, Polyline, Popup, TileLayer, useMap } from 'react-leaflet';
 import styled from 'styled-components';
@@ -37,23 +38,37 @@ function FitRouteBounds({ positions }) {
 
 export function TrailMap({ trail }) {
   const route = trail.route?.length ? trail.route : [trail.startPoint, trail.endPoint].filter(Boolean);
-  const center = route[Math.floor(route.length / 2)];
+  const center = route[Math.floor(route.length / 2)] ?? [68.2, 13.8];
 
   return (
-    <MapFrame>
-      <MapContainer center={center} zoom={13} scrollWheelZoom={false}>
+    <MapFrame role="region" aria-label={`${trail.name} route map`}>
+      <MapContainer
+        center={center}
+        zoom={13}
+        scrollWheelZoom={false}
+        aria-label={`Interactive map for the ${trail.name} route`}
+      >
         <FitRouteBounds positions={route} />
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
-        <Polyline positions={route} pathOptions={{ color: theme.colors.forest, lineCap: 'round', lineJoin: 'round', weight: 5 }} />
-        <CircleMarker center={trail.startPoint} pathOptions={{ color: theme.colors.fjord }} radius={8}>
-          <Popup>{trail.name} start</Popup>
-        </CircleMarker>
-        <CircleMarker center={trail.endPoint} pathOptions={{ color: theme.colors.warning }} radius={8}>
-          <Popup>{trail.name} summit</Popup>
-        </CircleMarker>
+        {route.length > 1 && (
+          <Polyline
+            positions={route}
+            pathOptions={{ color: theme.colors.forest, lineCap: 'round', lineJoin: 'round', weight: 5 }}
+          />
+        )}
+        {trail.startPoint && (
+          <CircleMarker center={trail.startPoint} pathOptions={{ color: theme.colors.fjord }} radius={8}>
+            <Popup>{trail.name} start</Popup>
+          </CircleMarker>
+        )}
+        {trail.endPoint && (
+          <CircleMarker center={trail.endPoint} pathOptions={{ color: theme.colors.warning }} radius={8}>
+            <Popup>{trail.name} summit</Popup>
+          </CircleMarker>
+        )}
       </MapContainer>
     </MapFrame>
   );

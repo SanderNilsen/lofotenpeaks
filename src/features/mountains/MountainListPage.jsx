@@ -1,14 +1,12 @@
 import { Search, SlidersHorizontal } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import styled from 'styled-components';
 import { Seo } from '../../components/common/Seo.jsx';
 import { MountainCard } from '../../components/mountains/MountainCard.jsx';
 import { MountainWeatherPanel } from '../../components/weather/MountainWeatherPanel.jsx';
-import { mountains as staticMountains } from '../../data/mountains.js';
-import { trails as staticTrails } from '../../data/trails.js';
-import { getRemoteMountainGuides } from '../../lib/supabase/api.js';
-import { isSupabaseConfigured } from '../../lib/supabase/client.js';
+import { titleCase } from '../../lib/formatters.js';
 import { theme } from '../../styles/theme.js';
+import { useMountainGuides } from './useMountainGuides.js';
 
 const Page = styled.section`
   margin: 0 auto;
@@ -20,7 +18,7 @@ const Header = styled.header`
   margin-bottom: 26px;
 
   h1 {
-    font-size: clamp(2.2rem, 5vw, 4rem);
+    font-size: 4rem;
     margin: 0 0 10px;
   }
 
@@ -29,6 +27,12 @@ const Header = styled.header`
     line-height: 1.6;
     margin: 0;
     max-width: 720px;
+  }
+
+  @media (max-width: 640px) {
+    h1 {
+      font-size: 2.4rem;
+    }
   }
 `;
 
@@ -180,46 +184,11 @@ function matchesLengthFilter(lengthFilter, trail) {
 }
 
 export function MountainListPage() {
-  const [content, setContent] = useState({
-    mountains: staticMountains,
-    trails: staticTrails,
-    isLoading: isSupabaseConfigured,
-    source: 'static',
-  });
+  const content = useMountainGuides();
   const [searchTerm, setSearchTerm] = useState('');
   const [difficultyFilter, setDifficultyFilter] = useState('all');
   const [regionFilter, setRegionFilter] = useState('all');
   const [lengthFilter, setLengthFilter] = useState('all');
-
-  useEffect(() => {
-    if (!isSupabaseConfigured) {
-      return undefined;
-    }
-
-    let isMounted = true;
-
-    getRemoteMountainGuides()
-      .then((remoteContent) => {
-        if (!isMounted) {
-          return;
-        }
-
-        if (remoteContent.mountains.length > 0) {
-          setContent({ ...remoteContent, isLoading: false, source: 'supabase' });
-        } else {
-          setContent((current) => ({ ...current, isLoading: false }));
-        }
-      })
-      .catch(() => {
-        if (isMounted) {
-          setContent((current) => ({ ...current, isLoading: false }));
-        }
-      });
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
 
   const mountainItems = useMemo(
     () => content.mountains.map((mountain) => ({ mountain, trail: getPrimaryTrail(mountain, content.trails) })),
@@ -228,6 +197,11 @@ export function MountainListPage() {
 
   const regionOptions = useMemo(
     () => [...new Set(content.mountains.map((mountain) => getRegionLabel(mountain.region)))].sort(),
+    [content.mountains],
+  );
+
+  const difficultyOptions = useMemo(
+    () => [...new Set(content.mountains.map((mountain) => mountain.difficulty).filter(Boolean))].sort(),
     [content.mountains],
   );
 
@@ -260,15 +234,17 @@ export function MountainListPage() {
   return (
     <Page>
       <Seo
-        title="Mountains"
+        title="Lofoten Hikes"
         description="Browse Lofoten mountain hiking guides by difficulty, region, route length, weather, photos, and map details."
         image="/images/reinebringen-gallery-1.jpg"
+        imageAlt="View across Reine and Reinefjorden from the mountains"
+        canonicalPath="/mountains"
       />
       <Header>
-        <h1>Mountains</h1>
+        <h1>Hikes in Lofoten</h1>
         <p>
-          Browse hiking guides for well-known Lofoten mountains. Each guide includes route
-          information, difficulty, photos, map data, and safety notes.
+          Compare practical hiking guides for well-known Lofoten mountains. Each guide includes
+          route information, difficulty, photos, map data, weather, and safety notes.
         </p>
       </Header>
       <MountainWeatherPanel />
@@ -298,8 +274,11 @@ export function MountainListPage() {
             <span>Difficulty</span>
             <select value={difficultyFilter} onChange={(event) => setDifficultyFilter(event.target.value)}>
               <option value="all">All difficulties</option>
-              <option value="moderate">Moderate</option>
-              <option value="hard">Hard</option>
+              {difficultyOptions.map((difficulty) => (
+                <option key={difficulty} value={difficulty}>
+                  {titleCase(difficulty)}
+                </option>
+              ))}
             </select>
           </Field>
           <Field>
@@ -323,8 +302,8 @@ export function MountainListPage() {
             </select>
           </Field>
         </FilterGrid>
-        <ResultLine>
-          Showing {filteredItems.length} of {content.mountains.length} mountain guides
+        <ResultLine role="status" aria-live="polite">
+          Showing {filteredItems.length} of {content.mountains.length} hiking guides
           {content.isLoading ? ' · Syncing Supabase content...' : ''}
         </ResultLine>
       </FilterPanel>
@@ -335,7 +314,7 @@ export function MountainListPage() {
           ))}
         </Grid>
       ) : (
-        <EmptyState>No mountains match the selected filters.</EmptyState>
+        <EmptyState>No hikes match the selected filters.</EmptyState>
       )}
     </Page>
   );

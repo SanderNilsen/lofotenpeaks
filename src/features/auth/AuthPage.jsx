@@ -14,7 +14,7 @@ import {
   UserCircle,
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import styled from 'styled-components';
 import { LeaderboardPanel } from '../../components/community/LeaderboardPanel.jsx';
 import { Seo } from '../../components/common/Seo.jsx';
@@ -814,8 +814,13 @@ function profileFormFromProfile(profile) {
 
 export function AuthPage() {
   const { isConfigured, isLoading, user } = useAuth();
-  const [mode, setMode] = useState('sign-in');
-  const [accountSection, setAccountSection] = useState('overview');
+  const [searchParams] = useSearchParams();
+  const requestedMode = searchParams.get('mode') === 'register' ? 'register' : 'sign-in';
+  const requestedSection = ['overview', 'profile', 'contribute'].includes(searchParams.get('section'))
+    ? searchParams.get('section')
+    : 'overview';
+  const [mode, setMode] = useState(requestedMode);
+  const [accountSection, setAccountSection] = useState(requestedSection);
   const [displayName, setDisplayName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -837,6 +842,14 @@ export function AuthPage() {
     setProfileStatus({ type: 'idle', message: '' });
     setAccountSection('overview');
   }, [user?.id]);
+
+  useEffect(() => {
+    if (user) {
+      setAccountSection(requestedSection);
+    } else {
+      setMode(requestedMode);
+    }
+  }, [requestedMode, requestedSection, user]);
 
   useEffect(() => {
     if (!isConfigured || !user) {

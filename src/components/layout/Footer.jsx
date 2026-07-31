@@ -8,11 +8,15 @@ const FooterFrame = styled.footer`
 `;
 
 const FooterImage = styled.img`
-  height: clamp(130px, 13.23vw, 571px);
+  height: auto;
   margin-bottom: -6px;
   object-fit: cover;
   object-position: center top;
   width: 100%;
+
+  @media (max-width: 720px) {
+    height: 130px;
+  }
 `;
 
 const FooterInner = styled.div`
@@ -25,15 +29,12 @@ const FooterInner = styled.div`
   padding: 20px 24px 28px;
 `;
 
-const Logo = styled.img`
-  height: 92px;
-  object-fit: contain;
-  width: 92px;
-
-  @media (max-width: 620px) {
-    height: 78px;
-    width: 78px;
-  }
+const FooterCopy = styled.p`
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 0.88rem;
+  line-height: 1.5;
+  margin: 0;
+  text-align: center;
 `;
 
 const FooterLinks = styled.nav`
@@ -45,12 +46,18 @@ const FooterLinks = styled.nav`
 
   a,
   button {
+    align-items: center;
+    appearance: none;
     background: transparent;
     border: 0;
     color: #fff;
     cursor: pointer;
+    display: inline-flex;
     font-size: 0.92rem;
     font-weight: 700;
+    justify-content: center;
+    line-height: 1.4;
+    min-height: 36px;
     padding: 5px;
     text-decoration: underline;
     text-decoration-color: rgba(255, 255, 255, 0.55);
@@ -73,16 +80,29 @@ const FooterLinks = styled.nav`
 export function Footer() {
   return (
     <FooterFrame>
-      <FooterImage src="/images/footerv3.png" alt="Illustrated mountain footer" />
+      <FooterImage
+        src="/images/footerv3.png"
+        alt=""
+        aria-hidden="true"
+        width="4317"
+        height="571"
+        loading="lazy"
+        decoding="async"
+      />
       <FooterInner>
-        <Logo src="/images/logo-white.png" alt="Lofoten Peaks logo" />
-        <FooterLinks aria-label="Legal and privacy links">
+        <FooterLinks aria-label="Footer navigation">
+          <Link to="/mountains">Hikes</Link>
+          <Link to="/#hike-map">Map</Link>
+          <Link to="/terms#hiking-safety">Safety</Link>
+          <Link to="/#about">About</Link>
+          <a href="mailto:contact@lofotenpeaks.no">Contact</a>
           <Link to="/privacy">Privacy Policy</Link>
           <Link to="/terms">Terms of Service</Link>
           <button type="button" onClick={openCookieSettings}>
             Cookie settings
           </button>
         </FooterLinks>
+        <FooterCopy>Independent hiking information for Lofoten, Norway.</FooterCopy>
       </FooterInner>
     </FooterFrame>
   );

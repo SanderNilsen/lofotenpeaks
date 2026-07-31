@@ -1,5 +1,4 @@
 import {
-  ArrowLeft,
   Backpack,
   Bus,
   Camera,
@@ -22,8 +21,8 @@ import styled from 'styled-components';
 import { DifficultyBadge } from '../../components/common/Badge.jsx';
 import { ImageCredits } from '../../components/common/ImageCredits.jsx';
 import { Seo } from '../../components/common/Seo.jsx';
+import { MountainCard } from '../../components/mountains/MountainCard.jsx';
 import { SafetyNotice } from '../../components/trails/SafetyNotice.jsx';
-import { TrailMap } from '../../components/trails/TrailMap.jsx';
 import { MountainWeatherPanel } from '../../components/weather/MountainWeatherPanel.jsx';
 import { mountains } from '../../data/mountains.js';
 import { getTrailBySlug } from '../../data/trails.js';
@@ -34,6 +33,9 @@ import { theme } from '../../styles/theme.js';
 
 const CheckInPanel = lazy(() => import('../../components/community/CheckInPanel.jsx'));
 const CommentsPanel = lazy(() => import('../../components/community/CommentsPanel.jsx'));
+const TrailMap = lazy(() =>
+  import('../../components/trails/TrailMap.jsx').then((module) => ({ default: module.TrailMap })),
+);
 
 const Page = styled.article`
   margin: 0 auto;
@@ -41,14 +43,40 @@ const Page = styled.article`
   padding: 32px 24px 0;
 `;
 
-const BackLink = styled(Link)`
-  align-items: center;
-  color: ${theme.colors.forest};
-  display: inline-flex;
-  font-weight: 800;
-  gap: 6px;
+const Breadcrumbs = styled.nav`
   margin-bottom: 20px;
-  text-decoration: none;
+
+  ol {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  li {
+    color: ${theme.colors.muted};
+    font-size: 0.9rem;
+  }
+
+  li + li::before {
+    content: '/';
+    margin-right: 7px;
+  }
+
+  a {
+    color: ${theme.colors.forest};
+    font-weight: 800;
+    text-underline-offset: 3px;
+  }
+
+  a:focus-visible {
+    border-radius: ${theme.radii.small};
+    outline: 3px solid ${theme.colors.fjord};
+    outline-offset: 3px;
+  }
 `;
 
 const Hero = styled.header`
@@ -171,6 +199,22 @@ const MapNote = styled.p`
   color: ${theme.colors.muted};
   font-size: 0.92rem;
   margin: 0 0 14px;
+`;
+
+const MapFallback = styled.div`
+  align-items: center;
+  background: ${theme.colors.surface};
+  border: 1px solid ${theme.colors.line};
+  border-radius: ${theme.radii.medium};
+  color: ${theme.colors.muted};
+  display: flex;
+  font-weight: 700;
+  height: 420px;
+  justify-content: center;
+
+  @media (max-width: 640px) {
+    height: 320px;
+  }
 `;
 
 const GuideGrid = styled.div`
@@ -335,6 +379,37 @@ const SafetyList = styled.ul`
   }
 `;
 
+const RelatedSection = styled.section`
+  border-top: 1px solid ${theme.colors.line};
+  margin-top: 52px;
+  padding-top: 38px;
+
+  h2 {
+    font-size: 1.75rem;
+    margin: 0 0 8px;
+  }
+
+  > p {
+    color: ${theme.colors.muted};
+    line-height: 1.6;
+    margin: 0 0 20px;
+  }
+`;
+
+const RelatedGrid = styled.div`
+  display: grid;
+  gap: 18px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+
+  @media (max-width: 900px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  @media (max-width: 620px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
 function getFileName(src) {
   return src.split('/').pop();
 }
@@ -457,18 +532,76 @@ export function TrailDetailPage() {
   const weatherLocationId = trail.weatherLocationId ?? mountain?.weatherLocationId;
   const finishPointWeatherLocation = getFinishPointWeatherLocation(trail);
   const guideItems = getGuideItems(trail.guide);
+  const island = region.split(',')[0];
+  const relatedMountains = mountains
+    .filter((item) => item.id !== mountain?.id)
+    .sort((first, second) => {
+      const firstMatchesIsland = first.region.startsWith(island) ? 1 : 0;
+      const secondMatchesIsland = second.region.startsWith(island) ? 1 : 0;
+      return secondMatchesIsland - firstMatchesIsland;
+    })
+    .slice(0, 3);
   const seoDescription = `${trail.summary ?? mountain?.summary} Route: ${formatDistance(trail.lengthKm)}, ${formatElevation(
     trail.elevationGainMeters,
   )} elevation gain, ${trail.estimatedDuration}.`;
+  const canonicalPath = `/mountains/${trail.slug}`;
 
   return (
     <Page>
-      <Seo title={`${trail.name} Hiking Guide`} description={seoDescription} image={heroImage?.src} type="article" />
-      <BackLink to="/mountains">
-        <ArrowLeft size={16} aria-hidden="true" /> Mountains
-      </BackLink>
+      <Seo
+        title={`${trail.name} Hiking Guide`}
+        description={seoDescription}
+        image={heroImage?.src}
+        imageAlt={heroImage?.alt}
+        type="article"
+        canonicalPath={canonicalPath}
+        structuredData={{
+          '@context': 'https://schema.org',
+          '@type': 'BreadcrumbList',
+          itemListElement: [
+            {
+              '@type': 'ListItem',
+              position: 1,
+              name: 'Home',
+              item: 'https://lofotenpeaks.no/',
+            },
+            {
+              '@type': 'ListItem',
+              position: 2,
+              name: 'Hikes',
+              item: 'https://lofotenpeaks.no/mountains',
+            },
+            {
+              '@type': 'ListItem',
+              position: 3,
+              name: trail.name,
+              item: `https://lofotenpeaks.no${canonicalPath}`,
+            },
+          ],
+        }}
+      />
+      <Breadcrumbs aria-label="Breadcrumb">
+        <ol>
+          <li>
+            <Link to="/">Home</Link>
+          </li>
+          <li>
+            <Link to="/mountains">Hikes</Link>
+          </li>
+          <li aria-current="page">{trail.name}</li>
+        </ol>
+      </Breadcrumbs>
       <Hero>
-        {heroImage && <HeroImage src={heroImage.src} alt={heroImage.alt} />}
+        {heroImage && (
+          <HeroImage
+            src={heroImage.src}
+            alt={heroImage.alt}
+            width="1600"
+            height="1000"
+            fetchPriority="high"
+            decoding="async"
+          />
+        )}
         <HeroContent>
           <DifficultyBadge difficulty={trail.difficulty} />
           <h1>{trail.name}</h1>
@@ -550,7 +683,9 @@ export function TrailDetailPage() {
               <MapPin size={22} aria-hidden="true" /> Map
             </h2>
             <MapNote>{trail.routeNote}</MapNote>
-            <TrailMap trail={trail} />
+            <Suspense fallback={<MapFallback role="status">Loading route map...</MapFallback>}>
+              <TrailMap trail={trail} />
+            </Suspense>
           </Section>
 
           {galleryImages.length > 0 && (
@@ -560,7 +695,15 @@ export function TrailDetailPage() {
               </h2>
               <Gallery>
                 {galleryImages.map((image) => (
-                  <img key={image.src} src={image.src} alt={image.alt} loading="lazy" />
+                  <img
+                    key={image.src}
+                    src={image.src}
+                    alt={image.alt}
+                    width="800"
+                    height="600"
+                    loading="lazy"
+                    decoding="async"
+                  />
                 ))}
               </Gallery>
             </Section>
@@ -664,6 +807,23 @@ export function TrailDetailPage() {
           </Panel>
         </SideBar>
       </ContentGrid>
+
+      {relatedMountains.length > 0 && (
+        <RelatedSection aria-labelledby="related-hikes-heading">
+          <h2 id="related-hikes-heading">Explore more Lofoten hikes</h2>
+          <p>Compare another route before deciding which mountain fits your day.</p>
+          <RelatedGrid>
+            {relatedMountains.map((relatedMountain) => (
+              <MountainCard
+                key={relatedMountain.id}
+                mountain={relatedMountain}
+                trail={getTrailBySlug(relatedMountain.slug)}
+                headingLevel={3}
+              />
+            ))}
+          </RelatedGrid>
+        </RelatedSection>
+      )}
     </Page>
   );
 }

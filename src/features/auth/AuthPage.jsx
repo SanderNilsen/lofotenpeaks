@@ -199,6 +199,25 @@ const Form = styled.form`
   gap: 14px;
 `;
 
+const PrivacyNote = styled.p`
+  color: ${theme.colors.muted};
+  font-size: 0.84rem;
+  line-height: 1.55;
+  margin: 0;
+
+  a {
+    color: ${theme.colors.fjord};
+    font-weight: 800;
+    text-underline-offset: 3px;
+  }
+
+  a:focus-visible {
+    border-radius: 2px;
+    outline: 3px solid ${theme.colors.fjord};
+    outline-offset: 3px;
+  }
+`;
+
 const Field = styled.label`
   display: grid;
   gap: 6px;
@@ -1566,6 +1585,13 @@ export function AuthPage() {
                 </PasswordControl>
                 {mode === 'register' && <small>Use at least 6 characters.</small>}
               </Field>
+              {mode === 'register' && (
+                <PrivacyNote>
+                  By creating an account, you acknowledge that you have read the{' '}
+                  <Link to="/privacy">Privacy Policy</Link>, including how public profile, leaderboard, comment, and
+                  summit check-in data is handled.
+                </PrivacyNote>
+              )}
               <PrimaryButton type="submit" disabled={status.type === 'loading'}>
                 <UserCircle size={18} aria-hidden="true" />
                 {status.type === 'loading'

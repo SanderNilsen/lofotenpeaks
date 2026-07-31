@@ -1,6 +1,6 @@
 # Database Operations
 
-This project uses Supabase as the backend for auth, guide content, check-ins, comments, user hikes, poster routes, and future shop orders.
+This project uses Supabase as the backend for auth, guide content, check-ins, comments, and user hikes.
 
 ## SQL Files
 
@@ -55,5 +55,5 @@ Do not commit real `.env.local`, Supabase tokens, service role keys, or exported
 - Prefer publishing/drafting guides over deleting them.
 - Delete a guide only when its connected check-ins and comments can also be removed.
 - Keep user-submitted hikes in `pending` until admin moderation exists.
-- Keep poster routes private to the owner until a real checkout/fulfillment flow exists.
+- Keep user-submitted GPX routes private until the associated hike recommendation is approved.
 - Run `npm run build` after frontend or SQL API changes that affect page data.

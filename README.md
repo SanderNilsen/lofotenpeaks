@@ -22,14 +22,13 @@ The first backend/auth scaffolding is now included:
 - Supabase Storage for user-uploaded photos
 - Row Level Security for permissions
 - Check-ins and leaderboard tables/views
-- GPX/poster route storage structure
+- GPX route storage fields for hiking-guide and user-hike records
 
 See:
 
 - `docs/backend-auth-plan.md`
 - `docs/admin-cms.md`
 - `docs/database-operations.md`
-- `docs/shop-poster-plan.md`
 - `supabase/schema.sql`
 
 ## Project Structure

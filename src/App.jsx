@@ -7,6 +7,7 @@ import { TrailDetailPage } from './features/trails/TrailDetailPage.jsx';
 
 const AuthRoute = lazy(() => import('./features/auth/AuthRoute.jsx'));
 const AdminRoute = lazy(() => import('./features/admin/AdminRoute.jsx'));
+const PrivacyPage = lazy(() => import('./features/privacy/PrivacyPage.jsx'));
 
 function LegacyTrailRedirect() {
   const { slug } = useParams();
@@ -41,6 +42,14 @@ export default function App() {
         />
         <Route path="/mountains" element={<MountainListPage />} />
         <Route path="/mountains/:slug" element={<TrailDetailPage />} />
+        <Route
+          path="/privacy"
+          element={
+            <Suspense fallback={<RouteFallback />}>
+              <PrivacyPage />
+            </Suspense>
+          }
+        />
         <Route path="/trails/:slug" element={<LegacyTrailRedirect />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

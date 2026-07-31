@@ -6,7 +6,6 @@ create extension if not exists pgcrypto with schema extensions;
 
 create type public.difficulty_level as enum ('easy', 'moderate', 'hard', 'expert');
 create type public.moderation_status as enum ('pending', 'approved', 'rejected');
-create type public.poster_route_status as enum ('draft', 'ordered', 'archived');
 
 create table public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
@@ -129,31 +128,6 @@ create table public.user_hikes (
   updated_at timestamptz not null default now()
 );
 
-create table public.poster_routes (
-  id uuid primary key default gen_random_uuid(),
-  user_id uuid not null references public.profiles(id) on delete cascade,
-  title text not null,
-  gpx_storage_path text,
-  route_geojson jsonb,
-  preview_image_path text,
-  status public.poster_route_status not null default 'draft',
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
-);
-
-create table public.shop_orders (
-  id uuid primary key default gen_random_uuid(),
-  user_id uuid references public.profiles(id) on delete set null,
-  poster_route_id uuid references public.poster_routes(id) on delete set null,
-  provider text not null,
-  provider_order_id text,
-  status text not null default 'created',
-  amount_cents integer,
-  currency text default 'NOK',
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
-);
-
 drop view if exists public.leaderboard;
 
 create or replace view public.leaderboard
@@ -201,14 +175,6 @@ for each row execute function public.set_updated_at();
 
 create trigger user_hikes_set_updated_at
 before update on public.user_hikes
-for each row execute function public.set_updated_at();
-
-create trigger poster_routes_set_updated_at
-before update on public.poster_routes
-for each row execute function public.set_updated_at();
-
-create trigger shop_orders_set_updated_at
-before update on public.shop_orders
 for each row execute function public.set_updated_at();
 
 create or replace function public.handle_new_user()
@@ -357,8 +323,6 @@ alter table public.trail_images enable row level security;
 alter table public.check_ins enable row level security;
 alter table public.comments enable row level security;
 alter table public.user_hikes enable row level security;
-alter table public.poster_routes enable row level security;
-alter table public.shop_orders enable row level security;
 
 create policy "Profiles are public to read"
 on public.profiles for select
@@ -405,23 +369,6 @@ create policy "Users can create own hikes"
 on public.user_hikes for insert
 with check (auth.uid() = user_id and status = 'pending');
 
-create policy "Poster routes are private to owner"
-on public.poster_routes for select
-using (auth.uid() = user_id);
-
-create policy "Users can create own poster routes"
-on public.poster_routes for insert
-with check (auth.uid() = user_id);
-
-create policy "Users can update own poster routes"
-on public.poster_routes for update
-using (auth.uid() = user_id)
-with check (auth.uid() = user_id);
-
-create policy "Users can read own shop orders"
-on public.shop_orders for select
-using (auth.uid() = user_id);
-
 create index mountains_slug_idx on public.mountains (slug);
 create index trails_slug_idx on public.trails (slug);
 create index trails_mountain_id_idx on public.trails (mountain_id);
@@ -430,4 +377,3 @@ create index check_ins_mountain_id_idx on public.check_ins (mountain_id);
 create index comments_mountain_id_idx on public.comments (mountain_id);
 create index comments_trail_id_idx on public.comments (trail_id);
 create index user_hikes_user_id_idx on public.user_hikes (user_id);
-create index poster_routes_user_id_idx on public.poster_routes (user_id);

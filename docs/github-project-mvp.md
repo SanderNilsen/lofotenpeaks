@@ -135,4 +135,4 @@
 - [ ] Decide backend for auth, user hikes, comments, and mountain-top check-ins.
 - [ ] Design check-in and points data model.
 - [ ] Design leaderboard page.
-- [ ] Plan poster shop and GPS route upload flow.
+- [ ] Plan optional GPX uploads for user hike recommendations.

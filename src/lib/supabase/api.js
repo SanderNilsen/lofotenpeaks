@@ -650,14 +650,3 @@ export async function getUserHikes(userId) {
 
   return data;
 }
-
-export async function createPosterRoute(route) {
-  const client = requireSupabaseClient();
-  const { data, error } = await client.from('poster_routes').insert(route).select().single();
-
-  if (error) {
-    throw error;
-  }
-
-  return data;
-}

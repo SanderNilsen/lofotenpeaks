@@ -1,4 +1,5 @@
 import styled from 'styled-components';
+import { CookieConsent } from '../privacy/CookieConsent.jsx';
 import { Footer } from './Footer.jsx';
 import { Header } from './Header.jsx';
 
@@ -12,6 +13,7 @@ export function AppShell({ children }) {
       <Header />
       <Main>{children}</Main>
       <Footer />
+      <CookieConsent />
     </>
   );
 }

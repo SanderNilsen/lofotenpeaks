@@ -17,7 +17,6 @@ Tasks:
   - `check-in-photos`
   - `user-hike-photos`
   - `gpx-routes`
-  - `poster-previews`
 - Add frontend environment variables:
   - `VITE_SUPABASE_URL`
   - `VITE_SUPABASE_ANON_KEY`
@@ -87,42 +86,25 @@ Recommended moderation:
 - Let users edit their own comments/hikes.
 - Public users only see approved comments/hikes.
 
-## Phase 2E - GPS Upload and Poster Routes
+## Phase 2E - User GPX Routes
 
-Goal: users can upload GPX files for route previews and future custom posters.
+Goal: users can optionally attach a GPX route to a hike recommendation.
 
 Backend tables:
 
-- `poster_routes`
-- `shop_orders`
+- `user_hikes`
 
 Storage:
 
 - Store original GPX files in `gpx-routes`.
-- Store generated poster preview images in `poster-previews`.
 
 Recommended flow:
 
 - User uploads a GPX file.
-- Frontend parses it for preview.
+- Frontend validates and parses it for a route preview.
 - Store the original GPX and a simplified GeoJSON route.
-- Later, send poster/order metadata to a payment or print provider.
-
-## Phase 2F - Shop Integration
-
-Goal: sell t-shirts and posters without building a full e-commerce backend from scratch.
-
-Recommended approach:
-
-- Use Stripe Checkout, Shopify, or a print-on-demand provider for payments and fulfillment.
-- Store only local references in Supabase:
-  - user id
-  - poster route id
-  - payment provider
-  - provider order id
-  - order status
-
-Do not store card details in Supabase.
+- Keep submitted routes private until the associated hike recommendation is approved.
+- Let the owner delete or replace the file.
 
 ## Data Migration Order
 
@@ -133,8 +115,7 @@ Do not store card details in Supabase.
 5. Add auth.
 6. Add check-ins and leaderboard.
 7. Add comments and user hikes.
-8. Add GPS uploads and poster routes.
-9. Add shop integration.
+8. Add optional GPX uploads to user hike recommendations.
 
 ## Current Implementation State
 

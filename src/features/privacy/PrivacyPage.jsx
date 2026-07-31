@@ -9,10 +9,11 @@ import { theme } from '../../styles/theme.js';
 const Page = styled.div`
   margin: 0 auto;
   max-width: ${theme.pageWidth};
+  min-width: 0;
   padding: 56px 24px 24px;
 
   @media (max-width: 640px) {
-    padding-top: 36px;
+    padding: 32px 16px 16px;
   }
 `;
 
@@ -37,8 +38,17 @@ const Hero = styled.header`
   }
 
   @media (max-width: 640px) {
+    gap: 14px;
+    padding-bottom: 24px;
+
     h1 {
-      font-size: 2.5rem;
+      font-size: 2.25rem;
+      line-height: 1.08;
+    }
+
+    p {
+      font-size: 1rem;
+      line-height: 1.6;
     }
   }
 `;
@@ -58,8 +68,9 @@ const PolicyLayout = styled.div`
   padding-top: 38px;
 
   @media (max-width: 860px) {
-    gap: 34px;
+    gap: 30px;
     grid-template-columns: 1fr;
+    padding-top: 28px;
   }
 `;
 
@@ -102,15 +113,33 @@ const Contents = styled.nav`
 
   @media (max-width: 860px) {
     position: static;
+
+    ol {
+      column-gap: 24px;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (max-width: 420px) {
+    ol {
+      grid-template-columns: 1fr;
+    }
   }
 `;
 
 const Article = styled.article`
   display: grid;
   gap: 44px;
+  min-width: 0;
+
+  @media (max-width: 640px) {
+    gap: 36px;
+  }
 `;
 
 const Section = styled.section`
+  min-width: 0;
+  overflow-wrap: anywhere;
   scroll-margin-top: 104px;
 
   h2 {
@@ -152,6 +181,33 @@ const Section = styled.section`
     outline: 3px solid ${theme.colors.fjord};
     outline-offset: 3px;
   }
+
+  code {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  @media (max-width: 640px) {
+    h2 {
+      font-size: 1.45rem;
+      line-height: 1.3;
+      margin-bottom: 14px;
+    }
+
+    h3 {
+      font-size: 1.05rem;
+      margin-top: 22px;
+    }
+
+    p,
+    li {
+      line-height: 1.65;
+    }
+
+    ul {
+      padding-left: 20px;
+    }
+  }
 `;
 
 const ControllerDetails = styled.dl`
@@ -180,9 +236,13 @@ const ControllerDetails = styled.dl`
 
   dd {
     margin: 0;
+    min-width: 0;
+    overflow-wrap: anywhere;
   }
 
   @media (max-width: 560px) {
+    padding: 4px 14px;
+
     div {
       gap: 5px;
       grid-template-columns: 1fr;
@@ -209,6 +269,11 @@ const Notice = styled.div`
   p {
     margin: 0;
   }
+
+  @media (max-width: 560px) {
+    grid-template-columns: 1fr;
+    padding: 14px;
+  }
 `;
 
 const Summary = styled.div`
@@ -221,9 +286,14 @@ const Summary = styled.div`
   p:last-child {
     margin-bottom: 0;
   }
+
+  @media (max-width: 560px) {
+    padding: 16px;
+  }
 `;
 
 const TableWrap = styled.div.attrs({ tabIndex: 0 })`
+  max-width: 100%;
   margin: 20px 0;
   overflow-x: auto;
 
@@ -257,12 +327,63 @@ const PolicyTable = styled.table`
     background: ${theme.colors.surface};
     font-size: 0.92rem;
   }
+
+  @media (max-width: 640px) {
+    display: block;
+    min-width: 0;
+
+    thead {
+      clip: rect(0 0 0 0);
+      clip-path: inset(50%);
+      height: 1px;
+      overflow: hidden;
+      position: absolute;
+      white-space: nowrap;
+      width: 1px;
+    }
+
+    tbody {
+      display: grid;
+      gap: 12px;
+    }
+
+    tr {
+      background: ${theme.colors.surface};
+      border: 1px solid ${theme.colors.line};
+      border-radius: ${theme.radii.medium};
+      display: block;
+      overflow: hidden;
+    }
+
+    td {
+      background: transparent;
+      border-bottom: 1px solid ${theme.colors.line};
+      display: grid;
+      gap: 4px;
+      padding: 12px 14px;
+    }
+
+    td::before {
+      color: ${theme.colors.muted};
+      content: attr(data-label);
+      font-size: 0.76rem;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    td:last-child {
+      border-bottom: 0;
+    }
+  }
 `;
 
 const ProviderLink = styled.a`
   align-items: center;
   display: inline-flex;
+  flex-wrap: wrap;
   gap: 5px;
+  max-width: 100%;
+  overflow-wrap: anywhere;
 `;
 
 const tocItems = [
@@ -459,62 +580,78 @@ export function PrivacyPage() {
                 </thead>
                 <tbody>
                   <tr>
-                    <td>Create and operate an account and session</td>
-                    <td>Email, password handled by Supabase, user ID, tokens, profile and session data</td>
-                    <td>
+                    <td data-label="Purpose">Create and operate an account and session</td>
+                    <td data-label="Data">
+                      Email, password handled by Supabase, user ID, tokens, profile and session data
+                    </td>
+                    <td data-label="GDPR legal basis">
                       Article 6(1)(b), performance of the service agreement requested when you create and use an
                       account.
                     </td>
                   </tr>
                   <tr>
-                    <td>Provide verified summit check-ins and award points</td>
-                    <td>Current coordinates, mountain/trail, timestamp, distance, points, and optional note</td>
-                    <td>
+                    <td data-label="Purpose">Provide verified summit check-ins and award points</td>
+                    <td data-label="Data">
+                      Current coordinates, mountain/trail, timestamp, distance, points, and optional note
+                    </td>
+                    <td data-label="GDPR legal basis">
                       Article 6(1)(b), to provide the location-verified check-in feature. Retaining validation evidence
                       may also rely on Article 6(1)(f): the legitimate interest in protecting leaderboard integrity and
                       preventing false check-ins. This interest must be balanced against location privacy.
                     </td>
                   </tr>
                   <tr>
-                    <td>Publish community features</td>
-                    <td>Display name, username/avatar where used, approved comments, and leaderboard totals</td>
-                    <td>
+                    <td data-label="Purpose">Publish community features</td>
+                    <td data-label="Data">
+                      Display name, username/avatar where used, approved comments, and leaderboard totals
+                    </td>
+                    <td data-label="GDPR legal basis">
                       Article 6(1)(b), because public contribution and leaderboard functions are part of the account
                       service the user requests.
                     </td>
                   </tr>
                   <tr>
-                    <td>Receive and review hike recommendations</td>
-                    <td>Title, notes, difficulty, user ID, status, and timestamps</td>
-                    <td>Article 6(1)(b), to provide the contribution workflow requested by the user.</td>
+                    <td data-label="Purpose">Receive and review hike recommendations</td>
+                    <td data-label="Data">Title, notes, difficulty, user ID, status, and timestamps</td>
+                    <td data-label="GDPR legal basis">
+                      Article 6(1)(b), to provide the contribution workflow requested by the user.
+                    </td>
                   </tr>
                   <tr>
-                    <td>Deliver maps, weather, and the public guide</td>
-                    <td>Technical request data; guide/summit coordinates sent to map and weather services</td>
-                    <td>
+                    <td data-label="Purpose">Deliver maps, weather, and the public guide</td>
+                    <td data-label="Data">
+                      Technical request data; guide/summit coordinates sent to map and weather services
+                    </td>
+                    <td data-label="GDPR legal basis">
                       Article 6(1)(f): the legitimate interest in providing useful route, map, and weather information.
                       The weather request uses the hike finish point, not the visitor&apos;s current GPS location.
                     </td>
                   </tr>
                   <tr>
-                    <td>Measure site use with Google Analytics</td>
-                    <td>Online identifiers, page/session events, approximate location, and device/browser information</td>
-                    <td>
+                    <td data-label="Purpose">Measure site use with Google Analytics</td>
+                    <td data-label="Data">
+                      Online identifiers, page/session events, approximate location, and device/browser information
+                    </td>
+                    <td data-label="GDPR legal basis">
                       Article 6(1)(a), consent. Analytics must not load before consent and can be disabled at any time.
                     </td>
                   </tr>
                   <tr>
-                    <td>Protect and troubleshoot the service</td>
-                    <td>IP address, request logs, authentication and diagnostic information</td>
-                    <td>
+                    <td data-label="Purpose">Protect and troubleshoot the service</td>
+                    <td data-label="Data">IP address, request logs, authentication and diagnostic information</td>
+                    <td data-label="GDPR legal basis">
                       Article 6(1)(f): the legitimate interest in service reliability, abuse prevention, and
                       information security.
                     </td>
                   </tr>
                   <tr>
-                    <td>Respond to privacy requests and legal duties</td>
-                    <td>Identity verification, correspondence, request history, and necessary account data</td>
-                    <td>Article 6(1)(c), compliance with legal obligations under data-protection law.</td>
+                    <td data-label="Purpose">Respond to privacy requests and legal duties</td>
+                    <td data-label="Data">
+                      Identity verification, correspondence, request history, and necessary account data
+                    </td>
+                    <td data-label="GDPR legal basis">
+                      Article 6(1)(c), compliance with legal obligations under data-protection law.
+                    </td>
                   </tr>
                 </tbody>
               </PolicyTable>
@@ -618,38 +755,52 @@ export function PrivacyPage() {
                 </thead>
                 <tbody>
                   <tr>
-                    <td>
+                    <td data-label="Name / technology">
                       <code>sb-&lt;project-ref&gt;-auth-token</code> (name may vary)
                     </td>
-                    <td>Supabase Auth local storage used to keep a signed-in session and refresh authentication tokens.</td>
-                    <td>Strictly necessary for signed-in features</td>
-                    <td>Until sign-out, token/session invalidation, or browser storage is cleared.</td>
+                    <td data-label="Provider and purpose">
+                      Supabase Auth local storage used to keep a signed-in session and refresh authentication tokens.
+                    </td>
+                    <td data-label="Category">Strictly necessary for signed-in features</td>
+                    <td data-label="Duration">
+                      Until sign-out, token/session invalidation, or browser storage is cleared.
+                    </td>
                   </tr>
                   <tr>
-                    <td>
+                    <td data-label="Name / technology">
                       <code>{COOKIE_CONSENT_STORAGE_KEY}</code>
                     </td>
-                    <td>Lofoten Peaks local storage recording analytics choice, policy version, and choice time.</td>
-                    <td>Necessary preference/consent record</td>
-                    <td>Until changed, browser storage is cleared, or the consent version is replaced.</td>
+                    <td data-label="Provider and purpose">
+                      Lofoten Peaks local storage recording analytics choice, policy version, and choice time.
+                    </td>
+                    <td data-label="Category">Necessary preference/consent record</td>
+                    <td data-label="Duration">
+                      Until changed, browser storage is cleared, or the consent version is replaced.
+                    </td>
                   </tr>
                   <tr>
-                    <td>
+                    <td data-label="Name / technology">
                       <code>_ga</code>
                     </td>
-                    <td>Google Analytics identifier used to distinguish visitors after analytics consent.</td>
-                    <td>Optional analytics</td>
-                    <td>Google&apos;s default is up to 2 years, subject to browser limits and Analytics settings.</td>
+                    <td data-label="Provider and purpose">
+                      Google Analytics identifier used to distinguish visitors after analytics consent.
+                    </td>
+                    <td data-label="Category">Optional analytics</td>
+                    <td data-label="Duration">
+                      Google&apos;s default is up to 2 years, subject to browser limits and Analytics settings.
+                    </td>
                   </tr>
                   <tr>
-                    <td>
+                    <td data-label="Name / technology">
                       <code>_ga_X0J3SHQZHV</code>
                     </td>
-                    <td>
+                    <td data-label="Provider and purpose">
                       Google Analytics session-state cookie for measurement ID <code>{GOOGLE_ANALYTICS_ID}</code>.
                     </td>
-                    <td>Optional analytics</td>
-                    <td>Google&apos;s default is up to 2 years, subject to browser limits and Analytics settings.</td>
+                    <td data-label="Category">Optional analytics</td>
+                    <td data-label="Duration">
+                      Google&apos;s default is up to 2 years, subject to browser limits and Analytics settings.
+                    </td>
                   </tr>
                 </tbody>
               </PolicyTable>
@@ -680,68 +831,70 @@ export function PrivacyPage() {
                 </thead>
                 <tbody>
                   <tr>
-                    <td>
+                    <td data-label="Provider">
                       <ExternalProviderLink href="https://www.uniweb.no/">Uniweb</ExternalProviderLink>
                     </td>
-                    <td>Frontend hosting; may receive IP address, request headers, requested URLs, and server logs.</td>
-                    <td>
+                    <td data-label="Service and data">
+                      Frontend hosting; may receive IP address, request headers, requested URLs, and server logs.
+                    </td>
+                    <td data-label="Reason and location">
                       Needed to deliver and secure the website. Contracting entity, server location, log retention, and
                       data-processing terms require owner verification.
                     </td>
                   </tr>
                   <tr>
-                    <td>
+                    <td data-label="Provider">
                       <ExternalProviderLink href="https://supabase.com/privacy">Supabase</ExternalProviderLink>
                     </td>
-                    <td>
+                    <td data-label="Service and data">
                       Authentication, PostgreSQL database, API, and file storage. Receives account, profile, check-in,
                       location, comment, recommendation, admin content, and technical data.
                     </td>
-                    <td>
+                    <td data-label="Reason and location">
                       Needed for account and community features. The selected project region and current DPA,
                       subprocessors, support access, backups, and transfer safeguards require owner verification.
                     </td>
                   </tr>
                   <tr>
-                    <td>
+                    <td data-label="Provider">
                       <ExternalProviderLink href="https://policies.google.com/privacy">
                         Google Analytics
                       </ExternalProviderLink>
                     </td>
-                    <td>
+                    <td data-label="Service and data">
                       Optional audience measurement; may receive online identifiers, page/session events, approximate
                       location, IP-derived information, and browser/device data.
                     </td>
-                    <td>
+                    <td data-label="Reason and location">
                       Used only after consent. Google may process data globally. Analytics property retention, enhanced
                       measurement, account linking, data sharing, and the operator&apos;s applicable transfer safeguard
                       require verification.
                     </td>
                   </tr>
                   <tr>
-                    <td>
+                    <td data-label="Provider">
                       <ExternalProviderLink href="https://osmfoundation.org/wiki/Privacy_Policy">
                         OpenStreetMap Foundation and its tile delivery providers
                       </ExternalProviderLink>
                     </td>
-                    <td>
+                    <td data-label="Service and data">
                       Map tiles; may receive IP address, browser/device type, operating system, referrer, request time,
                       and requested map tiles.
                     </td>
-                    <td>
+                    <td data-label="Reason and location">
                       Needed to show route maps. OSMF is based in the United Kingdom and uses distributed delivery
                       infrastructure, including Fastly. Current locations and safeguards should be verified.
                     </td>
                   </tr>
                   <tr>
-                    <td>
+                    <td data-label="Provider">
                       <ExternalProviderLink href="https://open-meteo.com/en/terms">Open-Meteo</ExternalProviderLink>
                     </td>
-                    <td>
+                    <td data-label="Service and data">
                       Weather API; receives IP address, request URL, and the mountain/trail finish coordinates used for
                       the forecast. It does not receive the visitor&apos;s check-in GPS coordinates from this feature.
                     </td>
-                    <td>
+                    <td data-label="Reason and location">
                       Needed to show weather. Open-Meteo states that troubleshooting logs may be kept for 90 days and
                       operates from Switzerland.
                     </td>
@@ -787,51 +940,55 @@ export function PrivacyPage() {
                 </thead>
                 <tbody>
                   <tr>
-                    <td>Account and profile</td>
-                    <td>
+                    <td data-label="Data">Account and profile</td>
+                    <td data-label="Current retention rule">
                       Kept while the account exists and until deletion is carried out following a verified request.
                       Supabase Auth log retention must be verified.
                     </td>
                   </tr>
                   <tr>
-                    <td>Check-ins and location</td>
-                    <td>
+                    <td data-label="Data">Check-ins and location</td>
+                    <td data-label="Current retention rule">
                       No automatic expiry. Kept until the record/account is deleted or a valid deletion request is
                       completed. The necessity of retaining exact coordinates after validation should be reviewed.
                     </td>
                   </tr>
                   <tr>
-                    <td>Comments and hike recommendations</td>
-                    <td>
+                    <td data-label="Data">Comments and hike recommendations</td>
+                    <td data-label="Current retention rule">
                       No automatic expiry. Kept until deletion of the record/account or completion of a valid request,
                       subject to any lawful need to retain a limited record.
                     </td>
                   </tr>
                   <tr>
-                    <td>Admin GPX files and route geometry</td>
-                    <td>Kept until an administrator removes/replaces the route or deletes its guide.</td>
+                    <td data-label="Data">Admin GPX files and route geometry</td>
+                    <td data-label="Current retention rule">
+                      Kept until an administrator removes/replaces the route or deletes its guide.
+                    </td>
                   </tr>
                   <tr>
-                    <td>Consent record</td>
-                    <td>Kept in local storage until changed, cleared, or replaced by a new consent version.</td>
+                    <td data-label="Data">Consent record</td>
+                    <td data-label="Current retention rule">
+                      Kept in local storage until changed, cleared, or replaced by a new consent version.
+                    </td>
                   </tr>
                   <tr>
-                    <td>Google Analytics events</td>
-                    <td>
+                    <td data-label="Data">Google Analytics events</td>
+                    <td data-label="Current retention rule">
                       The production Analytics property retention setting is not visible in the repository and must be
                       verified. Analytics cookies use the durations listed above.
                     </td>
                   </tr>
                   <tr>
-                    <td>Hosting, security, and API logs</td>
-                    <td>
+                    <td data-label="Data">Hosting, security, and API logs</td>
+                    <td data-label="Current retention rule">
                       Uniweb and Supabase log periods require verification. Open-Meteo states up to 90 days for
                       troubleshooting logs.
                     </td>
                   </tr>
                   <tr>
-                    <td>Backups</td>
-                    <td>
+                    <td data-label="Data">Backups</td>
+                    <td data-label="Current retention rule">
                       Supabase and Uniweb backup schedules, retention periods, deletion behavior, and restoration
                       procedures require verification.
                     </td>

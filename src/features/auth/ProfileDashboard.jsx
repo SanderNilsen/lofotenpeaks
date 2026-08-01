@@ -649,11 +649,6 @@ const ToolIntro = styled.div`
   }
 `;
 
-const ToolStack = styled.div`
-  display: grid;
-  gap: 20px;
-`;
-
 const Form = styled.form`
   display: grid;
   gap: 16px;
@@ -761,6 +756,33 @@ const DangerCard = styled(ToolCard)`
   border-color: #dfc4af;
 `;
 
+const ProfileSettingsGrid = styled.div`
+  align-items: start;
+  display: grid;
+  gap: 20px;
+  grid-template-columns: minmax(0, 1.3fr) minmax(320px, 0.7fr);
+
+  @media (max-width: 900px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const ProfileColumn = styled.div`
+  align-content: start;
+  display: grid;
+  gap: 20px;
+`;
+
+const ProfileEditCard = styled(ToolCard)``;
+
+const ProfileAccountCard = styled(ToolCard)``;
+
+const ProfileLegalCard = styled(ToolCard)``;
+
+const ProfileCommentsCard = styled(ToolCard)``;
+
+const ProfileDangerCard = styled(DangerCard)``;
+
 const DangerButton = styled(SecondaryButton)`
   border-color: #b96d43;
   color: #713d1f;
@@ -852,7 +874,6 @@ const SubmissionMeta = styled.div`
 
 const initialProfileForm = {
   displayName: '',
-  username: '',
   bio: '',
 };
 
@@ -880,7 +901,6 @@ function createInitialAccountData() {
 function profileFormFromProfile(profile) {
   return {
     displayName: profile?.display_name ?? '',
-    username: profile?.username ?? '',
     bio: profile?.bio ?? '',
   };
 }
@@ -914,10 +934,6 @@ function relationValue(value) {
 function friendlyMutationError(error, fallback) {
   const message = String(error?.message ?? '').toLowerCase();
 
-  if (error?.code === '23505' || message.includes('unique')) {
-    return 'That username is already in use. Choose another one.';
-  }
-
   if (message.includes('network') || message.includes('fetch')) {
     return 'We could not reach the service. Check your connection and try again.';
   }
@@ -932,16 +948,11 @@ function friendlyMutationError(error, fallback) {
 function validateProfile(form) {
   const errors = {};
   const displayName = form.displayName.trim();
-  const username = form.username.trim().replace(/^@/, '');
 
   if (displayName.length < 2 || displayName.length > 60) {
     errors.displayName = 'Use between 2 and 60 characters.';
   } else if (isEmailLike(displayName)) {
     errors.displayName = 'Do not use an email address as your public display name.';
-  }
-
-  if (username && !/^[a-zA-Z0-9_]{3,24}$/.test(username)) {
-    errors.username = 'Use 3-24 letters, numbers, or underscores.';
   }
 
   return errors;
@@ -1081,7 +1092,6 @@ export function ProfileDashboard() {
   const metadataDisplayName = String(user?.user_metadata?.display_name ?? '').trim();
   const publicDisplayName = getSafePublicDisplayName(
     accountData.profile?.display_name,
-    accountData.profile?.username,
     metadataDisplayName,
   );
   const personalName = [accountData.profile?.display_name, metadataDisplayName]
@@ -1272,7 +1282,7 @@ export function ProfileDashboard() {
 
   async function handleProfileUpdate(event) {
     event.preventDefault();
-    setProfileTouched({ displayName: true, username: true, bio: true });
+    setProfileTouched({ displayName: true, bio: true });
 
     if (Object.keys(profileValidation).length > 0) {
       setProfileStatus({ type: 'error', message: 'Review the highlighted profile fields.' });
@@ -1284,7 +1294,6 @@ export function ProfileDashboard() {
     try {
       const updatedProfile = await updateProfile(userId, {
         display_name: profileForm.displayName.trim(),
-        username: profileForm.username.trim().replace(/^@/, '') || null,
         bio: profileForm.bio.trim() || null,
       });
       setProfileForm(profileFormFromProfile(updatedProfile));
@@ -1463,9 +1472,6 @@ export function ProfileDashboard() {
             <ProfileAvatar name={publicDisplayName} src={avatarUrl} />
             <IdentityCopy>
               <h2 id="profile-identity-heading">{publicDisplayName}</h2>
-              {accountData.profile?.username && publicDisplayName !== accountData.profile.username && (
-                <p>@{accountData.profile.username}</p>
-              )}
               {accountData.profile?.bio && <p>{accountData.profile.bio}</p>}
               <IdentityMeta>
                 {accountData.profile?.created_at && (
@@ -1753,18 +1759,19 @@ export function ProfileDashboard() {
             aria-labelledby="account-tab-profile"
             tabIndex="0"
           >
-            <ToolGrid>
-              <ToolCard>
+            <ProfileSettingsGrid>
+              <ProfileColumn>
+                <ProfileEditCard>
                 <ToolIntro>
                   <h2>Edit profile</h2>
-                  <p>Your display name, username, and bio are stored as public profile details.</p>
+                  <p>Your display name and biography are stored as public profile details.</p>
                 </ToolIntro>
                 {!accountData.isLoading && accountData.errors.profile && (
                   <Message $error role="alert">{accountData.errors.profile} Refresh before editing.</Message>
                 )}
                 <Form onSubmit={handleProfileUpdate} noValidate>
                   <FormFields>
-                    <Field $invalid={profileTouched.displayName && profileValidation.displayName}>
+                    <FullField $invalid={profileTouched.displayName && profileValidation.displayName}>
                       <label htmlFor="profile-display-name">Display name</label>
                       <input
                         id="profile-display-name"
@@ -1786,29 +1793,7 @@ export function ProfileDashboard() {
                       {profileTouched.displayName && profileValidation.displayName && (
                         <FieldError id="profile-display-name-error">{profileValidation.displayName}</FieldError>
                       )}
-                    </Field>
-                    <Field $invalid={profileTouched.username && profileValidation.username}>
-                      <label htmlFor="profile-username">Username</label>
-                      <input
-                        id="profile-username"
-                        type="text"
-                        minLength="3"
-                        maxLength="24"
-                        autoComplete="username"
-                        value={profileForm.username}
-                        disabled={
-                          accountData.isLoading || !accountData.profileLoaded || profileStatus.type === 'loading'
-                        }
-                        aria-invalid={Boolean(profileTouched.username && profileValidation.username)}
-                        aria-describedby="profile-username-help profile-username-error"
-                        onBlur={() => setProfileTouched((current) => ({ ...current, username: true }))}
-                        onChange={(event) => updateProfileForm('username', event.target.value)}
-                      />
-                      <small id="profile-username-help">Optional. Use 3-24 letters, numbers, or underscores.</small>
-                      {profileTouched.username && profileValidation.username && (
-                        <FieldError id="profile-username-error">{profileValidation.username}</FieldError>
-                      )}
-                    </Field>
+                    </FullField>
                     <FullField>
                       <label htmlFor="profile-bio">Biography</label>
                       <textarea
@@ -1859,44 +1844,39 @@ export function ProfileDashboard() {
                     </Message>
                   )}
                 </Form>
-              </ToolCard>
+                </ProfileEditCard>
 
-              <ToolStack>
-                <ToolCard>
+                <ProfileCommentsCard aria-label="Manage your comments">
                   <ToolIntro>
-                    <h2>Terms and privacy</h2>
-                    <p>Community actions require acceptance of the current Terms of Service.</p>
+                    <h2>Manage comments</h2>
+                    <p>Deleted comments disappear from public hiking guides.</p>
                   </ToolIntro>
-                  {accountData.errors.legal && <Message $error role="alert">{accountData.errors.legal}</Message>}
-                  {!accountData.errors.legal && isCurrentLegalAcceptance(accountData.legalStatus) ? (
-                    <Message>
-                      <ShieldCheck size={18} aria-hidden="true" /> Current Terms accepted on{' '}
-                      {formatDate(accountData.legalStatus.termsAcceptedAt)}.
-                    </Message>
+                  {accountData.comments.length === 0 ? (
+                    <EmptyState><h3>No comments to manage</h3><p>Your route comments will appear here.</p></EmptyState>
                   ) : (
-                    <>
-                      <p>
-                        Review the <Link to="/terms">Terms of Service</Link> and{' '}
-                        <Link to="/privacy">Privacy Policy</Link>. Continuing with the button below records the
-                        document versions and server time.
-                      </p>
-                      <PrimaryButton
-                        type="button"
-                        disabled={accountData.isLoading || legalStatus.type === 'loading'}
-                        onClick={handleAcceptLegal}
-                      >
-                        <ShieldCheck size={18} aria-hidden="true" />
-                        {legalStatus.type === 'loading' ? 'Recording...' : 'Accept current Terms'}
-                      </PrimaryButton>
-                    </>
+                    <ManagementList>
+                      {accountData.comments.map((comment) => {
+                        const mountain = relationValue(comment.mountains);
+                        const trail = relationValue(comment.trails);
+                        return (
+                          <li key={comment.id}>
+                            <div>
+                              <strong>{mountain?.name ?? trail?.name ?? 'Hiking guide'}</strong>
+                              <span>{formatDate(comment.created_at)} | {comment.body}</span>
+                            </div>
+                            <DangerButton type="button" onClick={() => handleDeleteComment(comment)}>
+                              <Trash2 size={16} aria-hidden="true" /> Delete
+                            </DangerButton>
+                          </li>
+                        );
+                      })}
+                    </ManagementList>
                   )}
-                  {legalStatus.message && (
-                    <Message $error={legalStatus.type === 'error'} role={legalStatus.type === 'error' ? 'alert' : 'status'}>
-                      {legalStatus.message}
-                    </Message>
-                  )}
-                </ToolCard>
-                <ToolCard>
+                </ProfileCommentsCard>
+              </ProfileColumn>
+
+              <ProfileColumn>
+                <ProfileAccountCard>
                   <ToolIntro>
                     <h2>Account settings</h2>
                     <p>Private details used to access your account.</p>
@@ -1922,13 +1902,49 @@ export function ProfileDashboard() {
                     <LogOut size={18} aria-hidden="true" />
                     {sessionStatus.type === 'loading' ? 'Signing out...' : 'Sign out'}
                   </SecondaryButton>
-                </ToolCard>
-                <DangerCard>
+                </ProfileAccountCard>
+
+                <ProfileLegalCard>
+                  <ToolIntro>
+                    <h2>Terms and privacy</h2>
+                    <p>Community actions require acceptance of the current Terms of Service.</p>
+                  </ToolIntro>
+                  {accountData.errors.legal && <Message $error role="alert">{accountData.errors.legal}</Message>}
+                  {!accountData.errors.legal && isCurrentLegalAcceptance(accountData.legalStatus) ? (
+                    <Message>
+                      <ShieldCheck size={18} aria-hidden="true" /> Current Terms accepted on{' '}
+                      {formatDate(accountData.legalStatus.termsAcceptedAt)}.
+                    </Message>
+                  ) : (
+                    <>
+                      <p>
+                        Review the <Link to="/terms">Terms of Service</Link> and{' '}
+                        <Link to="/privacy">Privacy Policy</Link>. Continuing with the button below records the document
+                        versions and server time.
+                      </p>
+                      <PrimaryButton
+                        type="button"
+                        disabled={accountData.isLoading || legalStatus.type === 'loading'}
+                        onClick={handleAcceptLegal}
+                      >
+                        <ShieldCheck size={18} aria-hidden="true" />
+                        {legalStatus.type === 'loading' ? 'Recording...' : 'Accept current Terms'}
+                      </PrimaryButton>
+                    </>
+                  )}
+                  {legalStatus.message && (
+                    <Message $error={legalStatus.type === 'error'} role={legalStatus.type === 'error' ? 'alert' : 'status'}>
+                      {legalStatus.message}
+                    </Message>
+                  )}
+                </ProfileLegalCard>
+
+                <ProfileDangerCard>
                   <ToolIntro>
                     <h3>Delete your account</h3>
                     <p>
-                      This permanently deletes your account, profile, check-ins and location evidence, comments, and
-                      hike recommendations. Limited security or moderation records may be retained where necessary.
+                      This permanently deletes your account, profile, check-ins and location evidence, comments, and hike
+                      recommendations. Limited security or moderation records may be retained where necessary.
                     </p>
                   </ToolIntro>
                   <Form onSubmit={handleDeleteAccount}>
@@ -1942,43 +1958,16 @@ export function ProfileDashboard() {
                         onChange={(event) => setDeleteConfirmation(event.target.value)}
                       />
                     </ConfirmationField>
-                    <DangerButton type="submit" disabled={deleteConfirmation !== 'DELETE' || sessionStatus.type === 'loading'}>
+                    <DangerButton
+                      type="submit"
+                      disabled={deleteConfirmation !== 'DELETE' || sessionStatus.type === 'loading'}
+                    >
                       <Trash2 size={18} aria-hidden="true" /> Permanently delete account
                     </DangerButton>
                   </Form>
-                </DangerCard>
-              </ToolStack>
-            </ToolGrid>
-
-            <ToolGrid aria-label="Manage your contributions">
-              <ToolCard>
-                <ToolIntro>
-                  <h2>Manage comments</h2>
-                  <p>Deleted comments disappear from public hiking guides.</p>
-                </ToolIntro>
-                {accountData.comments.length === 0 ? (
-                  <EmptyState><h3>No comments to manage</h3><p>Your route comments will appear here.</p></EmptyState>
-                ) : (
-                  <ManagementList>
-                    {accountData.comments.map((comment) => {
-                      const mountain = relationValue(comment.mountains);
-                      const trail = relationValue(comment.trails);
-                      return (
-                        <li key={comment.id}>
-                          <div>
-                            <strong>{mountain?.name ?? trail?.name ?? 'Hiking guide'}</strong>
-                            <span>{formatDate(comment.created_at)} | {comment.body}</span>
-                          </div>
-                          <DangerButton type="button" onClick={() => handleDeleteComment(comment)}>
-                            <Trash2 size={16} aria-hidden="true" /> Delete
-                          </DangerButton>
-                        </li>
-                      );
-                    })}
-                  </ManagementList>
-                )}
-              </ToolCard>
-            </ToolGrid>
+                </ProfileDangerCard>
+              </ProfileColumn>
+            </ProfileSettingsGrid>
             {managementStatus.message && (
               <Message
                 $error={managementStatus.type === 'error'}

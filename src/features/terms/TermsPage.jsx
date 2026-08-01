@@ -327,7 +327,7 @@ export function TermsPage() {
             <p>When you create or use an account, you agree to:</p>
             <ul>
               <li>provide accurate account and public profile information;</li>
-              <li>use a display name and username that do not impersonate or mislead others;</li>
+              <li>use profile information that does not impersonate or mislead others;</li>
               <li>keep your password and access to your email account secure;</li>
               <li>notify Lofoten Peaks promptly if you believe your account has been compromised; and</li>
               <li>
@@ -346,10 +346,11 @@ export function TermsPage() {
           <Section id="user-content">
             <h2>4. User Content</h2>
             <p>
-              User content currently includes profile names and biographies, summit check-in notes, comments, and hike
-              recommendations. Route corrections and comment reports are also user submissions, but are visible only to
-              the submitting user and authorised administrators. You remain responsible for content you submit and
-              confirm that you have the rights and permissions needed to provide it.
+              User content currently includes profile names and biographies, comments, hike recommendations, and any
+              summit check-in notes submitted before that option was removed. Route corrections and comment reports are
+              also user submissions, but are visible only to the submitting user and authorised administrators. You
+              remain responsible for content you submit and confirm that you have the rights and permissions needed to
+              provide it.
             </p>
             <p>
               Content must not unlawfully disclose another person's personal or location information, infringe
@@ -396,9 +397,9 @@ export function TermsPage() {
               appropriate backup navigation method.
             </p>
             <p>
-              Comments, check-in notes, profile information, and hike recommendations reflect individual users' views
-              and experiences. They may contain mistakes and are not professional advice. A check-in or points award
-              does not show that current conditions are suitable for another person.
+              Comments, profile information, hike recommendations, and historical check-in notes reflect individual
+              users' views and experiences. They may contain mistakes and are not professional advice. A check-in or
+              points award does not show that current conditions are suitable for another person.
             </p>
             <p>
               Hike recommendations may be reviewed before publication, while comments are currently visible when

@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" width="1000" height="1000"><metadata><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:dc="http://purl.org/dc/elements/1.1/"><rdf:Description><dc:creator>RealFaviconGenerator</dc:creator><dc:source>https://realfavicongenerator.net</dc:source></rdf:Description></rdf:RDF></metadata><style>
+    #light-icon {
+      display: inline;
+    }
+    #dark-icon {
+      display: none;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      #light-icon {
+        display: none;
+      }
+      #dark-icon {
+        display: inline;
+      }
+    }
+  </style><g id="light-icon"><svg xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" width="1000" height="1000"><g clip-path="url(#SvgjsClipPath1246)"><rect width="1000" height="1000" fill="#ffffff"></rect><g transform="matrix(20.833333333333332,0,0,20.833333333333332,0,0)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="48" height="48"><polyline points="3,19 8,11 10.5,14 14,8 17,12.5 21,19" fill="none" stroke="#1C1C1A" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"></polyline></svg></g></g><defs><clipPath id="SvgjsClipPath1246"><rect width="1000" height="1000" x="0" y="0" rx="200" ry="200"></rect></clipPath></defs></svg></g><g id="dark-icon"><svg xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" width="1000" height="1000"><g><g transform="matrix(20.833333333333332,0,0,20.833333333333332,0,0)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="48" height="48"><polyline points="3,19 8,11 10.5,14 14,8 17,12.5 21,19" fill="none" stroke="#1C1C1A" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"></polyline></svg></g></g></svg></g></svg>

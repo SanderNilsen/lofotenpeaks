@@ -225,7 +225,7 @@ export async function getProfile(userId) {
   const client = requireSupabaseClient();
   const { data, error } = await client
     .from('profiles')
-    .select('display_name, username, avatar_url, bio, created_at, updated_at')
+    .select('display_name, avatar_url, bio, created_at, updated_at')
     .eq('id', userId)
     .single();
 
@@ -242,7 +242,7 @@ export async function updateProfile(userId, updates) {
     .from('profiles')
     .update(updates)
     .eq('id', userId)
-    .select('display_name, username, avatar_url, bio, created_at, updated_at')
+    .select('display_name, avatar_url, bio, created_at, updated_at')
     .single();
 
   if (error) {
@@ -581,7 +581,6 @@ export async function getUserCheckIns(userId) {
         checked_in_at,
         check_in_day,
         points,
-        note,
         status,
         mountains(name, slug, region, height_meters, difficulty, hero_image_path),
         trails(name, slug)
@@ -615,12 +614,12 @@ export async function getTodayCheckInForMountain({ userId, mountainId }) {
   return data;
 }
 
-export async function createMountainCheckIn({ mountainId, trailId, note, location }) {
+export async function createMountainCheckIn({ mountainId, trailId, location }) {
   const client = requireSupabaseClient();
   const { data, error } = await client.rpc('create_mountain_check_in', {
     p_mountain_id: mountainId,
     p_trail_id: trailId ?? null,
-    p_note: note?.trim() || null,
+    p_note: null,
     p_lat: location?.lat ?? null,
     p_lng: location?.lng ?? null,
     p_accuracy: location?.accuracy ?? null,

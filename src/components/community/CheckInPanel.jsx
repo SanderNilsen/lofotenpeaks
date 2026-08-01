@@ -29,36 +29,6 @@ const Panel = styled.section`
   }
 `;
 
-const NoteField = styled.label`
-  display: grid;
-  gap: 6px;
-
-  span {
-    color: ${theme.colors.muted};
-    font-size: 0.76rem;
-    font-weight: 800;
-    text-transform: uppercase;
-  }
-
-  textarea {
-    background: ${theme.colors.background};
-    border: 1px solid ${theme.colors.line};
-    border-radius: ${theme.radii.small};
-    color: ${theme.colors.ink};
-    font: inherit;
-    min-height: 84px;
-    padding: 10px 11px;
-    resize: vertical;
-    width: 100%;
-
-    &:focus-visible {
-      border-color: ${theme.colors.fjord};
-      outline: 3px solid rgba(36, 95, 130, 0.2);
-      outline-offset: 1px;
-    }
-  }
-`;
-
 const Action = styled.button`
   align-items: center;
   background: ${theme.colors.forest};
@@ -175,7 +145,6 @@ function getLocationErrorMessage(error) {
 function CheckInPanelContent({ trail }) {
   const { isConfigured, isLoading: authIsLoading, user } = useAuth();
   const [todayCheckIn, setTodayCheckIn] = useState(null);
-  const [note, setNote] = useState('');
   const [location, setLocation] = useState(null);
   const [locationStatus, setLocationStatus] = useState({ type: 'idle', message: '' });
   const [status, setStatus] = useState({ type: 'idle', message: '' });
@@ -221,14 +190,11 @@ function CheckInPanelContent({ trail }) {
 
     try {
       const checkIn = await createMountainCheckIn({
-        userId: user.id,
         mountainId: trail.mountainId,
         trailId: trail.id,
-        note,
         location,
       });
       setTodayCheckIn(checkIn);
-      setNote('');
       setStatus({ type: 'success', message: `Check-in saved. ${formatPoints(checkIn.points)} added.` });
     } catch (error) {
       setStatus({ type: 'error', message: getFriendlyError(error) });
@@ -294,15 +260,6 @@ function CheckInPanelContent({ trail }) {
             Use your location at the summit to save today&apos;s visit and add {formatPoints(checkInPoints)} to your
             profile.
           </p>
-          <NoteField>
-            <span>Optional note</span>
-            <textarea
-              value={note}
-              maxLength={240}
-              placeholder="Weather, route condition, or short memory"
-              onChange={(event) => setNote(event.target.value)}
-            />
-          </NoteField>
           <ActionRow>
             <SecondaryAction
               type="button"

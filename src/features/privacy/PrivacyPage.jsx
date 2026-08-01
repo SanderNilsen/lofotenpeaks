@@ -523,8 +523,9 @@ export function PrivacyPage() {
 
             <h3>Profile data</h3>
             <p>
-              A profile may contain a display name, username, avatar URL, short biography, total points, user ID, and
-              profile creation/update timestamps. Display names and usernames must not be email addresses.
+              A profile may contain a display name, avatar URL, short biography, total points, user ID, and profile
+              creation/update timestamps. Older profiles may retain a legacy username, although the website no longer
+              asks users to create or edit one. Display names must not be email addresses.
             </p>
 
             <h3>Summit check-ins and location</h3>
@@ -533,8 +534,8 @@ export function PrivacyPage() {
               accuracy is sent with the submitted coordinates to Supabase. The backend compares the coordinates with the
               configured summit coordinates. Exact coordinates, calculated summit distance, and reported accuracy are
               stored in a separate private verification record. The public check-in record contains the user, mountain
-              and trail references, check-in time and day, points, status, and any optional note, but has no precise
-              coordinate or summit-distance columns.
+              and trail references, check-in time and day, points, status, and any note submitted before the note option
+              was removed, but has no precise coordinate or summit-distance columns.
             </p>
 
             <h3>Comments and hike recommendations</h3>
@@ -596,7 +597,7 @@ export function PrivacyPage() {
                   <tr>
                     <td data-label="Purpose">Provide verified summit check-ins and award points</td>
                     <td data-label="Data">
-                      Current coordinates, mountain/trail, timestamp, distance, points, and optional note
+                      Current coordinates, mountain/trail, timestamp, distance, points, and any historical note
                     </td>
                     <td data-label="GDPR legal basis">
                       Article 6(1)(b), to provide the location-verified check-in feature. Retaining validation evidence
@@ -607,7 +608,8 @@ export function PrivacyPage() {
                   <tr>
                     <td data-label="Purpose">Publish community features</td>
                     <td data-label="Data">
-                      Display name, username/avatar where used, approved comments, and leaderboard totals
+                      Display name, avatar where used, legacy username where retained, approved comments, and
+                      leaderboard totals
                     </td>
                     <td data-label="GDPR legal basis">
                       Article 6(1)(b), because public contribution and leaderboard functions are part of the account
@@ -693,15 +695,16 @@ export function PrivacyPage() {
             <ul>
               <li>Display name and, where used, avatar on comments and the leaderboard.</li>
               <li>
-                The current public profile API can expose the profile ID, display name, username, avatar URL, biography,
-                total points, and profile timestamps, even where the website interface shows only part of that profile.
+                The current public profile API can expose the profile ID, display name, legacy username where retained,
+                avatar URL, biography, total points, and profile timestamps, even where the website interface shows only
+                part of that profile.
               </li>
               <li>Leaderboard points, number of check-ins, completed mountains, and latest check-in time.</li>
               <li>
                 Approved check-in summaries can include a user reference, mountain/trail reference, check-in date,
-                points, status, and optional note. Precise submitted coordinates, reported accuracy, and calculated
-                summit distance are stored only in the separate verification table and are not fields in public
-                check-in rows.
+                points, status, and any note submitted before the note option was removed. Precise submitted
+                coordinates, reported accuracy, and calculated summit distance are stored only in the separate
+                verification table and are not fields in public check-in rows.
               </li>
               <li>
                 Approved comments, their timestamp, and the commenter&apos;s display name/avatar. The underlying public

@@ -1,9 +1,11 @@
 import { requireSupabaseClient } from './client.js';
 import { LEGAL_DOCUMENT_VERSIONS } from '../legal.js';
 
+const DEFAULT_GUIDE_IMAGE = '/images/homebanner-900.jpg';
+
 function imagePathToSrc(path) {
   if (!path) {
-    return '/images/reinebringen-gallery-1.jpg';
+    return DEFAULT_GUIDE_IMAGE;
   }
 
   return path;
@@ -96,9 +98,9 @@ function transformGuideRow(row) {
     difficulty: row.mountain_difficulty,
     summary: row.mountain_summary,
     description: row.mountain_description,
+    heroImagePath: row.hero_image_path ?? '',
     heroImage: { src: heroSrc, alt: `${row.mountain_name} mountain view` },
     images,
-    imageFiles: images.map((image) => getFileName(image.src)).filter(Boolean),
     imageCredits,
     trailIds: row.trail_id ? [row.trail_id] : [],
   };
@@ -132,7 +134,6 @@ function transformGuideRow(row) {
         reviewStatus: row.review_status ?? 'unreviewed',
         nextReviewDue: row.next_review_due ?? null,
         images: trailImages,
-        imageFiles: mountain.imageFiles,
         imageCredits,
       }
     : null;
@@ -320,22 +321,6 @@ export async function getAdminMountainGuides() {
   }
 
   return mergeGuideRows(data).guides;
-}
-
-export async function getRemoteMountainGuideBySlug(slug) {
-  const client = requireSupabaseClient();
-  const { data, error } = await client
-    .from('mountain_guides')
-    .select('*')
-    .eq('mountain_slug', slug)
-    .limit(1)
-    .maybeSingle();
-
-  if (error) {
-    throw error;
-  }
-
-  return data ? transformGuideRow(data) : null;
 }
 
 export async function uploadAdminMountainImage({ file, slug }) {

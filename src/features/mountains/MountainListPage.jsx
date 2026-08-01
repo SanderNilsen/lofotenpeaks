@@ -664,11 +664,23 @@ export function MountainListPage() {
           <ResultLine role="status" aria-live="polite">
             {content.isLoading
               ? 'Loading the latest hiking guides...'
-              : `${filteredItems.length} of ${content.mountains.length} ${content.mountains.length === 1 ? 'guide' : 'guides'} shown`}
+              : content.error ??
+                `${filteredItems.length} of ${content.mountains.length} ${content.mountains.length === 1 ? 'guide' : 'guides'} shown`}
           </ResultLine>
 
           <DirectoryView id="hike-results">
-            {filteredItems.length === 0 ? (
+            {content.isLoading ? (
+              <EmptyState role="status">
+                <h3>Loading hiking guides</h3>
+                <p>The latest published guides are being retrieved.</p>
+              </EmptyState>
+            ) : content.error ? (
+              <EmptyState role="alert">
+                <SearchX size={24} aria-hidden="true" />
+                <h3>Hiking guides are unavailable</h3>
+                <p>{content.error}</p>
+              </EmptyState>
+            ) : filteredItems.length === 0 ? (
               <EmptyState>
                 <SearchX size={24} aria-hidden="true" />
                 <h3>No hikes match these filters</h3>

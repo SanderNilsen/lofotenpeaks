@@ -17,7 +17,7 @@ import {
   ShieldAlert,
   TrendingUp,
 } from 'lucide-react';
-import { lazy, Suspense, useEffect, useState } from 'react';
+import { lazy, Suspense } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import styled from 'styled-components';
 import { DifficultyBadge } from '../../components/common/Badge.jsx';
@@ -27,12 +27,9 @@ import { SafetyNotice } from '../../components/trails/SafetyNotice.jsx';
 import { RouteCorrectionPanel } from '../../components/trails/RouteCorrectionPanel.jsx';
 import { TrailPhotoGallery } from '../../components/trails/TrailPhotoGallery.jsx';
 import { MountainWeatherPanel } from '../../components/weather/MountainWeatherPanel.jsx';
-import { mountains } from '../../data/mountains.js';
-import { getTrailBySlug } from '../../data/trails.js';
 import { formatDistance, formatElevation } from '../../lib/formatters.js';
-import { getRemoteMountainGuideBySlug } from '../../lib/supabase/api.js';
-import { isSupabaseConfigured } from '../../lib/supabase/client.js';
 import { theme } from '../../styles/theme.js';
+import { useMountainGuides } from '../mountains/useMountainGuides.js';
 
 const CheckInPanel = lazy(() => import('../../components/community/CheckInPanel.jsx'));
 const CommentsPanel = lazy(() => import('../../components/community/CommentsPanel.jsx'));
@@ -781,21 +778,18 @@ const LoadingLine = styled.div`
   width: ${({ $width }) => $width};
 `;
 
-function getFileName(src) {
-  return src.split('/').pop();
-}
-
-function imageFromFile(fileName, trailName) {
-  return {
-    src: `/images/${fileName}`,
-    alt: `${trailName} trail view`,
-  };
-}
-
 function getTrailImages(trail, mountain) {
-  const mountainImagesByFile = new Map((mountain?.images ?? []).map((image) => [getFileName(image.src), image]));
+  const routeImages = trail?.images?.length ? trail.images : mountain?.images ?? [];
+  const images = mountain?.heroImage ? [mountain.heroImage, ...routeImages] : routeImages;
+  const uniqueImages = new Map();
 
-  return (trail.imageFiles ?? []).map((fileName) => mountainImagesByFile.get(fileName) ?? imageFromFile(fileName, trail.name));
+  images.forEach((image) => {
+    if (image?.src && !uniqueImages.has(image.src)) {
+      uniqueImages.set(image.src, image);
+    }
+  });
+
+  return [...uniqueImages.values()];
 }
 
 function isValidCoordinatePoint(point) {
@@ -869,52 +863,36 @@ function LoadingState() {
 
 export function TrailDetailPage() {
   const { slug } = useParams();
-  const staticTrail = getTrailBySlug(slug);
-  const [remoteGuide, setRemoteGuide] = useState(null);
-  const [remoteIsLoading, setRemoteIsLoading] = useState(isSupabaseConfigured);
-
-  useEffect(() => {
-    setRemoteGuide(null);
-
-    if (!isSupabaseConfigured) {
-      setRemoteIsLoading(false);
-      return undefined;
-    }
-
-    let isMounted = true;
-    setRemoteIsLoading(true);
-
-    getRemoteMountainGuideBySlug(slug)
-      .then((guide) => {
-        if (isMounted) {
-          setRemoteGuide(guide);
-        }
-      })
-      .catch(() => {
-        if (isMounted) {
-          setRemoteGuide(null);
-        }
-      })
-      .finally(() => {
-        if (isMounted) {
-          setRemoteIsLoading(false);
-        }
-      });
-
-    return () => {
-      isMounted = false;
-    };
-  }, [slug]);
-
-  const trail = remoteGuide?.trail ?? staticTrail;
-  const mountain = trail
-    ? remoteGuide?.mountain ?? mountains.find((item) => item.id === trail.mountainId)
-    : null;
+  const content = useMountainGuides();
+  const mountainBySlug = content.mountains.find((item) => item.slug === slug);
+  const trail = content.trails.find(
+    (item) => item.slug === slug || (mountainBySlug && item.mountainId === mountainBySlug.id),
+  );
+  const mountain = mountainBySlug ?? content.mountains.find((item) => item.id === trail?.mountainId);
   const trailImages = trail ? getTrailImages(trail, mountain) : [];
   const heroImage = trailImages[0] ?? mountain?.heroImage;
   const galleryImages = trailImages.length > 1 ? trailImages.slice(1) : trailImages;
 
-  if (!trail && !remoteIsLoading) {
+  if (content.isLoading) {
+    return <LoadingState />;
+  }
+
+  if (content.error) {
+    return (
+      <>
+        <Seo title="Hiking guides unavailable" description="The Lofoten hiking guides are temporarily unavailable." noIndex />
+        <StatePage role="alert">
+          <h1>We could not load this hiking guide</h1>
+          <p>{content.error}</p>
+          <Link to="/mountains">
+            Return to hikes <ArrowRight size={18} aria-hidden="true" />
+          </Link>
+        </StatePage>
+      </>
+    );
+  }
+
+  if (!trail) {
     return (
       <>
         <Seo title="Hike not found" description="This Lofoten hiking guide could not be found." noIndex />
@@ -929,10 +907,6 @@ export function TrailDetailPage() {
     );
   }
 
-  if (!trail) {
-    return <LoadingState />;
-  }
-
   const region = mountain?.region ?? 'Lofoten';
   const highPoint = mountain?.heightMeters ?? trail.elevationGainMeters;
   const weatherLocationId = trail.weatherLocationId ?? mountain?.weatherLocationId;
@@ -940,13 +914,18 @@ export function TrailDetailPage() {
   const guideItems = getGuideItems(trail.guide);
   const lastReviewedDate = formatReviewDate(trail.lastReviewedAt);
   const island = region.split(',')[0];
-  const relatedMountains = mountains
+  const relatedGuides = content.mountains
     .filter((item) => item.id !== mountain?.id)
     .sort((first, second) => {
-      const firstMatchesIsland = first.region.startsWith(island) ? 1 : 0;
-      const secondMatchesIsland = second.region.startsWith(island) ? 1 : 0;
+      const firstMatchesIsland = first.region?.startsWith(island) ? 1 : 0;
+      const secondMatchesIsland = second.region?.startsWith(island) ? 1 : 0;
       return secondMatchesIsland - firstMatchesIsland;
     })
+    .map((relatedMountain) => ({
+      mountain: relatedMountain,
+      trail: content.trails.find((item) => item.mountainId === relatedMountain.id),
+    }))
+    .filter((item) => item.trail)
     .slice(0, 3);
   const seoDescription = `${trail.summary ?? mountain?.summary} Route: ${formatDistance(trail.lengthKm)}, ${formatElevation(
     trail.elevationGainMeters,
@@ -1199,7 +1178,6 @@ export function TrailDetailPage() {
             <TrailPhotoGallery
               images={galleryImages}
               credits={trail.imageCredits ?? mountain?.imageCredits ?? []}
-              imageFiles={trail.imageFiles ?? []}
             />
           </FullSection>
         )}
@@ -1224,7 +1202,7 @@ export function TrailDetailPage() {
         </FullSection>
       </MainContent>
 
-      {relatedMountains.length > 0 && (
+      {relatedGuides.length > 0 && (
         <RelatedBand aria-labelledby="related-hikes-heading">
           <RelatedSection>
             <RelatedHeader>
@@ -1237,11 +1215,11 @@ export function TrailDetailPage() {
               </Link>
             </RelatedHeader>
             <RelatedGrid>
-              {relatedMountains.map((relatedMountain) => (
+              {relatedGuides.map(({ mountain: relatedMountain, trail: relatedTrail }) => (
                 <MountainCard
                   key={relatedMountain.id}
                   mountain={relatedMountain}
-                  trail={getTrailBySlug(relatedMountain.slug)}
+                  trail={relatedTrail}
                   headingLevel={3}
                 />
               ))}

@@ -22,8 +22,6 @@ import { LeaderboardPanel } from '../../components/community/LeaderboardPanel.js
 import { MountainCard } from '../../components/mountains/MountainCard.jsx';
 import { ProfileAvatar } from '../../components/profile/ProfileAvatar.jsx';
 import { ProfileSummitCard } from '../../components/profile/ProfileSummitCard.jsx';
-import { mountains as staticMountains } from '../../data/mountains.js';
-import { trails as staticTrails } from '../../data/trails.js';
 import { getSafePublicDisplayName, isEmailLike } from '../../lib/profile.js';
 import { isCurrentLegalAcceptance } from '../../lib/legal.js';
 import {
@@ -891,7 +889,7 @@ function createInitialAccountData() {
     comments: [],
     hikes: [],
     leaderboard: [],
-    guides: { mountains: staticMountains, trails: staticTrails },
+    guides: { mountains: [], trails: [] },
     legalStatus: null,
     isLoading: false,
     errors: {},
@@ -1035,6 +1033,9 @@ export function ProfileDashboard() {
       if (commentsResult.status === 'rejected') {
         errors.comments = 'We could not load your recent comments.';
       }
+      if (guidesResult.status === 'rejected') {
+        errors.guides = 'We could not load hiking suggestions.';
+      }
       if (legalResult.status === 'rejected') {
         errors.legal = 'We could not confirm your Terms acceptance.';
       }
@@ -1050,10 +1051,7 @@ export function ProfileDashboard() {
         leaderboard: leaderboardResult.status === 'fulfilled' ? leaderboardResult.value : [],
         hikes: hikesResult.status === 'fulfilled' ? hikesResult.value : [],
         comments: commentsResult.status === 'fulfilled' ? commentsResult.value : [],
-        guides:
-          guidesResult.status === 'fulfilled' && guidesResult.value.mountains.length > 0
-            ? guidesResult.value
-            : current.guides,
+        guides: guidesResult.status === 'fulfilled' ? guidesResult.value : current.guides,
         legalStatus: legalResult.status === 'fulfilled' ? legalResult.value : null,
         isLoading: false,
         errors,
@@ -1733,7 +1731,9 @@ export function ProfileDashboard() {
                   Explore more hikes <ArrowRight size={17} aria-hidden="true" />
                 </TextAction>
               </SectionHeader>
-              {exploreGuides.length > 0 ? (
+              {accountData.errors.guides ? (
+                <Message $error role="alert">{accountData.errors.guides} Please try again.</Message>
+              ) : exploreGuides.length > 0 ? (
                 <ExploreGrid>
                   {exploreGuides.map(({ mountain, trail }) => (
                     <MountainCard key={mountain.id} mountain={mountain} trail={trail} headingLevel={3} />

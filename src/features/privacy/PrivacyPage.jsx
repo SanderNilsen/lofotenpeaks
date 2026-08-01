@@ -942,8 +942,8 @@ export function PrivacyPage() {
               </PolicyTable>
             </TableWrap>
             <p>
-              The repository contains image-credit links to Unsplash. Images are served locally from lofotenpeaks.no;
-              Unsplash receives data only if you choose to follow an external credit link.
+              Published guides may contain external image-credit links, including links to Unsplash. The linked provider
+              receives data only if you choose to follow an external credit link.
             </p>
           </Section>
 

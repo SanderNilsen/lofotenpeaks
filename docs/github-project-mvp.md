@@ -90,7 +90,7 @@
   - Phase: Phase 1 MVP
   - Type: Frontend
   - Priority: Medium
-  - Verify credits load from `/credits/unsplash-credits.json` and missing credits fail gracefully.
+  - Verify credits load from Supabase guide metadata and missing credits fail gracefully.
 
 - [ ] SEO metadata
   - Phase: Phase 1 MVP
@@ -128,7 +128,7 @@
   - Phase: Phase 1 MVP
   - Type: Documentation
   - Priority: Low
-  - Document current stack, local dev commands, static data structure, image/credit workflow, and planned backend phases.
+  - Document current stack, local dev commands, Supabase guide structure, image/credit workflow, and planned backend phases.
 
 ## Later Backlog
 

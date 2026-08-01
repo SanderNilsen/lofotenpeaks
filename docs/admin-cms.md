@@ -4,19 +4,13 @@ The frontend has an `/admin` route for adding and updating mountain guides in Su
 
 ## Database Setup
 
-Run the admin layer after the base schema and seed have already been applied:
+Run the admin layer after the base schema has already been applied:
 
 ```bash
 npx -y supabase db query --linked --file supabase/admin.sql
 ```
 
 If the CLI is not logged in, either run `npx -y supabase login` first, or paste `supabase/admin.sql` into the Supabase SQL editor.
-
-If existing seeded trails are missing planning notes after adding the admin CMS fields, run:
-
-```bash
-npx -y supabase db query --linked --file supabase/guide-notes.sql
-```
 
 Community check-ins and leaderboard progress use a separate SQL layer:
 

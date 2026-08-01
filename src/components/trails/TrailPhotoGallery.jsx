@@ -200,7 +200,7 @@ const LightboxCount = styled.p`
   }
 `;
 
-export function TrailPhotoGallery({ images, credits, imageFiles }) {
+export function TrailPhotoGallery({ images, credits }) {
   const [activeImageIndex, setActiveImageIndex] = useState(null);
   const lightboxRef = useRef(null);
   const closeButtonRef = useRef(null);
@@ -290,7 +290,7 @@ export function TrailPhotoGallery({ images, credits, imageFiles }) {
 
       <CreditBlock>
         <h3>Photo credits</h3>
-        <ImageCredits credits={credits} imageFiles={imageFiles} />
+        <ImageCredits credits={credits} />
       </CreditBlock>
 
       {activeImage && (

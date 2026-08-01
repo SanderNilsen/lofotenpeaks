@@ -1069,7 +1069,7 @@ function formFromGuide(guide) {
     lastReviewedAt: trail?.lastReviewedAt ?? '',
     reviewedBy: trail?.reviewedBy ?? '',
     nextReviewDue: trail?.nextReviewDue ?? '',
-    heroImagePath: mountain.heroImage?.src ?? '',
+    heroImagePath: mountain.heroImagePath ?? '',
   };
 }
 

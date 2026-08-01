@@ -674,11 +674,15 @@ export function HomePage() {
           <ResultLine role="status" aria-live="polite">
             {content.isLoading
               ? 'Loading the latest hiking guides...'
-              : `${filteredItems.length} ${filteredItems.length === 1 ? 'hike' : 'hikes'} match this choice`}
+              : content.error ?? `${filteredItems.length} ${filteredItems.length === 1 ? 'hike' : 'hikes'} match this choice`}
           </ResultLine>
 
           <DiscoveryView id="hike-map">
-            {filteredItems.length === 0 ? (
+            {content.isLoading ? (
+              <EmptyState>Loading the latest hiking guides...</EmptyState>
+            ) : content.error ? (
+              <EmptyState>{content.error}</EmptyState>
+            ) : filteredItems.length === 0 ? (
               <EmptyState>No hiking guides match this choice yet.</EmptyState>
             ) : viewMode === 'list' ? (
               <Grid>

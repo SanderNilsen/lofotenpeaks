@@ -1,18 +1,16 @@
 import { useEffect, useState } from 'react';
-import { mountains as staticMountains } from '../../data/mountains.js';
-import { trails as staticTrails } from '../../data/trails.js';
 import { getRemoteMountainGuides } from '../../lib/supabase/api.js';
 import { isSupabaseConfigured } from '../../lib/supabase/client.js';
 
-const fallbackContent = {
-  mountains: staticMountains,
-  trails: staticTrails,
+const initialContent = {
+  mountains: [],
+  trails: [],
   isLoading: isSupabaseConfigured,
-  source: 'static',
+  error: isSupabaseConfigured ? null : 'The hiking guide service is not configured.',
 };
 
 export function useMountainGuides() {
-  const [content, setContent] = useState(fallbackContent);
+  const [content, setContent] = useState(initialContent);
 
   useEffect(() => {
     if (!isSupabaseConfigured) {
@@ -27,15 +25,16 @@ export function useMountainGuides() {
           return;
         }
 
-        if (remoteContent.mountains.length > 0) {
-          setContent({ ...remoteContent, isLoading: false, source: 'supabase' });
-        } else {
-          setContent((current) => ({ ...current, isLoading: false }));
-        }
+        setContent({ ...remoteContent, isLoading: false, error: null });
       })
       .catch(() => {
         if (isMounted) {
-          setContent((current) => ({ ...current, isLoading: false }));
+          setContent({
+            mountains: [],
+            trails: [],
+            isLoading: false,
+            error: 'We could not load the latest hiking guides. Please try again.',
+          });
         }
       });
 

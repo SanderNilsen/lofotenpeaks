@@ -1,5 +1,4 @@
 import { ExternalLink } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
 import styled from 'styled-components';
 import { theme } from '../../styles/theme.js';
 
@@ -93,59 +92,15 @@ function getCreditLabel(credit) {
   return credit.source;
 }
 
-export function ImageCredits({ credits: providedCredits = [], imageFiles = [] }) {
-  const [credits, setCredits] = useState([]);
-  const [hasLoaded, setHasLoaded] = useState(false);
-
-  useEffect(() => {
-    const controller = new AbortController();
-
-    async function loadCredits() {
-      try {
-        const response = await fetch('/credits/unsplash-credits.json', {
-          signal: controller.signal,
-        });
-
-        if (!response.ok) {
-          return;
-        }
-
-        const creditData = await response.json();
-        setCredits(Array.isArray(creditData) ? creditData : []);
-      } catch (error) {
-        if (error.name !== 'AbortError') {
-          setCredits([]);
-        }
-      } finally {
-        if (!controller.signal.aborted) {
-          setHasLoaded(true);
-        }
-      }
-    }
-
-    loadCredits();
-
-    return () => controller.abort();
-  }, []);
-
-  const visibleCredits = useMemo(() => {
-    if (providedCredits.length > 0) {
-      return providedCredits;
-    }
-
-    const creditsByFile = new Map(credits.map((credit) => [credit.fileName, credit]));
-
-    return imageFiles.map((fileName) => creditsByFile.get(fileName)).filter(Boolean);
-  }, [credits, imageFiles, providedCredits]);
-
-  if (visibleCredits.length === 0) {
-    return <StatusText>{hasLoaded ? 'No photo credits listed yet.' : 'Loading photo credits.'}</StatusText>;
+export function ImageCredits({ credits = [] }) {
+  if (credits.length === 0) {
+    return <StatusText>No photo credits listed yet.</StatusText>;
   }
 
   return (
     <CreditList>
-      {visibleCredits.map((credit) => (
-        <CreditItem key={credit.fileName}>
+      {credits.map((credit, index) => (
+        <CreditItem key={credit.fileName || credit.creditUrl || `${credit.source}-${index}`}>
           <CreditLabel>{credit.fileName ? formatFileLabel(credit.fileName) : 'Photo credit'}</CreditLabel>
           {getCreditHref(credit) ? (
             <CreditLink href={getCreditHref(credit)} target="_blank" rel="noreferrer">

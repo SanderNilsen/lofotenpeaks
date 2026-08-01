@@ -7,9 +7,6 @@ This project uses Supabase as the backend for auth, guide content, check-ins, co
 - `supabase/schema.sql`: base schema for a new Supabase project
 - `supabase/admin.sql`: admin CMS policies, views, storage buckets, and admin RPC functions
 - `supabase/community.sql`: check-in RPC and leaderboard progress view
-- `supabase/check-in-privacy.sql`: superseded emergency column-grant patch; retained for history, not a replacement for the migrations
-- `supabase/guide-notes.sql`: one-time content patch for existing MVP guide planning notes
-- `supabase/seed.sql`: one-time starter mountain/trail records; conflicts are ignored so Admin edits are not overwritten
 - `supabase/migrations/20260801000000_privacy_safety_moderation.sql`: private location evidence, versioned legal acceptance, self-service account controls, reporting, moderation, and route review dates
 - `supabase/migrations/20260801000001_legacy_check_in_compatibility.sql`: temporary five-argument check-in RPC compatibility without re-exposing location evidence
 - `supabase/migrations/20260801000002_admin_guide_view_security_invoker.sql`: makes the admin guide view enforce the querying user's permissions and RLS policies
@@ -24,10 +21,8 @@ For a fresh project, run:
 
 ```bash
 npx -y supabase db query --linked --file supabase/schema.sql
-npx -y supabase db query --linked --file supabase/seed.sql
 npx -y supabase db query --linked --file supabase/admin.sql
 npx -y supabase db query --linked --file supabase/community.sql
-npx -y supabase db query --linked --file supabase/guide-notes.sql
 npx -y supabase db query --linked --file supabase/migrations/20260801000000_privacy_safety_moderation.sql
 npx -y supabase db query --linked --file supabase/migrations/20260801000001_legacy_check_in_compatibility.sql
 npx -y supabase db query --linked --file supabase/migrations/20260801000002_admin_guide_view_security_invoker.sql
@@ -37,7 +32,7 @@ npx -y supabase db query --linked --file supabase/tests/privacy_safety_behaviour
 npm run verify:public-privacy
 ```
 
-After the first import, do not use `seed.sql` as the normal way to update guide content. Edit mountains, trails, GPX routes, images, and guide notes through `/admin` so Supabase remains the live source of truth. Re-running `seed.sql` only inserts missing starter records because it uses `on conflict do nothing`.
+After setup, create and edit mountains, trails, GPX routes, images, and guide notes through `/admin` so Supabase remains the live source of truth. A fresh project starts without guide content until an administrator adds it.
 
 For the existing project, take a database backup and then run:
 

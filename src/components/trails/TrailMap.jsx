@@ -36,6 +36,15 @@ function FitRouteBounds({ positions }) {
   return null;
 }
 
+function isSamePoint(first, second) {
+  return Boolean(
+    first &&
+      second &&
+      Number(first[0]) === Number(second[0]) &&
+      Number(first[1]) === Number(second[1]),
+  );
+}
+
 export function TrailMap({ trail }) {
   const route = trail.route?.length ? trail.route : [trail.startPoint, trail.endPoint].filter(Boolean);
   const center = route[Math.floor(route.length / 2)] ?? [68.2, 13.8];
@@ -59,7 +68,7 @@ export function TrailMap({ trail }) {
             pathOptions={{ color: theme.colors.forest, lineCap: 'round', lineJoin: 'round', weight: 5 }}
           />
         )}
-        {trail.startPoint && (
+        {trail.startPoint && !isSamePoint(trail.startPoint, trail.endPoint) && (
           <CircleMarker center={trail.startPoint} pathOptions={{ color: theme.colors.fjord }} radius={8}>
             <Popup>{trail.name} start</Popup>
           </CircleMarker>

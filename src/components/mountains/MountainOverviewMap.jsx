@@ -162,7 +162,7 @@ function AccessibleHikeMarker({ item, position }) {
 
     element.setAttribute('tabindex', '0');
     element.setAttribute('role', 'button');
-    element.setAttribute('aria-label', `${item.mountain.name} trail start, ${difficulty} hike`);
+    element.setAttribute('aria-label', `${item.mountain.name} map location, ${difficulty} hike`);
 
     function handleKeyDown(event) {
       if (event.key === 'Enter' || event.key === ' ') {
@@ -197,7 +197,7 @@ function AccessibleHikeMarker({ item, position }) {
             {difficulty.charAt(0).toUpperCase() + difficulty.slice(1)}
             {item.trail ? ` · ${formatDistance(item.trail.lengthKm)} · ${item.trail.estimatedDuration}` : ''}
           </p>
-          <p>Marker shows the route start point.</p>
+          <p>Marker shows the GPX route start, or the summit when no GPX route is available.</p>
           <Link to={`/mountains/${item.mountain.slug}`}>View hiking guide</Link>
         </PopupContent>
       </Popup>
@@ -220,7 +220,7 @@ export default function MountainOverviewMap({ items }) {
   }
 
   return (
-    <MapRegion aria-label="Map of Lofoten hike starting points">
+    <MapRegion aria-label="Map of Lofoten hike locations">
       <Legend aria-label="Map marker difficulty legend">
         {Object.entries(difficultyColors).map(([label, color]) => (
           <span key={label}>
@@ -234,7 +234,7 @@ export default function MountainOverviewMap({ items }) {
           center={positions[0]}
           zoom={9}
           scrollWheelZoom={false}
-          aria-label="Interactive map of hike starting points"
+          aria-label="Interactive map of hike locations"
         >
           <FitOverviewBounds positions={positions} />
           <TileLayer

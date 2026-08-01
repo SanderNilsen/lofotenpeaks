@@ -40,6 +40,7 @@ import { getRoutePointCount, parseGpxToLineString } from '../../lib/gpx.js';
 import { theme } from '../../styles/theme.js';
 import { useAuth } from '../auth/AuthProvider.jsx';
 import { AdminModerationPanel } from './AdminModerationPanel.jsx';
+import { SummitCoordinatePicker } from './SummitCoordinatePicker.jsx';
 
 const Page = styled.section`
   margin: 0 auto;
@@ -973,8 +974,6 @@ const initialForm = {
   weatherLocationId: 'west-lofoten',
   summitLat: '',
   summitLng: '',
-  startLat: '',
-  startLng: '',
   lengthKm: '',
   elevationGainMeters: '',
   estimatedDuration: '',
@@ -1051,8 +1050,6 @@ function formFromGuide(guide) {
     weatherLocationId: mountain.weatherLocationId ?? 'west-lofoten',
     summitLat: formValue(mountain.coordinates?.lat),
     summitLng: formValue(mountain.coordinates?.lng),
-    startLat: formValue(trail?.startPoint?.[0]),
-    startLng: formValue(trail?.startPoint?.[1]),
     lengthKm: formValue(trail?.lengthKm),
     elevationGainMeters: formValue(trail?.elevationGainMeters),
     estimatedDuration: trail?.estimatedDuration ?? '',
@@ -1133,12 +1130,12 @@ function validateGuidePayload(payload) {
     throw new Error('Elevation gain must be zero or higher.');
   }
 
-  if (!isValidCoordinate(payload.summitLat, -90, 90) || !isValidCoordinate(payload.startLat, -90, 90)) {
-    throw new Error('Latitude must be between -90 and 90.');
+  if (!isValidCoordinate(payload.summitLat, -90, 90)) {
+    throw new Error('Summit latitude must be between -90 and 90.');
   }
 
-  if (!isValidCoordinate(payload.summitLng, -180, 180) || !isValidCoordinate(payload.startLng, -180, 180)) {
-    throw new Error('Longitude must be between -180 and 180.');
+  if (!isValidCoordinate(payload.summitLng, -180, 180)) {
+    throw new Error('Summit longitude must be between -180 and 180.');
   }
 
   if (payload.safetyNotes.length === 0) {
@@ -1591,8 +1588,6 @@ export function AdminPage() {
       lengthKm: toNumber(form.lengthKm),
       elevationGainMeters: toNumber(form.elevationGainMeters),
       estimatedDuration: form.estimatedDuration.trim(),
-      startLat: toNumber(form.startLat),
-      startLng: toNumber(form.startLng),
       routeNote: form.routeNote.trim(),
       routeGeojson,
       gpxStoragePath,
@@ -2202,26 +2197,15 @@ export function AdminPage() {
                     </select>
                     <small>Used only when route finish-point coordinates are unavailable.</small>
                   </Field>
-                  <Field>
-                    <span>Summit latitude</span>
-                    <input
-                      required
-                      type="number"
-                      step="any"
-                      value={form.summitLat}
-                      onChange={(event) => updateField('summitLat', event.target.value)}
-                    />
-                  </Field>
-                  <Field>
-                    <span>Summit longitude</span>
-                    <input
-                      required
-                      type="number"
-                      step="any"
-                      value={form.summitLng}
-                      onChange={(event) => updateField('summitLng', event.target.value)}
-                    />
-                  </Field>
+                  <SummitCoordinatePicker
+                    key={`${mode}-${selectedMountainId || 'new'}`}
+                    disabled={status.type === 'loading'}
+                    latitude={form.summitLat}
+                    longitude={form.summitLng}
+                    onChange={({ lat, lng }) =>
+                      setForm((current) => ({ ...current, summitLat: lat, summitLng: lng }))
+                    }
+                  />
                   <FullField>
                     <span>Summary</span>
                     <input required value={form.summary} onChange={(event) => updateField('summary', event.target.value)} />
@@ -2240,7 +2224,8 @@ export function AdminPage() {
               <Fieldset id="admin-trail" disabled={status.type === 'loading'}>
                 <legend>Trail</legend>
                 <SectionIntro>
-                  Add the route facts, trailhead coordinates, and optional GPX line used on the public map.
+                  Add the route facts and an optional GPX file. Without GPX data, the public map uses the summit
+                  coordinates.
                 </SectionIntro>
                 <Grid>
                   <Field>
@@ -2271,26 +2256,6 @@ export function AdminPage() {
                       placeholder="2-3 hours round trip"
                       value={form.estimatedDuration}
                       onChange={(event) => updateField('estimatedDuration', event.target.value)}
-                    />
-                  </Field>
-                  <Field>
-                    <span>Start latitude</span>
-                    <input
-                      required
-                      type="number"
-                      step="any"
-                      value={form.startLat}
-                      onChange={(event) => updateField('startLat', event.target.value)}
-                    />
-                  </Field>
-                  <Field>
-                    <span>Start longitude</span>
-                    <input
-                      required
-                      type="number"
-                      step="any"
-                      value={form.startLng}
-                      onChange={(event) => updateField('startLng', event.target.value)}
                     />
                   </Field>
                   <FullField>

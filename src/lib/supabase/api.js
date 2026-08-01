@@ -43,7 +43,11 @@ function routeFromGeoJson(routeGeoJson) {
     return null;
   }
 
-  return routeGeoJson.coordinates.map(([lng, lat]) => [lat, lng]);
+  const route = routeGeoJson.coordinates
+    .map(([lng, lat]) => [Number(lat), Number(lng)])
+    .filter(([lat, lng]) => Number.isFinite(lat) && Number.isFinite(lng));
+
+  return route.length > 0 ? route : null;
 }
 
 function transformGuideRow(row) {
@@ -74,8 +78,11 @@ function transformGuideRow(row) {
     creditUrl: image.creditUrl ?? '',
     sortOrder: image.sortOrder ?? 0,
   }));
-  const startPoint = pointFromLatLng(row.start_lat, row.start_lng);
-  const endPoint = pointFromLatLng(row.end_lat, row.end_lng);
+  const route = routeFromGeoJson(row.route_geojson);
+  const summitPoint =
+    pointFromLatLng(row.summit_lat, row.summit_lng) ?? pointFromLatLng(row.end_lat, row.end_lng);
+  const startPoint = route?.[0] ?? summitPoint;
+  const endPoint = summitPoint;
   const guide = row.guide && typeof row.guide === 'object' && !Array.isArray(row.guide) ? row.guide : null;
   const safetyNotes = Array.isArray(row.safety_notes) && row.safety_notes.length > 0
     ? row.safety_notes
@@ -124,7 +131,7 @@ function transformGuideRow(row) {
         startPoint,
         endPoint,
         routeGeojson: row.route_geojson,
-        route: routeFromGeoJson(row.route_geojson) ?? [startPoint, endPoint].filter(Boolean),
+        route: route ?? [summitPoint].filter(Boolean),
         routeNote: row.route_note,
         gpxStoragePath: row.gpx_storage_path,
         safetyNotes,
@@ -365,7 +372,7 @@ export async function deleteAdminTrailGpx({ trailId, storagePath }) {
     .update({
       gpx_storage_path: null,
       route_geojson: null,
-      route_note: 'Route line uses start and summit coordinates until GPX route data is uploaded. Verify locally before hiking.',
+      route_note: 'Only the summit point is shown until GPX route data is uploaded. Verify the route independently before hiking.',
     })
     .eq('id', trailId)
     .select('id')
@@ -406,8 +413,8 @@ export async function createAdminMountainGuide(guide) {
     p_trail_length_km: guide.lengthKm,
     p_trail_elevation_gain_meters: guide.elevationGainMeters,
     p_trail_estimated_duration: guide.estimatedDuration,
-    p_start_lat: guide.startLat,
-    p_start_lng: guide.startLng,
+    p_start_lat: guide.summitLat,
+    p_start_lng: guide.summitLng,
     p_check_in_radius_meters: guide.checkInRadiusMeters,
     p_check_in_points: guide.checkInPoints,
     p_route_note: guide.routeNote,
@@ -443,8 +450,8 @@ export async function updateAdminMountainGuide(guide) {
     p_trail_length_km: guide.lengthKm,
     p_trail_elevation_gain_meters: guide.elevationGainMeters,
     p_trail_estimated_duration: guide.estimatedDuration,
-    p_start_lat: guide.startLat,
-    p_start_lng: guide.startLng,
+    p_start_lat: guide.summitLat,
+    p_start_lng: guide.summitLng,
     p_check_in_radius_meters: guide.checkInRadiusMeters,
     p_check_in_points: guide.checkInPoints,
     p_route_note: guide.routeNote,

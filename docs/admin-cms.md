@@ -44,7 +44,7 @@ The current admin screen supports:
 - editing existing mountain/trail guide fields
 - publishing and drafting guides
 - deleting whole guides when their connected community records can also be removed
-- summit and trailhead coordinates
+- summit coordinates selected from a map and optional GPX route geometry
 - summit check-in radius and points awarded per check-in
 - difficulty, height, route summary, route note, and description
 - planning notes for parking, trailhead, best season, suitable audience, gear, access, and before-you-go checklist

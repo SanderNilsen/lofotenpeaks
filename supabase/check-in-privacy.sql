@@ -1,6 +1,7 @@
--- Apply once to existing Supabase projects after deploying the profile update.
--- Safe to rerun. Row-level security still controls which check-in rows are
--- visible; these grants also prevent public selection of sensitive columns.
+-- Legacy emergency patch only. Do not use this as the current privacy migration.
+-- It restricts column grants but does not move precise coordinates out of the
+-- public check_ins table. Apply every file in supabase/migrations instead.
+-- Retained only to document the earlier production hardening step.
 
 begin;
 

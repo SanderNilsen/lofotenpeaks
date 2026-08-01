@@ -6,6 +6,7 @@ import {
   CalendarDays,
   Car,
   Clock,
+  ExternalLink,
   Flag,
   Footprints,
   ListChecks,
@@ -23,6 +24,7 @@ import { DifficultyBadge } from '../../components/common/Badge.jsx';
 import { Seo } from '../../components/common/Seo.jsx';
 import { MountainCard } from '../../components/mountains/MountainCard.jsx';
 import { SafetyNotice } from '../../components/trails/SafetyNotice.jsx';
+import { RouteCorrectionPanel } from '../../components/trails/RouteCorrectionPanel.jsx';
 import { TrailPhotoGallery } from '../../components/trails/TrailPhotoGallery.jsx';
 import { MountainWeatherPanel } from '../../components/weather/MountainWeatherPanel.jsx';
 import { mountains } from '../../data/mountains.js';
@@ -406,6 +408,25 @@ const Lead = styled.p`
   margin: 0;
 `;
 
+const ReviewDetails = styled.div`
+  align-items: center;
+  border-top: 1px solid ${theme.colors.line};
+  color: ${theme.colors.muted};
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 0.86rem;
+  font-weight: 750;
+  gap: 8px 18px;
+  margin-top: 22px;
+  padding-top: 15px;
+
+  span {
+    align-items: center;
+    display: inline-flex;
+    gap: 7px;
+  }
+`;
+
 const PlanningList = styled.div`
   border-bottom: 1px solid ${theme.colors.line};
   display: grid;
@@ -538,6 +559,36 @@ const SafetyList = styled.ul`
   }
 `;
 
+const OfficialSafetyLinks = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 20px;
+
+  a {
+    align-items: center;
+    border: 1px solid ${theme.colors.line};
+    border-radius: ${theme.radii.small};
+    color: ${theme.colors.forest};
+    display: inline-flex;
+    font-size: 0.88rem;
+    font-weight: 850;
+    gap: 7px;
+    min-height: 44px;
+    padding: 9px 12px;
+    text-decoration: none;
+  }
+
+  a:hover {
+    background: ${theme.colors.surface};
+  }
+
+  a:focus-visible {
+    outline: 3px solid ${theme.colors.fjord};
+    outline-offset: 3px;
+  }
+`;
+
 const FullSection = styled.section`
   border-top: 1px solid ${theme.colors.line};
   margin-top: 64px;
@@ -547,6 +598,15 @@ const FullSection = styled.section`
   @media (max-width: 640px) {
     margin-top: 48px;
     padding-top: 40px;
+  }
+`;
+
+const CorrectionWrap = styled.div`
+  margin-top: 64px;
+  scroll-margin-top: 104px;
+
+  @media (max-width: 640px) {
+    margin-top: 48px;
   }
 `;
 
@@ -778,6 +838,25 @@ function getGuideItems(guide) {
   ].filter((item) => item.value);
 }
 
+function formatReviewDate(value) {
+  if (!value) {
+    return null;
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+
+  return new Intl.DateTimeFormat('en-GB', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'Europe/Oslo',
+  }).format(date);
+}
+
 function LoadingState() {
   return (
     <StatePage role="status" aria-live="polite">
@@ -860,6 +939,7 @@ export function TrailDetailPage() {
   const weatherLocationId = trail.weatherLocationId ?? mountain?.weatherLocationId;
   const finishPointWeatherLocation = getFinishPointWeatherLocation(trail);
   const guideItems = getGuideItems(trail.guide);
+  const lastReviewedDate = formatReviewDate(trail.lastReviewedAt);
   const island = region.split(',')[0];
   const relatedMountains = mountains
     .filter((item) => item.id !== mountain?.id)
@@ -990,6 +1070,7 @@ export function TrailDetailPage() {
           {trail.guide && <a href="#planning">Planning</a>}
           <a href="#route-map">Route map</a>
           {galleryImages.length > 0 && <a href="#photos">Photos</a>}
+          <a href="#route-correction">Report incorrect information</a>
           <a href="#comments">Comments</a>
         </GuideNav>
       </GuideNavBand>
@@ -1008,6 +1089,13 @@ export function TrailDetailPage() {
                 </h2>
               </SectionHeading>
               <Lead>{trail.description ?? mountain?.description}</Lead>
+              {lastReviewedDate && (
+                <ReviewDetails aria-label="Guide review information">
+                  <span>
+                    <CalendarDays size={16} aria-hidden="true" /> Route information reviewed {lastReviewedDate}
+                  </span>
+                </ReviewDetails>
+              )}
             </Section>
 
             {trail.guide && (
@@ -1044,18 +1132,26 @@ export function TrailDetailPage() {
               </Section>
             )}
 
-            {trail.safetyNotes?.length > 0 && (
-              <RouteSafety aria-labelledby="route-safety-heading">
-                <h2 id="route-safety-heading">
-                  <ShieldAlert size={22} aria-hidden="true" /> Route-specific safety
-                </h2>
+            <RouteSafety aria-labelledby="route-safety-heading">
+              <h2 id="route-safety-heading">
+                <ShieldAlert size={22} aria-hidden="true" /> Route-specific safety
+              </h2>
+              {trail.safetyNotes?.length > 0 && (
                 <SafetyList>
                   {trail.safetyNotes.map((note) => (
                     <li key={note}>{note}</li>
                   ))}
                 </SafetyList>
-              </RouteSafety>
-            )}
+              )}
+              <OfficialSafetyLinks aria-label="Official safety forecasts">
+                <a href="https://www.yr.no/en" target="_blank" rel="noreferrer">
+                  Official weather forecast (Yr) <ExternalLink size={15} aria-hidden="true" />
+                </a>
+                <a href="https://www.varsom.no/en/avalanches/" target="_blank" rel="noreferrer">
+                  Snow season: check avalanche conditions (Varsom) <ExternalLink size={15} aria-hidden="true" />
+                </a>
+              </OfficialSafetyLinks>
+            </RouteSafety>
           </GuideColumn>
 
           <ToolColumn aria-label="Hike tools">
@@ -1108,6 +1204,10 @@ export function TrailDetailPage() {
             />
           </FullSection>
         )}
+
+        <CorrectionWrap id="route-correction">
+          <RouteCorrectionPanel trail={trail} />
+        </CorrectionWrap>
 
         <FullSection id="comments" aria-label="Comments and trail updates">
           <Suspense

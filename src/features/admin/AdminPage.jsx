@@ -7,6 +7,7 @@ import {
   FileUp,
   ImagePlus,
   Lock,
+  MessageSquareWarning,
   Mountain,
   Plus,
   RefreshCw,
@@ -30,6 +31,7 @@ import {
   getIsAdmin,
   setAdminMountainGuidePublished,
   updateAdminTrailImage,
+  updateAdminRouteReview,
   updateAdminMountainGuide,
   uploadAdminMountainImage,
   uploadAdminTrailGpx,
@@ -37,6 +39,7 @@ import {
 import { getRoutePointCount, parseGpxToLineString } from '../../lib/gpx.js';
 import { theme } from '../../styles/theme.js';
 import { useAuth } from '../auth/AuthProvider.jsx';
+import { AdminModerationPanel } from './AdminModerationPanel.jsx';
 
 const Page = styled.section`
   margin: 0 auto;
@@ -148,6 +151,41 @@ const AdminLayout = styled.div`
   }
 `;
 
+const WorkspaceTabs = styled.div`
+  border-bottom: 1px solid ${theme.colors.line};
+  display: flex;
+  gap: 4px;
+  margin-bottom: 24px;
+  overflow-x: auto;
+
+  button {
+    align-items: center;
+    background: transparent;
+    border: 0;
+    border-bottom: 3px solid transparent;
+    color: ${theme.colors.muted};
+    cursor: pointer;
+    display: inline-flex;
+    flex: 0 0 auto;
+    font: inherit;
+    font-weight: 850;
+    gap: 7px;
+    min-height: 48px;
+    padding: 10px 14px;
+  }
+
+  button[aria-selected='true'] {
+    border-bottom-color: ${theme.colors.forest};
+    color: ${theme.colors.ink};
+  }
+
+  button:focus-visible {
+    border-radius: ${theme.radii.small} ${theme.radii.small} 0 0;
+    outline: 3px solid ${theme.colors.fjord};
+    outline-offset: -3px;
+  }
+`;
+
 const Panel = styled.section`
   background: ${theme.colors.surface};
   border: 1px solid ${theme.colors.line};
@@ -167,6 +205,14 @@ const Panel = styled.section`
     gap: 8px;
     margin: 0;
   }
+
+  @media (max-width: 640px) {
+    padding: 20px;
+  }
+`;
+
+const ModerationPanel = styled(Panel)`
+  padding: 28px;
 
   @media (max-width: 640px) {
     padding: 20px;
@@ -232,11 +278,11 @@ const SearchField = styled.label`
   }
 
   svg {
+    bottom: 13px;
     color: ${theme.colors.muted};
     left: 12px;
     pointer-events: none;
     position: absolute;
-    top: 42px;
   }
 
   input {
@@ -941,6 +987,10 @@ const initialForm = {
   access: '',
   beforeYouGo: '',
   safetyNotes: '',
+  reviewStatus: 'unreviewed',
+  lastReviewedAt: '',
+  reviewedBy: '',
+  nextReviewDue: '',
   heroImagePath: '',
 };
 
@@ -1015,6 +1065,10 @@ function formFromGuide(guide) {
     access: trail?.guide?.access ?? '',
     beforeYouGo: textFromLines(trail?.guide?.beforeYouGo),
     safetyNotes: textFromLines(trail?.safetyNotes),
+    reviewStatus: trail?.reviewStatus ?? 'unreviewed',
+    lastReviewedAt: trail?.lastReviewedAt ?? '',
+    reviewedBy: trail?.reviewedBy ?? '',
+    nextReviewDue: trail?.nextReviewDue ?? '',
     heroImagePath: mountain.heroImage?.src ?? '',
   };
 }
@@ -1090,6 +1144,10 @@ function validateGuidePayload(payload) {
   if (payload.safetyNotes.length === 0) {
     throw new Error('Add at least one safety note.');
   }
+
+  if (payload.reviewStatus === 'reviewed' && !payload.lastReviewedAt) {
+    throw new Error('Add the route review date before marking this guide as reviewed.');
+  }
 }
 
 function getStorageFileName(path) {
@@ -1131,6 +1189,7 @@ export function AdminPage() {
   const gpxInputRef = useRef(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isCheckingAdmin, setIsCheckingAdmin] = useState(false);
+  const [workspaceView, setWorkspaceView] = useState('guides');
   const [mode, setMode] = useState('create');
   const [guides, setGuides] = useState([]);
   const [guideQuery, setGuideQuery] = useState('');
@@ -1538,6 +1597,10 @@ export function AdminPage() {
       routeGeojson,
       gpxStoragePath,
       safetyNotes: linesFromText(form.safetyNotes),
+      reviewStatus: form.reviewStatus,
+      lastReviewedAt: form.lastReviewedAt,
+      reviewedBy: form.reviewedBy.trim(),
+      nextReviewDue: form.nextReviewDue,
       guide,
     };
   }
@@ -1729,6 +1792,14 @@ export function AdminPage() {
         published: form.published,
       });
 
+      await updateAdminRouteReview({
+        trailId,
+        reviewStatus: form.reviewStatus,
+        lastReviewedAt: form.lastReviewedAt,
+        reviewedBy: form.reviewedBy,
+        nextReviewDue: form.nextReviewDue,
+      });
+
       await saveGalleryImages({ trailId, uploadedImages: uploadedGalleryImages });
       if (mode === 'edit') {
         await saveExistingGalleryImages();
@@ -1886,6 +1957,27 @@ export function AdminPage() {
       )}
 
       {isConfigured && !authIsLoading && user && !isCheckingAdmin && isAdmin && (
+        <WorkspaceTabs role="tablist" aria-label="Admin workspace">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={workspaceView === 'guides'}
+            onClick={() => setWorkspaceView('guides')}
+          >
+            <Mountain size={17} aria-hidden="true" /> Mountain guides
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={workspaceView === 'moderation'}
+            onClick={() => setWorkspaceView('moderation')}
+          >
+            <MessageSquareWarning size={17} aria-hidden="true" /> Community review
+          </button>
+        </WorkspaceTabs>
+      )}
+
+      {isConfigured && !authIsLoading && user && !isCheckingAdmin && isAdmin && workspaceView === 'guides' && (
         <AdminLayout>
           <GuidePanel>
             <ToolRow>
@@ -2311,6 +2403,44 @@ export function AdminPage() {
                     <span>Access</span>
                     <SmallTextarea value={form.access} onChange={(event) => updateField('access', event.target.value)} />
                   </Field>
+                  <Field>
+                    <span>Route review status</span>
+                    <select
+                      value={form.reviewStatus}
+                      onChange={(event) => updateField('reviewStatus', event.target.value)}
+                    >
+                      <option value="unreviewed">Not reviewed</option>
+                      <option value="reviewed">Reviewed</option>
+                      <option value="needs_review">Needs review</option>
+                    </select>
+                  </Field>
+                  <Field>
+                    <span>Last reviewed</span>
+                    <input
+                      type="date"
+                      required={form.reviewStatus === 'reviewed'}
+                      value={form.lastReviewedAt}
+                      onChange={(event) => updateField('lastReviewedAt', event.target.value)}
+                    />
+                  </Field>
+                  <Field>
+                    <span>Reviewed by</span>
+                    <input
+                      maxLength="120"
+                      placeholder="For example: Lofoten Peaks"
+                      value={form.reviewedBy}
+                      onChange={(event) => updateField('reviewedBy', event.target.value)}
+                    />
+                    <small>Internal provenance for the content review record.</small>
+                  </Field>
+                  <Field>
+                    <span>Next review due</span>
+                    <input
+                      type="date"
+                      value={form.nextReviewDue}
+                      onChange={(event) => updateField('nextReviewDue', event.target.value)}
+                    />
+                  </Field>
                   <FullField>
                     <span>Before you go checklist</span>
                     <SmallTextarea
@@ -2607,6 +2737,12 @@ export function AdminPage() {
             </Form>
           </EditorPanel>
         </AdminLayout>
+      )}
+
+      {isConfigured && !authIsLoading && user && !isCheckingAdmin && isAdmin && workspaceView === 'moderation' && (
+        <ModerationPanel>
+          <AdminModerationPanel />
+        </ModerationPanel>
       )}
     </Page>
   );

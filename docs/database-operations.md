@@ -7,8 +7,16 @@ This project uses Supabase as the backend for auth, guide content, check-ins, co
 - `supabase/schema.sql`: base schema for a new Supabase project
 - `supabase/admin.sql`: admin CMS policies, views, storage buckets, and admin RPC functions
 - `supabase/community.sql`: check-in RPC and leaderboard progress view
+- `supabase/check-in-privacy.sql`: superseded emergency column-grant patch; retained for history, not a replacement for the migrations
 - `supabase/guide-notes.sql`: one-time content patch for existing MVP guide planning notes
 - `supabase/seed.sql`: one-time starter mountain/trail records; conflicts are ignored so Admin edits are not overwritten
+- `supabase/migrations/20260801000000_privacy_safety_moderation.sql`: private location evidence, versioned legal acceptance, self-service account controls, reporting, moderation, and route review dates
+- `supabase/migrations/20260801000001_legacy_check_in_compatibility.sql`: temporary five-argument check-in RPC compatibility without re-exposing location evidence
+- `supabase/migrations/20260801000002_admin_guide_view_security_invoker.sql`: makes the admin guide view enforce the querying user's permissions and RLS policies
+- `supabase/migrations/20260801000003_secure_admin_guide_reader.sql`: preserves the admin view contract while keeping private guide fields behind a server-side admin check
+- `supabase/tests/privacy_safety_access.sql`: read-only assertions for critical grants, RLS, and RPC access
+- `supabase/tests/privacy_safety_behaviour.sql`: rollback-only owner/admin, moderation, rate-limit, and deletion behaviour tests
+- `scripts/verify-public-privacy.sh`: direct anonymous REST test proving precise coordinate queries are blocked
 
 ## Apply Order
 
@@ -20,15 +28,27 @@ npx -y supabase db query --linked --file supabase/seed.sql
 npx -y supabase db query --linked --file supabase/admin.sql
 npx -y supabase db query --linked --file supabase/community.sql
 npx -y supabase db query --linked --file supabase/guide-notes.sql
+npx -y supabase db query --linked --file supabase/migrations/20260801000000_privacy_safety_moderation.sql
+npx -y supabase db query --linked --file supabase/migrations/20260801000001_legacy_check_in_compatibility.sql
+npx -y supabase db query --linked --file supabase/migrations/20260801000002_admin_guide_view_security_invoker.sql
+npx -y supabase db query --linked --file supabase/migrations/20260801000003_secure_admin_guide_reader.sql
+npx -y supabase db query --linked --file supabase/tests/privacy_safety_access.sql
+npx -y supabase db query --linked --file supabase/tests/privacy_safety_behaviour.sql
+npm run verify:public-privacy
 ```
 
 After the first import, do not use `seed.sql` as the normal way to update guide content. Edit mountains, trails, GPX routes, images, and guide notes through `/admin` so Supabase remains the live source of truth. Re-running `seed.sql` only inserts missing starter records because it uses `on conflict do nothing`.
 
-For the existing project, run only the files that changed. After this update:
+For the existing project, take a database backup and then run:
 
 ```bash
-npx -y supabase db query --linked --file supabase/admin.sql
-npx -y supabase db query --linked --file supabase/community.sql
+npx -y supabase db query --linked --file supabase/migrations/20260801000000_privacy_safety_moderation.sql
+npx -y supabase db query --linked --file supabase/migrations/20260801000001_legacy_check_in_compatibility.sql
+npx -y supabase db query --linked --file supabase/migrations/20260801000002_admin_guide_view_security_invoker.sql
+npx -y supabase db query --linked --file supabase/migrations/20260801000003_secure_admin_guide_reader.sql
+npx -y supabase db query --linked --file supabase/tests/privacy_safety_access.sql
+npx -y supabase db query --linked --file supabase/tests/privacy_safety_behaviour.sql
+npm run verify:public-privacy
 ```
 
 The same SQL can also be pasted into the Supabase SQL editor if the CLI is unavailable.
@@ -54,6 +74,19 @@ Do not commit real `.env.local`, Supabase tokens, service role keys, or exported
 
 - Prefer publishing/drafting guides over deleting them.
 - Delete a guide only when its connected check-ins and comments can also be removed.
-- Keep user-submitted hikes in `pending` until admin moderation exists.
-- Keep user-submitted GPX routes private until the associated hike recommendation is approved.
+- Review pending hike recommendations, comment reports, and route corrections in `/admin`.
+- Keep administrator GPX originals in the private `trail-gpx` bucket; publish only parsed route geometry.
+- Never add precise check-in coordinates back to `public.check_ins` or a public view.
+- Treat the legacy check-in wrapper as temporary frontend compatibility, not permission to weaken privacy controls.
 - Run `npm run build` after frontend or SQL API changes that affect page data.
+
+## Emergency Frontend Rollback
+
+If the previous frontend must be redeployed after the privacy migration, apply:
+
+```bash
+npx -y supabase db query --linked --file supabase/migrations/20260801000001_legacy_check_in_compatibility.sql
+```
+
+This restores the old five-argument check-in RPC only. It intentionally preserves private location storage and the new
+access controls. A full database rollback must use a verified backup and a separately reviewed migration.

@@ -1,5 +1,8 @@
 -- Lofoten Peaks Supabase schema
--- Run this in the Supabase SQL editor after creating the project.
+-- Historical base schema only. A deployment is incomplete until admin.sql,
+-- community.sql, and every file in supabase/migrations have also been applied.
+-- In particular, the privacy migration moves precise check-in evidence out of
+-- the publicly readable check_ins table. Do not deploy this file by itself.
 
 create extension if not exists postgis with schema extensions;
 create extension if not exists pgcrypto with schema extensions;

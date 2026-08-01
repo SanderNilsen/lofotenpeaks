@@ -1,5 +1,6 @@
 -- Admin CMS layer for Lofoten Peaks.
--- Safe to rerun after the base schema has been applied.
+-- Historical layer only. Apply every file in supabase/migrations afterwards
+-- to install the current restricted views and moderation controls.
 
 create table if not exists public.admin_users (
   user_id uuid primary key references auth.users(id) on delete cascade,

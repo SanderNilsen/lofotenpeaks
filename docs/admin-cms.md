@@ -24,6 +24,10 @@ Community check-ins and leaderboard progress use a separate SQL layer:
 npx -y supabase db query --linked --file supabase/community.sql
 ```
 
+Finally, apply every file in `supabase/migrations` in filename order. The current privacy and moderation migration is
+required: it removes precise coordinates from public check-in rows and installs the legal, reporting, deletion,
+moderation, correction, and route-review controls. See `docs/database-operations.md` for the deployment checklist.
+
 ## Grant Admin Access
 
 After `supabase/admin.sql` has been applied, add your own logged-in account to `public.admin_users`.
@@ -51,14 +55,21 @@ The current admin screen supports:
 - difficulty, height, route summary, route note, and description
 - planning notes for parking, trailhead, best season, suitable audience, gear, access, and before-you-go checklist
 - safety notes shown on the public hiking guide page
+- editorial route-review status, last-reviewed date, reviewer, and optional next-review date
 - GPX upload for replacing straight route lines with parsed route coordinates
-- one hero image uploaded to the `mountain-images` Supabase Storage bucket
 - gallery images stored in Supabase Storage and registered in `public.trail_images`
+- selecting one gallery image as the mountain hero image
 - editing, deleting, and reordering gallery image metadata
 - optional image source, license, and credit URL metadata
+- reviewing reported comments, hiding/removing/restoring comments, and recording private decision notes
+- approving or rejecting text hike recommendations and confirming author removal requests
+- reviewing route-correction submissions
 
-Multiple trails per mountain and moderation tools should come after the basic create/edit flow is working.
+The moderation workspace is available under the **Community review** tab. It is protected by server-side admin checks;
+the route is not the security boundary.
 
 GPX files are stored in the private `trail-gpx` bucket. The public site reads the parsed `route_geojson` value from the `mountain_guides` view, not the raw GPX file.
 
-The public site reads from `public.mountain_guides`, which only returns published content. The admin page reads from `public.admin_mountain_guides`, which returns drafts too.
+The public site reads from `public.mountain_guides`, which only returns published content and excludes private GPX paths
+and internal reviewer details. The admin page reads from `public.admin_mountain_guides`, which returns drafts and those
+internal fields only when `public.is_admin()` succeeds.

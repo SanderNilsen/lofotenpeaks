@@ -1,4 +1,5 @@
 import { requireSupabaseClient } from './client.js';
+import { LEGAL_DOCUMENT_VERSIONS } from '../legal.js';
 
 function imagePathToSrc(path) {
   if (!path) {
@@ -126,6 +127,10 @@ function transformGuideRow(row) {
         gpxStoragePath: row.gpx_storage_path,
         safetyNotes,
         guide,
+        lastReviewedAt: row.last_reviewed_at ?? null,
+        reviewedBy: row.reviewed_by ?? null,
+        reviewStatus: row.review_status ?? 'unreviewed',
+        nextReviewDue: row.next_review_due ?? null,
         images: trailImages,
         imageFiles: mountain.imageFiles,
         imageCredits,
@@ -181,6 +186,10 @@ export async function signUpWithEmail({ email, password, displayName }) {
     options: {
       data: {
         display_name: displayName.trim(),
+        terms_accepted: true,
+        terms_version: LEGAL_DOCUMENT_VERSIONS.terms,
+        privacy_acknowledged: true,
+        privacy_version: LEGAL_DOCUMENT_VERSIONS.privacy,
       },
     },
   });
@@ -252,6 +261,32 @@ export async function getIsAdmin() {
   }
 
   return Boolean(data);
+}
+
+export async function getMyLegalAcceptanceStatus() {
+  const client = requireSupabaseClient();
+  const { data, error } = await client.rpc('get_my_legal_acceptance_status');
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
+}
+
+export async function acceptCurrentLegalDocuments() {
+  const client = requireSupabaseClient();
+  const { data, error } = await client.rpc('accept_current_legal_documents', {
+    p_terms_version: LEGAL_DOCUMENT_VERSIONS.terms,
+    p_privacy_version: LEGAL_DOCUMENT_VERSIONS.privacy,
+    p_source: 'account-settings',
+  });
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
 }
 
 export async function getRemoteMountainGuides() {
@@ -588,6 +623,7 @@ export async function createMountainCheckIn({ mountainId, trailId, note, locatio
     p_note: note?.trim() || null,
     p_lat: location?.lat ?? null,
     p_lng: location?.lng ?? null,
+    p_accuracy: location?.accuracy ?? null,
   });
 
   if (error) {
@@ -601,8 +637,12 @@ export async function getCommentsForTrail(trailId) {
   const client = requireSupabaseClient();
   const { data, error } = await client
     .from('comments')
-    .select('*, profiles(display_name, avatar_url)')
+    .select(
+      'id, user_id, mountain_id, trail_id, body, status, visibility_status, created_at, profiles(display_name, avatar_url)',
+    )
     .eq('trail_id', trailId)
+    .eq('status', 'approved')
+    .eq('visibility_status', 'published')
     .order('created_at', { ascending: true });
 
   if (error) {
@@ -612,25 +652,19 @@ export async function getCommentsForTrail(trailId) {
   return data;
 }
 
-export async function createComment(comment) {
+export async function createTrailComment({ mountainId, trailId, body }) {
   const client = requireSupabaseClient();
-  const { data, error } = await client.from('comments').insert(comment).select().single();
+  const { data, error } = await client.rpc('create_trail_comment', {
+    p_mountain_id: mountainId,
+    p_trail_id: trailId,
+    p_body: body.trim(),
+  });
 
   if (error) {
     throw error;
   }
 
   return data;
-}
-
-export async function createTrailComment({ userId, mountainId, trailId, body }) {
-  return createComment({
-    user_id: userId,
-    mountain_id: mountainId,
-    trail_id: trailId,
-    body: body.trim(),
-    status: 'approved',
-  });
 }
 
 export async function getUserComments(userId, { limit = 12 } = {}) {
@@ -642,6 +676,8 @@ export async function getUserComments(userId, { limit = 12 } = {}) {
         id,
         body,
         status,
+        visibility_status,
+        deleted_at,
         created_at,
         mountain_id,
         trail_id,
@@ -650,6 +686,8 @@ export async function getUserComments(userId, { limit = 12 } = {}) {
       `,
     )
     .eq('user_id', userId)
+    .is('deleted_at', null)
+    .eq('visibility_status', 'published')
     .order('created_at', { ascending: false })
     .limit(limit);
 
@@ -662,7 +700,11 @@ export async function getUserComments(userId, { limit = 12 } = {}) {
 
 export async function createUserHike(hike) {
   const client = requireSupabaseClient();
-  const { data, error } = await client.from('user_hikes').insert(hike).select().single();
+  const { data, error } = await client.rpc('create_hike_recommendation', {
+    p_title: hike.title,
+    p_body: hike.body ?? null,
+    p_difficulty: hike.difficulty,
+  });
 
   if (error) {
     throw error;
@@ -675,8 +717,9 @@ export async function getUserHikes(userId) {
   const client = requireSupabaseClient();
   const { data, error } = await client
     .from('user_hikes')
-    .select('id, title, body, difficulty, status, created_at')
+    .select('id, title, body, difficulty, status, removal_requested_at, removed_at, created_at')
     .eq('user_id', userId)
+    .is('removed_at', null)
     .order('created_at', { ascending: false });
 
   if (error) {
@@ -684,4 +727,153 @@ export async function getUserHikes(userId) {
   }
 
   return data;
+}
+
+export async function deleteOwnCheckIn(checkInId) {
+  const client = requireSupabaseClient();
+  const { error } = await client.rpc('delete_own_check_in', { p_check_in_id: checkInId });
+
+  if (error) {
+    throw error;
+  }
+}
+
+export async function deleteOwnComment(commentId) {
+  const client = requireSupabaseClient();
+  const { error } = await client.rpc('delete_own_comment', { p_comment_id: commentId });
+
+  if (error) {
+    throw error;
+  }
+}
+
+export async function withdrawHikeRecommendation(hikeId) {
+  const client = requireSupabaseClient();
+  const { data, error } = await client.rpc('withdraw_hike_recommendation', { p_hike_id: hikeId });
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
+}
+
+export async function reportContent({ contentType, targetId, reason, details }) {
+  const client = requireSupabaseClient();
+  const { data, error } = await client.rpc('submit_content_report', {
+    p_content_type: contentType,
+    p_target_id: targetId,
+    p_reason: reason,
+    p_details: details?.trim() || null,
+  });
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
+}
+
+export async function submitRouteCorrection(correction) {
+  const client = requireSupabaseClient();
+  const { data, error } = await client.rpc('submit_route_correction', {
+    p_trail_id: correction.trailId,
+    p_category: correction.category,
+    p_affected_section: correction.affectedSection?.trim() || null,
+    p_details: correction.details.trim(),
+    p_source_url: correction.sourceUrl?.trim() || null,
+    p_observed_on: correction.observedOn || null,
+  });
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
+}
+
+export async function deleteMyAccount(confirmation) {
+  const client = requireSupabaseClient();
+  const { error } = await client.rpc('delete_my_account', { p_confirmation: confirmation });
+
+  if (error) {
+    throw error;
+  }
+}
+
+export async function getAdminModerationQueues() {
+  const client = requireSupabaseClient();
+  const [reportsResult, hikesResult, correctionsResult] = await Promise.all([
+    client.from('admin_comment_report_queue').select('*').order('reported_at', { ascending: true }),
+    client.from('admin_user_hike_queue').select('*').order('created_at', { ascending: true }),
+    client.from('admin_route_correction_queue').select('*').order('created_at', { ascending: true }),
+  ]);
+
+  const failedResult = [reportsResult, hikesResult, correctionsResult].find((result) => result.error);
+
+  if (failedResult?.error) {
+    throw failedResult.error;
+  }
+
+  return {
+    reports: reportsResult.data ?? [],
+    hikes: hikesResult.data ?? [],
+    corrections: correctionsResult.data ?? [],
+  };
+}
+
+export async function moderateAdminComment({ commentId, reportId, action, publicReason, internalNote }) {
+  const client = requireSupabaseClient();
+  const { error } = await client.rpc('admin_moderate_comment', {
+    p_comment_id: commentId,
+    p_report_id: reportId ?? null,
+    p_action: action,
+    p_public_reason: publicReason?.trim() || null,
+    p_internal_note: internalNote?.trim() || null,
+  });
+
+  if (error) {
+    throw error;
+  }
+}
+
+export async function moderateAdminHikeRecommendation({ hikeId, action, note }) {
+  const client = requireSupabaseClient();
+  const { error } = await client.rpc('admin_moderate_hike_recommendation', {
+    p_hike_id: hikeId,
+    p_action: action,
+    p_note: note?.trim() || null,
+  });
+
+  if (error) {
+    throw error;
+  }
+}
+
+export async function reviewAdminRouteCorrection({ correctionId, action, note }) {
+  const client = requireSupabaseClient();
+  const { error } = await client.rpc('admin_review_route_correction', {
+    p_correction_id: correctionId,
+    p_action: action,
+    p_resolution_note: note?.trim() || null,
+  });
+
+  if (error) {
+    throw error;
+  }
+}
+
+export async function updateAdminRouteReview(review) {
+  const client = requireSupabaseClient();
+  const { error } = await client.rpc('admin_update_route_review', {
+    p_trail_id: review.trailId,
+    p_review_status: review.reviewStatus,
+    p_last_reviewed_at: review.lastReviewedAt || null,
+    p_reviewed_by: review.reviewedBy?.trim() || null,
+    p_next_review_due: review.nextReviewDue || null,
+  });
+
+  if (error) {
+    throw error;
+  }
 }

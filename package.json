@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite --host 0.0.0.0",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "verify:public-privacy": "bash scripts/verify-public-privacy.sh"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.109.0",

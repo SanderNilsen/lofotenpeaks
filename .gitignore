@@ -8,5 +8,7 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# Local Supabase link metadata
+# Local Supabase CLI metadata and backups
+supabase/.branches/
 supabase/.temp/
+supabase/backups/

@@ -262,7 +262,7 @@ export function TermsPage() {
           These Terms explain how you may use Lofoten Peaks, contribute to the community, and make informed decisions
           when planning outdoor activities.
         </p>
-        <Updated>Last updated: 31 July 2026</Updated>
+        <Updated>Last updated: 1 August 2026</Updated>
         <Summary>
           <p>
             Lofoten Peaks is a practical planning resource. Route information can help you prepare, but conditions and
@@ -295,6 +295,11 @@ export function TermsPage() {
               If you are not legally able to accept these Terms yourself, you may use account features only with the
               involvement and permission of a parent or legal guardian. These Terms do not reduce rights that cannot be
               waived under applicable law.
+            </p>
+            <p>
+              Account registration records the accepted Terms version and server timestamp. Existing account holders
+              must accept the current version in Account settings before posting a comment, recommending a hike, or
+              submitting a route correction. A new version applies prospectively as described in section 12.
             </p>
           </Section>
 
@@ -332,8 +337,9 @@ export function TermsPage() {
             </ul>
             <p>
               Accounts are personal and must not be sold or transferred. The current website does not provide
-              self-service password reset or account deletion. Account and deletion requests can be sent to the contact
-              address in section 14. Personal data is handled as described in the <Link to="/privacy">Privacy Policy</Link>.
+              a self-service password-reset interface. You can delete your account from Account settings after a recent
+              sign-in and deliberate confirmation. Account assistance can be requested through the contact address in
+              section 14. Personal data is handled as described in the <Link to="/privacy">Privacy Policy</Link>.
             </p>
           </Section>
 
@@ -341,8 +347,9 @@ export function TermsPage() {
             <h2>4. User Content</h2>
             <p>
               User content currently includes profile names and biographies, summit check-in notes, comments, and hike
-              recommendations. You remain responsible for the content you submit and confirm that you have the rights
-              and permissions needed to publish it.
+              recommendations. Route corrections and comment reports are also user submissions, but are visible only to
+              the submitting user and authorised administrators. You remain responsible for content you submit and
+              confirm that you have the rights and permissions needed to provide it.
             </p>
             <p>
               Content must not unlawfully disclose another person's personal or location information, infringe
@@ -395,10 +402,11 @@ export function TermsPage() {
             </p>
             <p>
               Hike recommendations may be reviewed before publication, while comments are currently visible when
-              submitted. Moderation concerns publication only and is not a professional safety or accuracy check. To
-              report unlawful, rights-infringing, or seriously misleading content, email{' '}
-              <a href="mailto:contact@lofotenpeaks.no">contact@lofotenpeaks.no</a> with the page link and a clear
-              description of the concern.
+              submitted. Signed-in users can report a comment from the hike page, and can submit changed access, route,
+              difficulty, or safety information through the route-correction form. Authorised administrators may hide or
+              remove comments, approve or reject recommendations, and review route corrections. Moderation concerns
+              publication only and is not a professional safety or accuracy check. Other legal or safety concerns can be
+              sent to <a href="mailto:contact@lofotenpeaks.no">contact@lofotenpeaks.no</a>.
             </p>
           </Section>
 
@@ -483,9 +491,10 @@ export function TermsPage() {
               user should receive an explanation and a reasonable opportunity to respond.
             </p>
             <p>
-              You may stop using the service at any time. Because self-service account deletion is not implemented,
-              requests to delete an account or contribution must be sent to the contact address in section 14. Handling
-              and retention of personal data after termination are described in the <Link to="/privacy">Privacy Policy</Link>.
+              You may stop using the service at any time. Account settings provide controls to delete comments, withdraw
+              hike recommendations, and delete the account after recent authentication. Contact the address in section
+              14 to request deletion of an individual check-in or if a self-service action fails. Handling and retention
+              of personal data after termination are described in the <Link to="/privacy">Privacy Policy</Link>.
             </p>
           </Section>
 

@@ -1,5 +1,6 @@
 -- Community feature layer for check-ins and leaderboard progress.
--- Safe to rerun after supabase/schema.sql has been applied.
+-- Historical layer only. Apply every file in supabase/migrations afterwards;
+-- the privacy migration replaces this layer's original check-in data model.
 
 drop view if exists public.leaderboard;
 

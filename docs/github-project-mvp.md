@@ -132,7 +132,7 @@
 
 ## Later Backlog
 
-- [ ] Decide backend for auth, user hikes, comments, and mountain-top check-ins.
-- [ ] Design check-in and points data model.
-- [ ] Design leaderboard page.
-- [ ] Plan optional GPX uploads for user hike recommendations.
+- [ ] Define fixed retention periods for reports, corrections, moderation records, logs, and backups.
+- [ ] Review whether a user-facing moderation appeal workflow is proportionate.
+- [ ] Add automated tests for authenticated and administrator database roles in CI.
+- [ ] Review route information on a documented schedule and record each editorial review.

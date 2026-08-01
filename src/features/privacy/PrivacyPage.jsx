@@ -440,7 +440,7 @@ export function PrivacyPage() {
           account, check in at a summit, join the leaderboard, comment, or recommend a hike. It also explains the
           external services used to provide maps, weather, hosting, authentication, and optional analytics.
         </p>
-        <Updated>Last updated: 31 July 2026</Updated>
+        <Updated>Last updated: 1 August 2026</Updated>
       </Hero>
 
       <PolicyLayout>
@@ -479,7 +479,7 @@ export function PrivacyPage() {
               <div>
                 <dt>Privacy contact</dt>
                 <dd>
-                  <a href="mailto:privacy@lofotenpeaks.no">privacy@lofotenpeaks.no</a>
+                  <a href="mailto:contact@lofotenpeaks.no">contact@lofotenpeaks.no</a>
                 </dd>
               </div>
             </ControllerDetails>
@@ -515,6 +515,11 @@ export function PrivacyPage() {
               The current website has no self-service password-reset interface. Supabase may send account confirmation
               emails if confirmation is enabled in the project settings.
             </p>
+            <p>
+              Lofoten Peaks records the version and server timestamp when you accept the Terms of Service and acknowledge
+              the Privacy Policy. Existing users must accept the current Terms before posting a comment, recommending a
+              hike, or submitting a route correction.
+            </p>
 
             <h3>Profile data</h3>
             <p>
@@ -525,10 +530,11 @@ export function PrivacyPage() {
             <h3>Summit check-ins and location</h3>
             <p>
               If you choose to check in, the browser requests your current latitude and longitude. Browser-reported
-              accuracy is shown temporarily on your device but is not sent to the backend. The submitted coordinates
-              are sent to Supabase, compared with the configured summit coordinates, and stored with your user ID,
-              mountain and trail IDs, check-in time and day, calculated distance to the summit, points, status, and any
-              optional note.
+              accuracy is sent with the submitted coordinates to Supabase. The backend compares the coordinates with the
+              configured summit coordinates. Exact coordinates, calculated summit distance, and reported accuracy are
+              stored in a separate private verification record. The public check-in record contains the user, mountain
+              and trail references, check-in time and day, points, status, and any optional note, but has no precise
+              coordinate or summit-distance columns.
             </p>
 
             <h3>Comments and hike recommendations</h3>
@@ -536,7 +542,9 @@ export function PrivacyPage() {
               Comments contain your user ID, mountain/trail reference, comment text, moderation status, and timestamps.
               Hike recommendations contain your user ID, title, notes, difficulty, review status, and timestamps. New
               comments are currently approved and visible immediately. Hike recommendations are submitted as pending
-              for review.
+              for review. A signed-in user can report a comment and can submit a route correction containing a category,
+              affected section, description, optional source URL, observed date, status, and timestamps. Reports,
+              correction decisions, and administrator moderation actions are also recorded.
             </p>
 
             <h3>GPX files, route data, and guide media</h3>
@@ -614,6 +622,26 @@ export function PrivacyPage() {
                     </td>
                   </tr>
                   <tr>
+                    <td data-label="Purpose">Record Terms acceptance</td>
+                    <td data-label="Data">User ID, document type and version, server timestamp, and source</td>
+                    <td data-label="GDPR legal basis">
+                      Article 6(1)(b), to administer the account agreement, and Article 6(1)(f): the legitimate interest
+                      in demonstrating which service terms applied to account contributions.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td data-label="Purpose">Review reports, corrections, and community content</td>
+                    <td data-label="Data">
+                      Submitted content, report or correction details, user references, status, decisions, notes, and
+                      timestamps
+                    </td>
+                    <td data-label="GDPR legal basis">
+                      Article 6(1)(b), to provide the requested reporting and contribution workflows, and Article
+                      6(1)(f): the legitimate interest in addressing abuse, unlawful content, and potentially dangerous
+                      route information.
+                    </td>
+                  </tr>
+                  <tr>
                     <td data-label="Purpose">Deliver maps, weather, and the public guide</td>
                     <td data-label="Data">
                       Technical request data; guide/summit coordinates sent to map and weather services
@@ -671,8 +699,9 @@ export function PrivacyPage() {
               <li>Leaderboard points, number of check-ins, completed mountains, and latest check-in time.</li>
               <li>
                 Approved check-in summaries can include a user reference, mountain/trail reference, check-in date,
-                points, status, and optional note. Precise submitted coordinates and calculated summit distance are not
-                available through the public website API.
+                points, status, and optional note. Precise submitted coordinates, reported accuracy, and calculated
+                summit distance are stored only in the separate verification table and are not fields in public
+                check-in rows.
               </li>
               <li>
                 Approved comments, their timestamp, and the commenter&apos;s display name/avatar. The underlying public
@@ -685,16 +714,19 @@ export function PrivacyPage() {
             </ul>
             <p>
               Email addresses and passwords are not displayed on the website. Pending hike recommendations are visible
-              to their author and authorised administrators rather than the public.
+              to their author and authorised administrators rather than the public. Comment reports and route
+              corrections are visible to the person who submitted them and authorised administrators, not to general
+              visitors. Internal moderation notes and action records are administrator-only.
             </p>
             <Notice>
               <ShieldCheck size={22} aria-hidden="true" />
               <div>
                 <strong>Location data is kept out of public check-in responses</strong>
                 <p>
-                  Database column permissions prevent anonymous and signed-in website clients from selecting precise
-                  submitted coordinates, calculated summit distance, and stored photo paths. Approved activity summary
-                  fields remain readable for community and leaderboard features.
+                  Precise verification evidence is structurally separated from public activity records. Anonymous
+                  visitors cannot access the verification table. A signed-in user can access only their own verification
+                  records, while authorised administrators can access them when needed for integrity, support, or legal
+                  requests. Approved activity summary fields remain readable for community and leaderboard features.
                 </p>
               </div>
             </Notice>
@@ -711,9 +743,12 @@ export function PrivacyPage() {
             </p>
             <p>
               Precise location can reveal where you were at a particular time. The backend stores the submitted
-              coordinate and calculated distance as validation evidence, but website clients cannot select those
-              columns through the public API. Authorised backend administrators may still access them where necessary.
-              Users cannot delete individual check-ins through the current interface and must use the privacy contact.
+              coordinate, reported accuracy, and calculated distance as private validation evidence. These values are
+              separated from the public activity row and are not shown on profiles, leaderboards, or comments. You can
+              request deletion of an individual check-in by contacting{' '}
+              <a href="mailto:contact@lofotenpeaks.no">contact@lofotenpeaks.no</a>; its linked verification evidence is
+              deleted with it. Authorised administrators may access verification evidence where necessary for
+              integrity, support, or a legal request.
             </p>
 
             <h3>GPX and route information</h3>
@@ -943,22 +978,39 @@ export function PrivacyPage() {
                   <tr>
                     <td data-label="Data">Account and profile</td>
                     <td data-label="Current retention rule">
-                      Kept while the account exists and until deletion is carried out following a verified request.
-                      Supabase Auth log retention must be verified.
+                      Kept while the account exists and deleted through the account deletion workflow, subject to the
+                      limited exceptions below. Supabase Auth log retention must be verified.
                     </td>
                   </tr>
                   <tr>
                     <td data-label="Data">Check-ins and location</td>
                     <td data-label="Current retention rule">
-                      No automatic expiry. Kept until the record/account is deleted or a valid deletion request is
-                      completed. The necessity of retaining exact coordinates after validation should be reviewed.
+                      No automatic expiry. A check-in and its linked private verification evidence are kept until you
+                      request deletion of that check-in or delete the account. The continued need for exact validation
+                      evidence should be reviewed periodically.
                     </td>
                   </tr>
                   <tr>
                     <td data-label="Data">Comments and hike recommendations</td>
                     <td data-label="Current retention rule">
-                      No automatic expiry. Kept until deletion of the record/account or completion of a valid request,
-                      subject to any lawful need to retain a limited record.
+                      No automatic expiry. You can remove your own comment or recommendation from the account page.
+                      Removed content can be retained in a restricted moderation snapshot where needed to document an
+                      abuse decision, legal claim, or compliance action. Account deletion removes the active author data.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td data-label="Data">Reports, route corrections, and moderation records</td>
+                    <td data-label="Current retention rule">
+                      Kept while open and afterwards where reasonably needed to document the decision, prevent repeat
+                      abuse, handle a safety concern, or establish or defend legal claims. The repository does not yet
+                      define a fixed deletion schedule; the operator must set and apply one.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td data-label="Data">Terms and policy acceptance records</td>
+                    <td data-label="Current retention rule">
+                      Kept with the account to document the accepted document version. The record is deleted when the
+                      Auth account is deleted, subject to any lawful need to retain limited evidence of the agreement.
                     </td>
                   </tr>
                   <tr>
@@ -1002,17 +1054,24 @@ export function PrivacyPage() {
           <Section id="deletion">
             <h2>11. Account deletion and removing contributions</h2>
             <p>
-              The current website does not include self-service account deletion or buttons for deleting individual
-              check-ins, comments, or hike recommendations. To request deletion, contact{' '}
-              <a href="mailto:privacy@lofotenpeaks.no">privacy@lofotenpeaks.no</a> and identify the account using the
-              email address associated with it. Additional verification may be requested before deletion to protect
-              the account.
+              The account page lets you remove your own comments and withdraw your hike recommendations. Contact{' '}
+              <a href="mailto:contact@lofotenpeaks.no">contact@lofotenpeaks.no</a> to request deletion of an individual
+              check-in. Pending or rejected recommendations are deleted; an already published recommendation is removed
+              from public view and recorded as author-removed for moderation accountability.
             </p>
             <p>
-              Deleting the Supabase Auth user is designed to cascade to the associated profile, check-ins, comments,
-              and hike recommendations. The operator must verify that account deletion is completed in Auth as well as
-              the application database and storage. Limited data may remain temporarily in backups or be retained where
-              required for legal claims, security incidents, or compliance obligations.
+              You can delete the account from the separate danger zone on the account page. For security, you must type
+              DELETE and have signed in within the previous 15 minutes. If the session is older, sign out and sign in
+              again before retrying. Deleting the Supabase Auth user cascades to the profile, check-ins and private
+              verification evidence, comments, hike recommendations, and legal-acceptance rows. The user reference on a
+              route correction, content report, or moderation action is removed, while a limited record or content
+              snapshot may remain where reasonably necessary for safety, abuse prevention, legal claims, or compliance.
+            </p>
+            <p>
+              If self-service deletion fails or you need help exercising a right, contact{' '}
+              <a href="mailto:contact@lofotenpeaks.no">contact@lofotenpeaks.no</a>. Additional verification may be
+              requested to protect the account. Data may remain temporarily in provider backups until those backups
+              expire or are overwritten.
             </p>
             <p>
               Administrators can remove an admin-uploaded GPX guide route and gallery images through the admin editor.
@@ -1024,9 +1083,10 @@ export function PrivacyPage() {
             <h2>12. Data security</h2>
             <p>
               The application uses Supabase authentication, row-level database policies, role-restricted admin
-              functions, a private storage bucket for admin GPX files, file-size/type controls for guide images, and
-              HTTPS-capable hosting. Authentication tokens are stored by Supabase in browser local storage so signed-in
-              sessions can persist.
+              functions, structural separation of precise check-in evidence, versioned server-side Terms records, a
+              private storage bucket for admin GPX files, file-size/type controls for guide images, and HTTPS-capable
+              hosting. Authentication tokens are stored by Supabase in browser local storage so signed-in sessions can
+              persist.
             </p>
             <p>
               Access rules, provider accounts, deployment credentials, and software dependencies should be reviewed and
@@ -1058,7 +1118,7 @@ export function PrivacyPage() {
             </ul>
             <p>
               Use “Cookie settings” to withdraw Analytics consent. For other rights, contact{' '}
-              <a href="mailto:privacy@lofotenpeaks.no">privacy@lofotenpeaks.no</a>. The controller may need to verify
+              <a href="mailto:contact@lofotenpeaks.no">contact@lofotenpeaks.no</a>. The controller may need to verify
               your identity and will respond within the time required by law.
             </p>
           </Section>
@@ -1094,7 +1154,7 @@ export function PrivacyPage() {
             </p>
             <p>
               A parent or guardian who believes a child has provided personal data inappropriately should contact{' '}
-              <a href="mailto:privacy@lofotenpeaks.no">privacy@lofotenpeaks.no</a>.
+              <a href="mailto:contact@lofotenpeaks.no">contact@lofotenpeaks.no</a>.
             </p>
           </Section>
 
@@ -1116,8 +1176,8 @@ export function PrivacyPage() {
               change takes effect.
             </p>
             <p>
-              The controller should review this policy whenever account, user GPX upload, moderation, newsletter,
-              advertising, or additional analytics features are introduced.
+              The operator should review this policy whenever account behavior, location verification, moderation,
+              newsletter, advertising, user uploads, or additional analytics features change.
             </p>
           </Section>
         </Article>

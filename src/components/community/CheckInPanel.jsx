@@ -140,6 +140,10 @@ function getFriendlyError(error) {
     return 'You need to be near the summit to check in.';
   }
 
+  if (error?.message?.includes('Accept the current Terms')) {
+    return 'Review and accept the current Terms in Account settings before checking in.';
+  }
+
   return 'Could not save your check-in. Please try again.';
 }
 

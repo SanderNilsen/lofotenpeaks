@@ -11,6 +11,7 @@ import {
   Save,
   Send,
   ShieldCheck,
+  Trash2,
   UserCircle,
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
@@ -24,9 +25,14 @@ import { ProfileSummitCard } from '../../components/profile/ProfileSummitCard.js
 import { mountains as staticMountains } from '../../data/mountains.js';
 import { trails as staticTrails } from '../../data/trails.js';
 import { getSafePublicDisplayName, isEmailLike } from '../../lib/profile.js';
+import { isCurrentLegalAcceptance } from '../../lib/legal.js';
 import {
+  acceptCurrentLegalDocuments,
   createUserHike,
+  deleteMyAccount,
+  deleteOwnComment,
   getLeaderboard,
+  getMyLegalAcceptanceStatus,
   getProfile,
   getRemoteMountainGuides,
   getUserCheckIns,
@@ -34,6 +40,7 @@ import {
   getUserHikes,
   signOut,
   updateProfile,
+  withdrawHikeRecommendation,
 } from '../../lib/supabase/api.js';
 import { theme } from '../../styles/theme.js';
 import { useAuth } from './AuthProvider.jsx';
@@ -591,6 +598,10 @@ const ToolGrid = styled.div`
   gap: 20px;
   grid-template-columns: minmax(0, 1.25fr) minmax(300px, 0.75fr);
 
+  > :only-child {
+    grid-column: 1 / -1;
+  }
+
   @media (max-width: 820px) {
     grid-template-columns: 1fr;
   }
@@ -750,6 +761,57 @@ const DangerCard = styled(ToolCard)`
   border-color: #dfc4af;
 `;
 
+const DangerButton = styled(SecondaryButton)`
+  border-color: #b96d43;
+  color: #713d1f;
+`;
+
+const ManagementList = styled.ul`
+  display: grid;
+  gap: 10px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+
+  li {
+    align-items: center;
+    background: ${theme.colors.background};
+    border: 1px solid ${theme.colors.line};
+    border-radius: ${theme.radii.small};
+    display: flex;
+    gap: 12px;
+    justify-content: space-between;
+    padding: 12px;
+  }
+
+  div {
+    min-width: 0;
+  }
+
+  strong,
+  span {
+    display: block;
+    overflow-wrap: anywhere;
+  }
+
+  span {
+    color: ${theme.colors.muted};
+    font-size: 0.82rem;
+    margin-top: 3px;
+  }
+
+  @media (max-width: 560px) {
+    li {
+      align-items: stretch;
+      flex-direction: column;
+    }
+  }
+`;
+
+const ConfirmationField = styled(Field)`
+  max-width: 360px;
+`;
+
 const SubmissionList = styled.ul`
   display: grid;
   gap: 12px;
@@ -809,6 +871,7 @@ function createInitialAccountData() {
     hikes: [],
     leaderboard: [],
     guides: { mountains: staticMountains, trails: staticTrails },
+    legalStatus: null,
     isLoading: false,
     errors: {},
   };
@@ -859,6 +922,10 @@ function friendlyMutationError(error, fallback) {
     return 'We could not reach the service. Check your connection and try again.';
   }
 
+  if (message.includes('accept the current terms')) {
+    return 'Review and accept the current Terms in Profile settings before contributing.';
+  }
+
   return fallback;
 }
 
@@ -897,6 +964,9 @@ export function ProfileDashboard() {
   const [hikeForm, setHikeForm] = useState(initialHikeForm);
   const [hikeStatus, setHikeStatus] = useState({ type: 'idle', message: '' });
   const [sessionStatus, setSessionStatus] = useState({ type: 'idle', message: '' });
+  const [legalStatus, setLegalStatus] = useState({ type: 'idle', message: '' });
+  const [managementStatus, setManagementStatus] = useState({ type: 'idle', message: '' });
+  const [deleteConfirmation, setDeleteConfirmation] = useState('');
 
   useEffect(() => {
     setAccountData(createInitialAccountData());
@@ -906,6 +976,9 @@ export function ProfileDashboard() {
     setProfileStatus({ type: 'idle', message: '' });
     setHikeStatus({ type: 'idle', message: '' });
     setSessionStatus({ type: 'idle', message: '' });
+    setLegalStatus({ type: 'idle', message: '' });
+    setManagementStatus({ type: 'idle', message: '' });
+    setDeleteConfirmation('');
     setAccountSection('overview');
   }, [userId]);
 
@@ -926,9 +999,10 @@ export function ProfileDashboard() {
       getUserCheckIns(userId),
       getLeaderboard({ limit: 6 }),
       getUserHikes(userId),
-      getUserComments(userId, { limit: 12 }),
+      getUserComments(userId, { limit: 100 }),
       getRemoteMountainGuides(),
-    ]).then(([profileResult, checkInsResult, leaderboardResult, hikesResult, commentsResult, guidesResult]) => {
+      getMyLegalAcceptanceStatus(),
+    ]).then(([profileResult, checkInsResult, leaderboardResult, hikesResult, commentsResult, guidesResult, legalResult]) => {
       if (!isMounted) {
         return;
       }
@@ -950,6 +1024,9 @@ export function ProfileDashboard() {
       if (commentsResult.status === 'rejected') {
         errors.comments = 'We could not load your recent comments.';
       }
+      if (legalResult.status === 'rejected') {
+        errors.legal = 'We could not confirm your Terms acceptance.';
+      }
 
       if (profileResult.status === 'fulfilled') {
         setProfileForm(profileFormFromProfile(profileResult.value));
@@ -966,6 +1043,7 @@ export function ProfileDashboard() {
           guidesResult.status === 'fulfilled' && guidesResult.value.mountains.length > 0
             ? guidesResult.value
             : current.guides,
+        legalStatus: legalResult.status === 'fulfilled' ? legalResult.value : null,
         isLoading: false,
         errors,
       }));
@@ -1240,11 +1318,9 @@ export function ProfileDashboard() {
 
     try {
       const createdHike = await createUserHike({
-        user_id: userId,
         title,
         body: hikeForm.body.trim() || null,
         difficulty: hikeForm.difficulty,
-        status: 'pending',
       });
       setAccountData((current) => ({ ...current, hikes: [createdHike, ...current.hikes] }));
       setHikeForm(initialHikeForm);
@@ -1256,6 +1332,87 @@ export function ProfileDashboard() {
       setHikeStatus({
         type: 'error',
         message: friendlyMutationError(error, 'We could not send your recommendation. Please try again.'),
+      });
+    }
+  }
+
+  async function handleAcceptLegal() {
+    setLegalStatus({ type: 'loading', message: '' });
+
+    try {
+      const nextStatus = await acceptCurrentLegalDocuments();
+      setAccountData((current) => ({ ...current, legalStatus: nextStatus, errors: { ...current.errors, legal: null } }));
+      setLegalStatus({ type: 'success', message: 'Your acceptance has been recorded.' });
+    } catch (error) {
+      setLegalStatus({
+        type: 'error',
+        message: friendlyMutationError(error, 'We could not record your acceptance. Reload and try again.'),
+      });
+    }
+  }
+
+  async function handleDeleteComment(comment) {
+    if (!window.confirm('Delete this comment from the public guide?')) {
+      return;
+    }
+
+    setManagementStatus({ type: 'loading', message: '' });
+
+    try {
+      await deleteOwnComment(comment.id);
+      setAccountData((current) => ({
+        ...current,
+        comments: current.comments.filter((item) => item.id !== comment.id),
+      }));
+      setManagementStatus({ type: 'success', message: 'Comment deleted.' });
+    } catch (error) {
+      setManagementStatus({ type: 'error', message: 'We could not delete that comment. Please try again.' });
+    }
+  }
+
+  async function handleWithdrawHike(hike) {
+    const wording = hike.status === 'approved' ? 'Remove this published recommendation?' : 'Delete this recommendation?';
+
+    if (!window.confirm(wording)) {
+      return;
+    }
+
+    setHikeStatus({ type: 'loading', message: '' });
+
+    try {
+      await withdrawHikeRecommendation(hike.id);
+      setAccountData((current) => ({ ...current, hikes: current.hikes.filter((item) => item.id !== hike.id) }));
+      setHikeStatus({ type: 'success', message: 'Recommendation removed.' });
+    } catch (error) {
+      setHikeStatus({ type: 'error', message: 'We could not remove that recommendation. Please try again.' });
+    }
+  }
+
+  async function handleDeleteAccount(event) {
+    event.preventDefault();
+
+    if (deleteConfirmation !== 'DELETE') {
+      setSessionStatus({ type: 'error', message: 'Type DELETE exactly to confirm permanent account deletion.' });
+      return;
+    }
+
+    if (!window.confirm('Permanently delete your account and associated profile, check-ins, comments, and recommendations?')) {
+      return;
+    }
+
+    setSessionStatus({ type: 'loading', message: '' });
+
+    try {
+      await deleteMyAccount(deleteConfirmation);
+      await signOut().catch(() => undefined);
+      window.location.assign('/');
+    } catch (error) {
+      const recentSignInRequired = error?.message?.includes('Recent sign-in required');
+      setSessionStatus({
+        type: 'error',
+        message: recentSignInRequired
+          ? 'For security, sign out and sign in again, then retry deletion within 15 minutes.'
+          : 'We could not delete your account. Please try again or email contact@lofotenpeaks.no.',
       });
     }
   }
@@ -1707,6 +1864,40 @@ export function ProfileDashboard() {
               <ToolStack>
                 <ToolCard>
                   <ToolIntro>
+                    <h2>Terms and privacy</h2>
+                    <p>Community actions require acceptance of the current Terms of Service.</p>
+                  </ToolIntro>
+                  {accountData.errors.legal && <Message $error role="alert">{accountData.errors.legal}</Message>}
+                  {!accountData.errors.legal && isCurrentLegalAcceptance(accountData.legalStatus) ? (
+                    <Message>
+                      <ShieldCheck size={18} aria-hidden="true" /> Current Terms accepted on{' '}
+                      {formatDate(accountData.legalStatus.termsAcceptedAt)}.
+                    </Message>
+                  ) : (
+                    <>
+                      <p>
+                        Review the <Link to="/terms">Terms of Service</Link> and{' '}
+                        <Link to="/privacy">Privacy Policy</Link>. Continuing with the button below records the
+                        document versions and server time.
+                      </p>
+                      <PrimaryButton
+                        type="button"
+                        disabled={accountData.isLoading || legalStatus.type === 'loading'}
+                        onClick={handleAcceptLegal}
+                      >
+                        <ShieldCheck size={18} aria-hidden="true" />
+                        {legalStatus.type === 'loading' ? 'Recording...' : 'Accept current Terms'}
+                      </PrimaryButton>
+                    </>
+                  )}
+                  {legalStatus.message && (
+                    <Message $error={legalStatus.type === 'error'} role={legalStatus.type === 'error' ? 'alert' : 'status'}>
+                      {legalStatus.message}
+                    </Message>
+                  )}
+                </ToolCard>
+                <ToolCard>
+                  <ToolIntro>
                     <h2>Account settings</h2>
                     <p>Private details used to access your account.</p>
                   </ToolIntro>
@@ -1735,14 +1926,68 @@ export function ProfileDashboard() {
                 <DangerCard>
                   <ToolIntro>
                     <h3>Delete your account</h3>
-                    <p>Self-service deletion is not available yet. Send a deletion request to the privacy contact.</p>
+                    <p>
+                      This permanently deletes your account, profile, check-ins and location evidence, comments, and
+                      hike recommendations. Limited security or moderation records may be retained where necessary.
+                    </p>
                   </ToolIntro>
-                  <SecondaryButton as="a" href="mailto:privacy@lofotenpeaks.no?subject=Account%20deletion%20request">
-                    Request account deletion
-                  </SecondaryButton>
+                  <Form onSubmit={handleDeleteAccount}>
+                    <ConfirmationField>
+                      <label htmlFor="delete-account-confirmation">Type DELETE to confirm</label>
+                      <input
+                        id="delete-account-confirmation"
+                        value={deleteConfirmation}
+                        autoComplete="off"
+                        disabled={sessionStatus.type === 'loading'}
+                        onChange={(event) => setDeleteConfirmation(event.target.value)}
+                      />
+                    </ConfirmationField>
+                    <DangerButton type="submit" disabled={deleteConfirmation !== 'DELETE' || sessionStatus.type === 'loading'}>
+                      <Trash2 size={18} aria-hidden="true" /> Permanently delete account
+                    </DangerButton>
+                  </Form>
                 </DangerCard>
               </ToolStack>
             </ToolGrid>
+
+            <ToolGrid aria-label="Manage your contributions">
+              <ToolCard>
+                <ToolIntro>
+                  <h2>Manage comments</h2>
+                  <p>Deleted comments disappear from public hiking guides.</p>
+                </ToolIntro>
+                {accountData.comments.length === 0 ? (
+                  <EmptyState><h3>No comments to manage</h3><p>Your route comments will appear here.</p></EmptyState>
+                ) : (
+                  <ManagementList>
+                    {accountData.comments.map((comment) => {
+                      const mountain = relationValue(comment.mountains);
+                      const trail = relationValue(comment.trails);
+                      return (
+                        <li key={comment.id}>
+                          <div>
+                            <strong>{mountain?.name ?? trail?.name ?? 'Hiking guide'}</strong>
+                            <span>{formatDate(comment.created_at)} | {comment.body}</span>
+                          </div>
+                          <DangerButton type="button" onClick={() => handleDeleteComment(comment)}>
+                            <Trash2 size={16} aria-hidden="true" /> Delete
+                          </DangerButton>
+                        </li>
+                      );
+                    })}
+                  </ManagementList>
+                )}
+              </ToolCard>
+            </ToolGrid>
+            {managementStatus.message && (
+              <Message
+                $error={managementStatus.type === 'error'}
+                role={managementStatus.type === 'error' ? 'alert' : 'status'}
+                aria-live="polite"
+              >
+                {managementStatus.message}
+              </Message>
+            )}
           </TabPanel>
         )}
 
@@ -1845,6 +2090,10 @@ export function ProfileDashboard() {
                           <StatusBadge $status={hike.status}>{formatStatus(hike.status)}</StatusBadge>
                         </SubmissionMeta>
                         {hike.body && <p>{hike.body}</p>}
+                        <DangerButton type="button" onClick={() => handleWithdrawHike(hike)}>
+                          <Trash2 size={16} aria-hidden="true" />
+                          {hike.status === 'approved' ? 'Remove' : 'Delete'}
+                        </DangerButton>
                       </li>
                     ))}
                   </SubmissionList>

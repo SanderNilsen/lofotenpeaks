@@ -1,125 +1,54 @@
-# Backend and Auth Plan
+# Backend and Auth Architecture
 
-Recommended backend: Supabase.
+Supabase is the production backend for Lofoten Peaks. It provides email/password authentication, PostgreSQL, Row Level
+Security, RPC functions, and storage for administrator-managed guide media.
 
-Supabase fits this project because it gives us authentication, Postgres data tables, file storage, row-level security, and enough API surface to build the next phases without writing a custom backend immediately.
+## Current Scope
 
-## Phase 2A - Backend Foundation
+- Public mountain guides, parsed route geometry, images, maps, weather, and safety notes
+- Email/password accounts and editable profiles
+- Location-verified summit check-ins, points, and a leaderboard
+- Public comments with owner removal and signed-in reporting
+- Moderated text hike recommendations
+- Signed-in route corrections reviewed by administrators
+- Versioned Terms acceptance and Privacy Policy acknowledgement
+- Self-service account deletion after recent authentication
+- Admin guide publishing, image/GPX management, route review dates, and moderation queues
 
-Goal: create the backend project and connect the frontend safely.
+## Privacy Boundaries
 
-Tasks:
+- Public check-in rows contain activity summaries only.
+- Exact coordinates, reported browser accuracy, and calculated summit distance live in `check_in_verifications`.
+- Anonymous users have no access to that verification table.
+- Signed-in users can read only their own verification evidence; administrators can read it when necessary.
+- Original guide GPX files remain in the private `trail-gpx` bucket. Public guide maps use parsed GeoJSON.
+- Legal acceptance timestamps and versions are recorded by server-side functions.
+- Account deletion removes account-linked records or disconnects the user identity from limited moderation records.
 
-- Create a Supabase project.
-- Run `supabase/schema.sql` in the Supabase SQL editor.
-- Create storage buckets:
-  - `avatars`
-  - `check-in-photos`
-  - `user-hike-photos`
-  - `gpx-routes`
-- Add frontend environment variables:
-  - `VITE_SUPABASE_URL`
-  - `VITE_SUPABASE_ANON_KEY`
-- Add the same environment variables in GitHub deployment secrets for Uniweb.
-- Keep existing static mountain/trail data until the database content is verified.
+## Contribution Controls
 
-## Phase 2B - Authentication
+Comments, recommendations, reports, and corrections must use server RPCs. Direct client inserts are revoked so rate
+limits, validation, current-Terms checks, and moderation status cannot be bypassed by changing frontend code.
 
-Goal: users can register, log in, log out, and manage a basic profile.
+Administrators review:
 
-Frontend tasks:
+- reported comments;
+- pending or removal-requested hike recommendations; and
+- submitted route corrections.
 
-- Add login/register pages.
-- Add auth state provider.
-- Add header account menu.
-- Add profile page.
-- Show signed-in-only actions without blocking public guide pages.
+Moderation decisions create a restricted audit record.
 
-Backend tables:
+## Deliberately Unsupported
 
-- `profiles`
+The current product does not support user GPX uploads, user photo uploads, ratings, saved hikes, social login, payments,
+bookings, a newsletter, or a shop. Do not describe or imitate these features in the frontend without a reviewed backend,
+privacy model, moderation process, and retention policy.
 
-Auth rules:
+## Operational Requirements
 
-- Public users can read public profile display data.
-- Signed-in users can update only their own profile.
-- New Supabase Auth users automatically get a profile row.
-
-## Phase 2C - Mountain Check-Ins and Points
-
-Goal: registered users can check in at mountain tops and earn points.
-
-Backend tables:
-
-- `check_ins`
-- `leaderboard` view
-
-Recommended first rules:
-
-- A per-mountain point award configured in Admin (10 points by default).
-- One check-in per user per mountain per day.
-- Store optional GPS location and distance to summit.
-- Show leaderboard from approved check-ins only.
-
-Anti-cheat can start simple:
-
-- Frontend checks browser geolocation.
-- Backend stores submitted coordinates.
-- Later, add stricter validation with an Edge Function:
-  - Require user to be within a chosen radius of the summit.
-  - Reject impossible travel speed between check-ins.
-  - Flag suspicious repeated attempts.
-
-## Phase 2D - Comments and User Hikes
-
-Goal: signed-in users can comment and post hike recommendations.
-
-Backend tables:
-
-- `comments`
-- `user_hikes`
-
-Recommended moderation:
-
-- Start with comments approved by default if this is a school/personal project.
-- Add `status` now so moderation can be introduced later without changing the schema.
-- Let users edit their own comments/hikes.
-- Public users only see approved comments/hikes.
-
-## Phase 2E - User GPX Routes
-
-Goal: users can optionally attach a GPX route to a hike recommendation.
-
-Backend tables:
-
-- `user_hikes`
-
-Storage:
-
-- Store original GPX files in `gpx-routes`.
-
-Recommended flow:
-
-- User uploads a GPX file.
-- Frontend validates and parses it for a route preview.
-- Store the original GPX and a simplified GeoJSON route.
-- Keep submitted routes private until the associated hike recommendation is approved.
-- Let the owner delete or replace the file.
-
-## Data Migration Order
-
-1. Keep static frontend data as the source of truth during setup.
-2. Create Supabase tables and storage buckets.
-3. Seed mountains and trails from `src/data`.
-4. Switch read-only guide pages to fetch from Supabase.
-5. Add auth.
-6. Add check-ins and leaderboard.
-7. Add comments and user hikes.
-8. Add optional GPX uploads to user hike recommendations.
-
-## Current Implementation State
-
-- Static MVP guide pages remain unchanged for public users.
-- Supabase schema is prepared in `supabase/schema.sql`.
-- Frontend Supabase client scaffolding lives under `src/lib/supabase`.
-- Real backend calls should be added after `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` are configured.
+1. Apply SQL in the order documented in `docs/database-operations.md`.
+2. Run `supabase/tests/privacy_safety_access.sql` after the privacy migration.
+3. Verify anonymous REST responses in the production Supabase project before deploying the matching frontend.
+4. Review provider regions, processing agreements, log retention, backups, and international transfer safeguards.
+5. Define fixed retention periods for moderation records, reports, route corrections, logs, backups, and Analytics.
+6. Review route content periodically and record the date in the admin guide editor.

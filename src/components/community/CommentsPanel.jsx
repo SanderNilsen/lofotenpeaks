@@ -1,10 +1,15 @@
-import { LogIn, MessageCircle, Send } from 'lucide-react';
+import { Flag, LogIn, MessageCircle, Send, Trash2, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import styled from 'styled-components';
 import { useAuth } from '../../features/auth/AuthProvider.jsx';
 import { getSafePublicDisplayName } from '../../lib/profile.js';
-import { createTrailComment, getCommentsForTrail } from '../../lib/supabase/api.js';
+import {
+  createTrailComment,
+  deleteOwnComment,
+  getCommentsForTrail,
+  reportContent,
+} from '../../lib/supabase/api.js';
 import { theme } from '../../styles/theme.js';
 
 const Panel = styled.section`
@@ -76,6 +81,92 @@ const CommentBody = styled.p`
   line-height: 1.6;
   margin: 0;
   white-space: pre-wrap;
+`;
+
+const CommentActions = styled.div`
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+`;
+
+const TextButton = styled.button`
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: ${theme.radii.small};
+  color: ${({ $danger }) => ($danger ? theme.colors.warning : theme.colors.muted)};
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 800;
+  gap: 6px;
+  min-height: 40px;
+  padding: 7px 8px;
+
+  &:hover {
+    color: ${theme.colors.ink};
+  }
+
+  &:focus-visible {
+    outline: 3px solid ${theme.colors.fjord};
+    outline-offset: 2px;
+  }
+`;
+
+const ReportForm = styled.form`
+  background: ${theme.colors.surface};
+  border: 1px solid ${theme.colors.line};
+  border-radius: ${theme.radii.small};
+  display: grid;
+  gap: 12px;
+  margin-top: 4px;
+  padding: 14px;
+
+  h3,
+  p {
+    margin: 0;
+  }
+
+  h3 {
+    font-size: 1rem;
+  }
+
+  p {
+    color: ${theme.colors.muted};
+    font-size: 0.86rem;
+    line-height: 1.5;
+  }
+
+  label {
+    display: grid;
+    font-size: 0.84rem;
+    font-weight: 800;
+    gap: 6px;
+  }
+
+  select,
+  textarea {
+    background: ${theme.colors.background};
+    border: 1px solid ${theme.colors.line};
+    border-radius: ${theme.radii.small};
+    color: ${theme.colors.ink};
+    font: inherit;
+    padding: 10px;
+    width: 100%;
+
+    &:focus-visible {
+      border-color: ${theme.colors.fjord};
+      outline: 3px solid rgba(36, 95, 130, 0.2);
+      outline-offset: 1px;
+    }
+  }
+
+  textarea {
+    min-height: 86px;
+    resize: vertical;
+  }
 `;
 
 const Form = styled.form`
@@ -182,11 +273,30 @@ function getDisplayName(comment) {
   return getSafePublicDisplayName(comment.profiles?.display_name);
 }
 
+function getCommunityError(error, fallback) {
+  if (error?.message?.includes('Accept the current Terms')) {
+    return 'Review and accept the current Terms in Account settings before contributing.';
+  }
+
+  if (error?.message?.includes('already reported')) {
+    return 'You have already reported this comment for review.';
+  }
+
+  if (error?.message?.includes('wait')) {
+    return error.message;
+  }
+
+  return fallback;
+}
+
 function CommentsPanelContent({ trail }) {
   const { isConfigured, isLoading: authIsLoading, user } = useAuth();
   const [comments, setComments] = useState([]);
   const [body, setBody] = useState('');
   const [status, setStatus] = useState({ type: 'idle', message: '' });
+  const [reportingCommentId, setReportingCommentId] = useState(null);
+  const [reportForm, setReportForm] = useState({ reason: 'misleading', details: '' });
+  const [reportStatus, setReportStatus] = useState({ type: 'idle', message: '' });
 
   useEffect(() => {
     if (!isConfigured || !trail?.id) {
@@ -227,7 +337,6 @@ function CommentsPanelContent({ trail }) {
 
     try {
       await createTrailComment({
-        userId: user.id,
         mountainId: trail.mountainId,
         trailId: trail.id,
         body,
@@ -237,7 +346,59 @@ function CommentsPanelContent({ trail }) {
       setBody('');
       setStatus({ type: 'success', message: 'Comment posted.' });
     } catch (error) {
-      setStatus({ type: 'error', message: 'We could not post your comment. Please try again.' });
+      setStatus({
+        type: 'error',
+        message: getCommunityError(error, 'We could not post your comment. Please try again.'),
+      });
+    }
+  }
+
+  async function handleDelete(comment) {
+    if (!window.confirm('Delete this comment? It will disappear from the public guide.')) {
+      return;
+    }
+
+    setStatus({ type: 'loading', message: '' });
+
+    try {
+      await deleteOwnComment(comment.id);
+      setComments((items) => items.filter((item) => item.id !== comment.id));
+      setStatus({ type: 'success', message: 'Comment deleted.' });
+    } catch (error) {
+      setStatus({ type: 'error', message: 'We could not delete this comment. Please try again.' });
+    }
+  }
+
+  function openReport(commentId) {
+    if (!user) {
+      setStatus({ type: 'error', message: 'Sign in before reporting community content.' });
+      return;
+    }
+
+    setReportingCommentId(commentId);
+    setReportForm({ reason: 'misleading', details: '' });
+    setReportStatus({ type: 'idle', message: '' });
+  }
+
+  async function handleReport(event) {
+    event.preventDefault();
+    setReportStatus({ type: 'loading', message: '' });
+
+    try {
+      await reportContent({
+        contentType: 'comment',
+        targetId: reportingCommentId,
+        reason: reportForm.reason,
+        details: reportForm.details,
+      });
+      setReportingCommentId(null);
+      setReportStatus({ type: 'idle', message: '' });
+      setStatus({ type: 'success', message: 'Report sent for administrator review.' });
+    } catch (error) {
+      setReportStatus({
+        type: 'error',
+        message: getCommunityError(error, 'We could not send this report. Please try again.'),
+      });
     }
   }
 
@@ -269,6 +430,64 @@ function CommentsPanelContent({ trail }) {
                 <span>{formatCommentDate(comment.created_at)}</span>
               </CommentMeta>
               <CommentBody>{comment.body}</CommentBody>
+              <CommentActions>
+                {user?.id !== comment.user_id && (
+                  <TextButton type="button" onClick={() => openReport(comment.id)}>
+                    <Flag size={15} aria-hidden="true" /> Report
+                  </TextButton>
+                )}
+                {user?.id === comment.user_id && (
+                  <TextButton type="button" $danger onClick={() => handleDelete(comment)}>
+                    <Trash2 size={15} aria-hidden="true" /> Delete
+                  </TextButton>
+                )}
+              </CommentActions>
+              {reportingCommentId === comment.id && (
+                <ReportForm onSubmit={handleReport} aria-label="Report comment">
+                  <div>
+                    <h3>Report this comment</h3>
+                    <p>Reports are private and reviewed by an administrator. Reporting does not automatically remove the comment.</p>
+                  </div>
+                  <label>
+                    Reason
+                    <select
+                      value={reportForm.reason}
+                      disabled={reportStatus.type === 'loading'}
+                      onChange={(event) => setReportForm((current) => ({ ...current, reason: event.target.value }))}
+                    >
+                      <option value="spam">Spam</option>
+                      <option value="harassment">Harassment or abusive language</option>
+                      <option value="dangerous">Dangerous advice</option>
+                      <option value="misleading">Misleading hiking information</option>
+                      <option value="privacy">Personal information</option>
+                      <option value="illegal">Illegal content</option>
+                      <option value="copyright">Copyright concern</option>
+                      <option value="other">Other</option>
+                    </select>
+                  </label>
+                  <label>
+                    Details (optional)
+                    <textarea
+                      maxLength="500"
+                      value={reportForm.details}
+                      disabled={reportStatus.type === 'loading'}
+                      onChange={(event) => setReportForm((current) => ({ ...current, details: event.target.value }))}
+                    />
+                  </label>
+                  <CommentActions>
+                    <Button type="submit" disabled={reportStatus.type === 'loading'}>
+                      <Flag size={16} aria-hidden="true" />
+                      {reportStatus.type === 'loading' ? 'Sending...' : 'Send report'}
+                    </Button>
+                    <TextButton type="button" onClick={() => setReportingCommentId(null)}>
+                      <X size={15} aria-hidden="true" /> Cancel
+                    </TextButton>
+                  </CommentActions>
+                  {reportStatus.message && (
+                    <Message $error role="alert">{reportStatus.message}</Message>
+                  )}
+                </ReportForm>
+              )}
             </CommentItem>
           ))}
         </CommentList>

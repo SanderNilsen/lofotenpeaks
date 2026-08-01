@@ -41,30 +41,107 @@ import { useAuth } from '../auth/AuthProvider.jsx';
 const Page = styled.section`
   margin: 0 auto;
   max-width: ${theme.pageWidth};
-  padding: 48px 24px 72px;
+  padding: 42px 24px 80px;
+
+  @media (max-width: 640px) {
+    padding: 30px 16px 64px;
+  }
 `;
 
 const Header = styled.header`
-  margin-bottom: 24px;
+  align-items: end;
+  display: flex;
+  gap: 28px;
+  justify-content: space-between;
+  margin-bottom: 26px;
 
   h1 {
-    font-size: clamp(2.2rem, 5vw, 3.8rem);
-    margin: 0 0 10px;
+    font-size: clamp(2.3rem, 4vw, 3.25rem);
+    line-height: 1.08;
+    margin: 0;
+    overflow-wrap: anywhere;
   }
 
-  p {
+  > div {
+    min-width: 0;
+  }
+
+  > div > p:not(:first-child) {
     color: ${theme.colors.muted};
     line-height: 1.6;
+    margin: 10px 0 0;
+    max-width: 650px;
+  }
+
+  @media (max-width: 820px) {
+    align-items: start;
+    flex-direction: column;
+    gap: 20px;
+  }
+`;
+
+const Eyebrow = styled.p`
+  align-items: center;
+  color: ${theme.colors.forest};
+  display: flex;
+  font-size: 0.76rem;
+  font-weight: 900;
+  gap: 7px;
+  margin: 0 0 10px !important;
+  text-transform: uppercase;
+`;
+
+const AdminStats = styled.dl`
+  background: ${theme.colors.surface};
+  border: 1px solid ${theme.colors.line};
+  border-radius: ${theme.radii.medium};
+  display: grid;
+  flex: 0 0 auto;
+  grid-template-columns: repeat(3, minmax(76px, 1fr));
+  margin: 0;
+
+  div {
+    display: grid;
+    gap: 2px;
+    min-width: 82px;
+    padding: 12px 15px;
+  }
+
+  div + div {
+    border-left: 1px solid ${theme.colors.line};
+  }
+
+  dt {
+    color: ${theme.colors.muted};
+    font-size: 0.68rem;
+    font-weight: 800;
+    order: 2;
+    text-transform: uppercase;
+  }
+
+  dd {
+    color: ${theme.colors.ink};
+    font-size: 1.25rem;
+    font-weight: 900;
+    line-height: 1;
     margin: 0;
-    max-width: 720px;
+  }
+
+  @media (max-width: 460px) {
+    width: 100%;
+
+    div {
+      min-width: 0;
+      padding: 11px 10px;
+    }
   }
 `;
 
 const AdminLayout = styled.div`
   align-items: start;
   display: grid;
-  gap: 20px;
-  grid-template-columns: minmax(260px, 320px) minmax(0, 1fr);
+  gap: 22px;
+  grid-template-columns: minmax(270px, 310px) minmax(0, 1fr);
 
   @media (max-width: 900px) {
     grid-template-columns: 1fr;
@@ -77,7 +154,11 @@ const Panel = styled.section`
   border-radius: ${theme.radii.medium};
   display: grid;
   gap: 18px;
-  padding: 22px;
+  padding: 24px;
+
+  > * {
+    min-width: 0;
+  }
 
   h2 {
     align-items: center;
@@ -86,16 +167,20 @@ const Panel = styled.section`
     gap: 8px;
     margin: 0;
   }
+
+  @media (max-width: 640px) {
+    padding: 20px;
+  }
 `;
 
 const GuidePanel = styled(Panel)`
   align-content: start;
   grid-template-rows: auto auto auto minmax(0, 1fr);
-  height: calc(100vh - 108px);
+  height: calc(100vh - 104px);
   min-height: 0;
   overflow: hidden;
   position: sticky;
-  top: 92px;
+  top: 86px;
 
   @media (max-width: 900px) {
     height: auto;
@@ -105,7 +190,10 @@ const GuidePanel = styled(Panel)`
 `;
 
 const EditorPanel = styled(Panel)`
+  display: block;
   min-width: 0;
+  overflow: visible;
+  padding: 0;
   scroll-margin-top: 92px;
 `;
 
@@ -119,7 +207,7 @@ const ToolRow = styled.div`
 
 const GuideTools = styled.div`
   display: grid;
-  gap: 10px;
+  gap: 12px;
 `;
 
 const GuideStatus = styled.div`
@@ -132,16 +220,23 @@ const GuideStatus = styled.div`
 `;
 
 const SearchField = styled.label`
-  display: block;
+  display: grid;
+  gap: 6px;
   position: relative;
+
+  > span {
+    color: ${theme.colors.muted};
+    font-size: 0.7rem;
+    font-weight: 800;
+    text-transform: uppercase;
+  }
 
   svg {
     color: ${theme.colors.muted};
     left: 12px;
     pointer-events: none;
     position: absolute;
-    top: 50%;
-    transform: translateY(-50%);
+    top: 42px;
   }
 
   input {
@@ -154,9 +249,10 @@ const SearchField = styled.label`
     width: 100%;
   }
 
-  input:focus {
-    border-color: ${theme.colors.forest};
-    outline: 2px solid rgba(47, 111, 94, 0.16);
+  input:focus-visible {
+    border-color: ${theme.colors.fjord};
+    outline: 3px solid rgba(36, 95, 130, 0.2);
+    outline-offset: 1px;
   }
 `;
 
@@ -175,6 +271,12 @@ const GuideFilterRow = styled.div`
     padding: 7px 10px;
   }
 
+  select:focus-visible {
+    border-color: ${theme.colors.fjord};
+    outline: 3px solid rgba(36, 95, 130, 0.2);
+    outline-offset: 1px;
+  }
+
   span {
     color: ${theme.colors.muted};
     font-size: 0.82rem;
@@ -184,7 +286,7 @@ const GuideFilterRow = styled.div`
 
 const GuideList = styled.div`
   display: grid;
-  gap: 10px;
+  gap: 8px;
   max-height: calc(100vh - 330px);
   min-height: 0;
   overflow-y: auto;
@@ -196,14 +298,14 @@ const GuideList = styled.div`
 `;
 
 const GuideButton = styled.button`
-  background: ${({ $active }) => ($active ? theme.colors.background : 'transparent')};
+  background: ${({ $active }) => ($active ? '#e8f2ef' : 'transparent')};
   border: 1px solid ${({ $active }) => ($active ? theme.colors.forest : theme.colors.line)};
   border-radius: ${theme.radii.small};
   color: ${theme.colors.ink};
   cursor: pointer;
   display: grid;
   gap: 5px;
-  padding: 12px;
+  padding: 13px;
   text-align: left;
   transition:
     background 150ms ease,
@@ -211,14 +313,13 @@ const GuideButton = styled.button`
     transform 150ms ease;
 
   &:hover {
-    background: ${theme.colors.background};
+    background: ${({ $active }) => ($active ? '#e8f2ef' : theme.colors.background)};
     border-color: ${theme.colors.forest};
-    transform: translateY(-1px);
   }
 
   &:focus-visible {
-    outline: 3px solid rgba(47, 111, 94, 0.2);
-    outline-offset: 1px;
+    outline: 3px solid rgba(36, 95, 130, 0.25);
+    outline-offset: 2px;
   }
 
   &:disabled {
@@ -236,6 +337,10 @@ const GuideButton = styled.button`
     font-size: 0.86rem;
     font-weight: 700;
     line-height: 1.35;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
   }
 `;
 
@@ -258,7 +363,7 @@ const EmptyState = styled.p`
   font-weight: 700;
   line-height: 1.5;
   margin: 0;
-  padding: 12px 2px;
+  padding: 16px 2px;
 `;
 
 const EditorHeader = styled.div`
@@ -266,6 +371,11 @@ const EditorHeader = styled.div`
   display: flex;
   gap: 14px;
   justify-content: space-between;
+  padding: 24px;
+
+  h2 {
+    font-size: 1.35rem;
+  }
 
   div {
     display: grid;
@@ -281,6 +391,7 @@ const EditorHeader = styled.div`
   @media (max-width: 680px) {
     align-items: stretch;
     flex-direction: column;
+    padding: 20px 16px;
   }
 `;
 
@@ -289,55 +400,64 @@ const SectionNav = styled.nav`
   border-bottom: 1px solid ${theme.colors.line};
   border-top: 1px solid ${theme.colors.line};
   display: flex;
-  gap: 8px;
-  margin: 0 -22px;
+  gap: 2px;
+  margin: 0px 0px 15px ;
   overflow-x: auto;
-  padding: 10px 22px;
+  padding: 7px 24px;
   position: sticky;
-  top: 76px;
+  top: 72px;
   z-index: 10;
 
   a {
-    background: ${theme.colors.background};
-    border: 1px solid ${theme.colors.line};
-    border-radius: 999px;
+    border: 0;
+    border-bottom: 2px solid transparent;
     color: ${theme.colors.ink};
     flex: 0 0 auto;
     font-size: 0.82rem;
     font-weight: 800;
-    padding: 8px 11px;
+    padding: 9px 12px 7px;
     text-decoration: none;
   }
 
-  a:hover,
-  a:focus-visible {
-    border-color: ${theme.colors.forest};
+  a:hover {
+    border-bottom-color: ${theme.colors.forest};
     color: ${theme.colors.forest};
+  }
+
+  a:focus-visible {
+    border-radius: ${theme.radii.small};
+    outline: 3px solid rgba(36, 95, 130, 0.25);
+    outline-offset: 1px;
+  }
+
+  @media (max-width: 640px) {
+    padding-inline: 12px;
   }
 `;
 
 const Form = styled.form`
   display: grid;
-  gap: 22px;
+  gap: 0;
+  padding: 0 24px 24px;
+
+  @media (max-width: 640px) {
+    padding: 0 16px 16px;
+  }
 `;
 
 const Fieldset = styled.fieldset`
-  background: #fbfaf8;
-  border: 1px solid ${theme.colors.line};
-  border-radius: ${theme.radii.medium};
+  border: 0;
+  border-top: 1px solid ${theme.colors.line};
   display: grid;
   gap: 14px;
   margin: 0;
-  padding: 18px;
+  padding: 28px 0 30px;
   scroll-margin-top: 150px;
 
   legend {
-    background: ${theme.colors.surface};
-    border: 1px solid ${theme.colors.line};
-    border-radius: 999px;
-    font-size: 1.05rem;
+    font-size: 1.3rem;
     font-weight: 900;
-    padding: 7px 12px;
+    padding: 0px 10px 0 0;
   }
 
   &:disabled {
@@ -349,7 +469,8 @@ const SectionIntro = styled.p`
   color: ${theme.colors.muted};
   font-size: 0.9rem;
   line-height: 1.5;
-  margin: -2px 0 2px;
+  margin: 0 0 4px;
+  max-width: 680px;
 `;
 
 const Grid = styled.div`
@@ -393,8 +514,9 @@ const Field = styled.label`
   input:focus,
   select:focus,
   textarea:focus {
-    border-color: ${theme.colors.forest};
-    outline: 2px solid rgba(47, 111, 94, 0.16);
+    border-color: ${theme.colors.fjord};
+    outline: 3px solid rgba(36, 95, 130, 0.2);
+    outline-offset: 1px;
   }
 
   small {
@@ -430,6 +552,15 @@ const Button = styled.button`
   padding: 10px 14px;
   text-decoration: none;
 
+  &:hover:not(:disabled) {
+    background: #245b4e;
+  }
+
+  &:focus-visible {
+    outline: 3px solid ${theme.colors.fjord};
+    outline-offset: 2px;
+  }
+
   &:disabled {
     cursor: not-allowed;
     opacity: 0.65;
@@ -440,6 +571,11 @@ const SecondaryButton = styled(Button)`
   background: ${theme.colors.background};
   border: 1px solid ${theme.colors.line};
   color: ${theme.colors.ink};
+
+  &:hover:not(:disabled) {
+    background: #e7e5e0;
+    border-color: #bdb8ae;
+  }
 `;
 
 const DangerButton = styled(SecondaryButton)`
@@ -450,7 +586,7 @@ const DangerZone = styled.div`
   align-items: center;
   background: #f8eee7;
   border: 1px solid #dfc4af;
-  border-radius: ${theme.radii.medium};
+  border-radius: ${theme.radii.small};
   display: flex;
   gap: 14px;
   justify-content: space-between;
@@ -486,14 +622,29 @@ const SaveBar = styled.div`
   display: flex;
   gap: 14px;
   justify-content: space-between;
-  margin: 0 -22px -22px;
-  padding: 14px 22px;
+  margin: 0 -24px -24px;
+  padding: 14px 24px;
   position: sticky;
   z-index: 12;
 
   @media (max-width: 680px) {
     align-items: stretch;
     flex-direction: column;
+    margin: 0 -16px -16px;
+    padding: 14px 16px;
+
+    ${ButtonRow} {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    ${Button} {
+      width: 100%;
+    }
+
+    ${Button}:last-child {
+      grid-column: 1 / -1;
+    }
   }
 `;
 
@@ -531,10 +682,19 @@ const Message = styled.p`
   font-weight: 800;
   line-height: 1.55;
   margin: 0;
+  overflow-wrap: anywhere;
   padding: 12px;
 
   a {
     color: ${theme.colors.forest};
+  }
+`;
+
+const EditorStatus = styled.div`
+  padding: 16px 24px 0;
+
+  @media (max-width: 640px) {
+    padding: 14px 16px 0;
   }
 `;
 
@@ -551,6 +711,11 @@ const AccountLink = styled(Link)`
   min-height: 44px;
   padding: 10px 14px;
   text-decoration: none;
+
+  &:focus-visible {
+    outline: 3px solid ${theme.colors.fjord};
+    outline-offset: 3px;
+  }
 `;
 
 const UploadNote = styled.p`
@@ -583,7 +748,7 @@ const GalleryManager = styled.div`
 const GalleryItem = styled.article`
   background: ${theme.colors.background};
   border: 1px solid ${theme.colors.line};
-  border-radius: ${theme.radii.medium};
+  border-radius: ${theme.radii.small};
   display: grid;
   gap: 12px;
   grid-template-columns: 130px minmax(0, 1fr);
@@ -616,7 +781,7 @@ const HeroChoice = styled.label`
   align-items: center;
   background: ${({ $active }) => ($active ? '#e4eee6' : theme.colors.surface)};
   border: 1px solid ${({ $active }) => ($active ? theme.colors.forest : theme.colors.line)};
-  border-radius: 999px;
+  border-radius: ${theme.radii.small};
   color: ${({ $active }) => ($active ? theme.colors.forest : theme.colors.ink)};
   cursor: pointer;
   display: inline-flex;
@@ -641,7 +806,7 @@ const SavedAsset = styled.div`
   align-items: center;
   background: ${theme.colors.background};
   border: 1px solid ${theme.colors.line};
-  border-radius: ${theme.radii.medium};
+  border-radius: ${theme.radii.small};
   display: flex;
   gap: 12px;
   grid-column: 1 / -1;
@@ -1026,6 +1191,8 @@ export function AdminPage() {
       return matchesVisibility && (!query || searchableText.includes(query));
     });
   }, [guideQuery, guideVisibility, guides]);
+  const publishedGuideCount = guides.filter((guide) => guide.mountain.published).length;
+  const draftGuideCount = guides.length - publishedGuideCount;
   const hasUnsavedChanges = useMemo(
     () =>
       JSON.stringify(form) !== JSON.stringify(savedForm) ||
@@ -1649,10 +1816,32 @@ export function AdminPage() {
       <Seo
         title="Admin"
         description="Admin tools for adding and managing Lofoten Peaks mountain guides."
+        noIndex
       />
       <Header>
-        <h1>Admin</h1>
-        <p>Add and update Supabase mountain guides without editing static frontend files.</p>
+        <div>
+          <Eyebrow>
+            <ShieldCheck size={15} aria-hidden="true" /> Publishing workspace
+          </Eyebrow>
+          <h1>Mountain guide admin</h1>
+          <p>Create, review, and publish the hiking information shown across Lofoten Peaks.</p>
+        </div>
+        {isConfigured && !authIsLoading && user && !isCheckingAdmin && isAdmin && (
+          <AdminStats aria-label="Guide publishing summary">
+            <div>
+              <dt>Guides</dt>
+              <dd>{guides.length}</dd>
+            </div>
+            <div>
+              <dt>Published</dt>
+              <dd>{publishedGuideCount}</dd>
+            </div>
+            <div>
+              <dt>Drafts</dt>
+              <dd>{draftGuideCount}</dd>
+            </div>
+          </AdminStats>
+        )}
       </Header>
 
       {!isConfigured && (
@@ -1701,7 +1890,7 @@ export function AdminPage() {
           <GuidePanel>
             <ToolRow>
               <h2>
-                <Mountain size={18} aria-hidden="true" /> Guides
+                <Mountain size={18} aria-hidden="true" /> Guide library
               </h2>
               <ButtonRow>
                 <SecondaryButton
@@ -1718,6 +1907,7 @@ export function AdminPage() {
             </ToolRow>
             <GuideTools>
               <SearchField>
+                <span>Find a guide</span>
                 <Search size={17} aria-hidden="true" />
                 <input
                   type="search"
@@ -1819,13 +2009,15 @@ export function AdminPage() {
               <a href="#admin-gallery">Gallery</a>
             </SectionNav>
             {status.message && (
-              <Message
-                $error={status.type === 'error'}
-                role={status.type === 'error' ? 'alert' : 'status'}
-                aria-live="polite"
-              >
-                {status.message}
-              </Message>
+              <EditorStatus>
+                <Message
+                  $error={status.type === 'error'}
+                  role={status.type === 'error' ? 'alert' : 'status'}
+                  aria-live="polite"
+                >
+                  {status.message}
+                </Message>
+              </EditorStatus>
             )}
             <Form id="admin-guide-form" onSubmit={handleSubmit}>
               <Fieldset id="admin-mountain" disabled={status.type === 'loading'}>

@@ -517,7 +517,6 @@ const Checklist = styled.ul`
 `;
 
 const RouteSafety = styled.section`
-  border-bottom: 1px solid ${theme.colors.line};
   border-top: 1px solid ${theme.colors.line};
   padding: 28px 0;
 
@@ -591,7 +590,7 @@ const OfficialSafetyLinks = styled.div`
 
 const FullSection = styled.section`
   border-top: 1px solid ${theme.colors.line};
-  margin-top: 64px;
+  margin-top: 10px;
   padding-top: 54px;
   scroll-margin-top: 104px;
 

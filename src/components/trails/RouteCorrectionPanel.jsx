@@ -7,7 +7,6 @@ import { submitRouteCorrection } from '../../lib/supabase/api.js';
 import { theme } from '../../styles/theme.js';
 
 const Panel = styled.section`
-  border-bottom: 1px solid ${theme.colors.line};
   border-top: 1px solid ${theme.colors.line};
   display: grid;
   gap: 14px;

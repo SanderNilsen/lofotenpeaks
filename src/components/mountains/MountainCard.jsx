@@ -1,4 +1,4 @@
-import { ArrowRight, Clock, MapPin, Mountain, Route, TrendingUp } from 'lucide-react';
+import { ArrowRight, Clock, MapPin, Mountain, Route } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import styled from 'styled-components';
 import { formatDistance, formatElevation } from '../../lib/formatters.js';
@@ -135,7 +135,7 @@ export function MountainCard({ mountain, trail, headingLevel = 2 }) {
           </Region>
           <RouteMeta aria-label={`${mountain.name} route summary`}>
             <DifficultyBadge difficulty={trail?.difficulty ?? mountain.difficulty} />
-            {trail ? (
+            {trail && (
               <>
                 <span>
                   <Clock size={15} aria-hidden="true" /> {trail.estimatedDuration}
@@ -143,15 +143,11 @@ export function MountainCard({ mountain, trail, headingLevel = 2 }) {
                 <span>
                   <Route size={15} aria-hidden="true" /> {formatDistance(trail.lengthKm)}
                 </span>
-                <span>
-                  <TrendingUp size={15} aria-hidden="true" /> {formatElevation(trail.elevationGainMeters)} ascent
-                </span>
               </>
-            ) : (
-              <span>
-                <Mountain size={15} aria-hidden="true" /> {formatElevation(mountain.heightMeters)} high
-              </span>
             )}
+            <span>
+              <Mountain size={15} aria-hidden="true" /> {formatElevation(mountain.heightMeters)}
+            </span>
           </RouteMeta>
           <Summary>{mountain.summary}</Summary>
           <Action>

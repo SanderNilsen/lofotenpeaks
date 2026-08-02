@@ -313,8 +313,9 @@ export function TermsPage() {
             </p>
             <p>
               Registered users can maintain a public-facing profile identity, make location-verified summit check-ins,
-              collect virtual points, appear on a leaderboard, post comments, and submit text hike recommendations for
-              review. Points have no monetary value and cannot be transferred or exchanged.
+              collect virtual points and activity badges, appear on a leaderboard, post comments, and submit text hike
+              recommendations for review. Points and badges have no monetary value and cannot be transferred or
+              exchanged.
             </p>
             <p>
               Public users cannot currently upload GPX files, route photographs, or reviews. GPX and gallery uploads

@@ -11,8 +11,10 @@ This project uses Supabase as the backend for auth, guide content, check-ins, co
 - `supabase/migrations/20260801000001_legacy_check_in_compatibility.sql`: temporary five-argument check-in RPC compatibility without re-exposing location evidence
 - `supabase/migrations/20260801000002_admin_guide_view_security_invoker.sql`: makes the admin guide view enforce the querying user's permissions and RLS policies
 - `supabase/migrations/20260801000003_secure_admin_guide_reader.sql`: preserves the admin view contract while keeping private guide fields behind a server-side admin check
+- `supabase/migrations/20260802000000_leaderboard_badges.sql`: server-calculated leaderboard periods and metrics, badge definitions, idempotent badge reconciliation, indexes, and historical badge backfill
 - `supabase/tests/privacy_safety_access.sql`: read-only assertions for critical grants, RLS, and RPC access
 - `supabase/tests/privacy_safety_behaviour.sql`: rollback-only owner/admin, moderation, rate-limit, and deletion behaviour tests
+- `supabase/tests/leaderboard_badges.sql`: rollback-only ranking, timeframe, badge, idempotency, and public-field assertions
 - `scripts/verify-public-privacy.sh`: direct anonymous REST test proving precise coordinate queries are blocked
 
 ## Apply Order
@@ -27,8 +29,10 @@ npx -y supabase db query --linked --file supabase/migrations/20260801000000_priv
 npx -y supabase db query --linked --file supabase/migrations/20260801000001_legacy_check_in_compatibility.sql
 npx -y supabase db query --linked --file supabase/migrations/20260801000002_admin_guide_view_security_invoker.sql
 npx -y supabase db query --linked --file supabase/migrations/20260801000003_secure_admin_guide_reader.sql
+npx -y supabase db query --linked --file supabase/migrations/20260802000000_leaderboard_badges.sql
 npx -y supabase db query --linked --file supabase/tests/privacy_safety_access.sql
 npx -y supabase db query --linked --file supabase/tests/privacy_safety_behaviour.sql
+npx -y supabase db query --linked --file supabase/tests/leaderboard_badges.sql
 npm run verify:public-privacy
 ```
 
@@ -41,10 +45,14 @@ npx -y supabase db query --linked --file supabase/migrations/20260801000000_priv
 npx -y supabase db query --linked --file supabase/migrations/20260801000001_legacy_check_in_compatibility.sql
 npx -y supabase db query --linked --file supabase/migrations/20260801000002_admin_guide_view_security_invoker.sql
 npx -y supabase db query --linked --file supabase/migrations/20260801000003_secure_admin_guide_reader.sql
+npx -y supabase db query --linked --file supabase/migrations/20260802000000_leaderboard_badges.sql
 npx -y supabase db query --linked --file supabase/tests/privacy_safety_access.sql
 npx -y supabase db query --linked --file supabase/tests/privacy_safety_behaviour.sql
+npx -y supabase db query --linked --file supabase/tests/leaderboard_badges.sql
 npm run verify:public-privacy
 ```
+
+The leaderboard/badge migration performs an idempotent backfill for every existing profile as part of the same transaction. Re-running the migration is safe for badge awards because `(user_id, badge_id)` is unique and every award is reconciled from approved source records. The rollback-only test file can be run again at any time after the migration.
 
 The same SQL can also be pasted into the Supabase SQL editor if the CLI is unavailable.
 

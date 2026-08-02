@@ -545,20 +545,67 @@ export async function deleteAdminTrailImage(image) {
   }
 }
 
-export async function getLeaderboard({ limit = 20 } = {}) {
+export async function getLeaderboard({
+  timeframe = 'all_time',
+  metric = 'points',
+  limit = 20,
+  offset = 0,
+  search = '',
+} = {}) {
   const client = requireSupabaseClient();
-  const { data, error } = await client
-    .from('leaderboard')
-    .select('*')
-    .order('points', { ascending: false })
-    .order('check_in_count', { ascending: false })
-    .limit(limit);
+  const { data, error } = await client.rpc('get_leaderboard', {
+    p_timeframe: timeframe,
+    p_metric: metric,
+    p_limit: limit,
+    p_offset: offset,
+    p_search: search.trim() || null,
+  });
 
   if (error) {
     throw error;
   }
 
-  return data;
+  return data ?? [];
+}
+
+export async function getMyLeaderboardPosition({ timeframe = 'all_time', metric = 'points' } = {}) {
+  const client = requireSupabaseClient();
+  const { data, error } = await client.rpc('get_my_leaderboard_position', {
+    p_timeframe: timeframe,
+    p_metric: metric,
+  });
+
+  if (error) {
+    throw error;
+  }
+
+  return data?.[0] ?? null;
+}
+
+export async function getMyBadges() {
+  const client = requireSupabaseClient();
+  const { data, error } = await client.rpc('get_my_badges');
+
+  if (error) {
+    throw error;
+  }
+
+  return data ?? [];
+}
+
+export async function acknowledgeMyBadges(badgeIds) {
+  if (!badgeIds?.length) {
+    return;
+  }
+
+  const client = requireSupabaseClient();
+  const { error } = await client.rpc('acknowledge_my_badges', {
+    p_badge_ids: badgeIds,
+  });
+
+  if (error) {
+    throw error;
+  }
 }
 
 export async function getUserCheckIns(userId) {

@@ -18,6 +18,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import styled from 'styled-components';
 import { Seo } from '../../components/common/Seo.jsx';
+import { AchievementsPanel } from '../../components/community/AchievementsPanel.jsx';
 import { LeaderboardPanel } from '../../components/community/LeaderboardPanel.jsx';
 import { MountainCard } from '../../components/mountains/MountainCard.jsx';
 import { ProfileAvatar } from '../../components/profile/ProfileAvatar.jsx';
@@ -29,7 +30,6 @@ import {
   createUserHike,
   deleteMyAccount,
   deleteOwnComment,
-  getLeaderboard,
   getMyLegalAcceptanceStatus,
   getProfile,
   getRemoteMountainGuides,
@@ -888,7 +888,6 @@ function createInitialAccountData() {
     checkIns: [],
     comments: [],
     hikes: [],
-    leaderboard: [],
     guides: { mountains: [], trails: [] },
     legalStatus: null,
     isLoading: false,
@@ -1006,12 +1005,11 @@ export function ProfileDashboard() {
     Promise.allSettled([
       getProfile(userId),
       getUserCheckIns(userId),
-      getLeaderboard({ limit: 6 }),
       getUserHikes(userId),
       getUserComments(userId, { limit: 100 }),
       getRemoteMountainGuides(),
       getMyLegalAcceptanceStatus(),
-    ]).then(([profileResult, checkInsResult, leaderboardResult, hikesResult, commentsResult, guidesResult, legalResult]) => {
+    ]).then(([profileResult, checkInsResult, hikesResult, commentsResult, guidesResult, legalResult]) => {
       if (!isMounted) {
         return;
       }
@@ -1023,9 +1021,6 @@ export function ProfileDashboard() {
       }
       if (checkInsResult.status === 'rejected') {
         errors.checkIns = 'We could not load your summit collection.';
-      }
-      if (leaderboardResult.status === 'rejected') {
-        errors.leaderboard = 'We could not load the leaderboard.';
       }
       if (hikesResult.status === 'rejected') {
         errors.hikes = 'We could not load your hike recommendations.';
@@ -1048,7 +1043,6 @@ export function ProfileDashboard() {
         profile: profileResult.status === 'fulfilled' ? profileResult.value : current.profile,
         profileLoaded: profileResult.status === 'fulfilled',
         checkIns: checkInsResult.status === 'fulfilled' ? checkInsResult.value : [],
-        leaderboard: leaderboardResult.status === 'fulfilled' ? leaderboardResult.value : [],
         hikes: hikesResult.status === 'fulfilled' ? hikesResult.value : [],
         comments: commentsResult.status === 'fulfilled' ? commentsResult.value : [],
         guides: guidesResult.status === 'fulfilled' ? guidesResult.value : current.guides,
@@ -1299,9 +1293,6 @@ export function ProfileDashboard() {
       setAccountData((current) => ({
         ...current,
         profile: updatedProfile,
-        leaderboard: current.leaderboard.map((entry) =>
-          entry.user_id === userId ? { ...entry, display_name: updatedProfile.display_name } : entry,
-        ),
       }));
       setProfileStatus({ type: 'success', message: 'Your profile has been updated.' });
     } catch (error) {
@@ -1624,6 +1615,16 @@ export function ProfileDashboard() {
               )}
             </Section>
 
+            <Section aria-labelledby="achievements-heading">
+              <SectionHeader>
+                <div>
+                  <h2 id="achievements-heading">Achievements</h2>
+                  <p>Milestones from approved summits and contributions, designed around steady and responsible exploration.</p>
+                </div>
+              </SectionHeader>
+              <AchievementsPanel currentUserId={userId} />
+            </Section>
+
             <Section aria-labelledby="activity-heading">
               <SectionHeader>
                 <div>
@@ -1669,14 +1670,7 @@ export function ProfileDashboard() {
                     </ActivityList>
                   )}
                 </ActivityPanel>
-                {accountData.errors.leaderboard ? (
-                  <ActivityPanel>
-                    <h3>Leaderboard</h3>
-                    <Message $error role="alert">{accountData.errors.leaderboard}</Message>
-                  </ActivityPanel>
-                ) : (
-                  <LeaderboardPanel entries={accountData.leaderboard} isLoading={accountData.isLoading} />
-                )}
+                <LeaderboardPanel key={accountData.profile?.updated_at ?? userId} currentUserId={userId} />
               </TwoColumnLayout>
             </Section>
 

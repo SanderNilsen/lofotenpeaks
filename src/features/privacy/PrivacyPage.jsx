@@ -440,7 +440,7 @@ export function PrivacyPage() {
           account, check in at a summit, join the leaderboard, comment, or recommend a hike. It also explains the
           external services used to provide maps, weather, hosting, authentication, and optional analytics.
         </p>
-        <Updated>Last updated: 1 August 2026</Updated>
+        <Updated>Last updated: 2 August 2026</Updated>
       </Hero>
 
       <PolicyLayout>
@@ -527,6 +527,11 @@ export function PrivacyPage() {
               creation/update timestamps. Older profiles may retain a legacy username, although the website no longer
               asks users to create or edit one. Display names must not be email addresses.
             </p>
+            <p>
+              The account dashboard also shows badge progress calculated from approved check-ins, comments, and hike
+              recommendations. Earned badge records contain the badge identifier, the date earned, and whether the
+              one-time award notice has been shown.
+            </p>
 
             <h3>Summit check-ins and location</h3>
             <p>
@@ -608,8 +613,8 @@ export function PrivacyPage() {
                   <tr>
                     <td data-label="Purpose">Publish community features</td>
                     <td data-label="Data">
-                      Display name, avatar where used, legacy username where retained, approved comments, and
-                      leaderboard totals
+                      Display name, avatar where used, legacy username where retained, approved comments, leaderboard
+                      totals, and private account badge progress
                     </td>
                     <td data-label="GDPR legal basis">
                       Article 6(1)(b), because public contribution and leaderboard functions are part of the account
@@ -719,7 +724,8 @@ export function PrivacyPage() {
               Email addresses and passwords are not displayed on the website. Pending hike recommendations are visible
               to their author and authorised administrators rather than the public. Comment reports and route
               corrections are visible to the person who submitted them and authorised administrators, not to general
-              visitors. Internal moderation notes and action records are administrator-only.
+              visitors. Internal moderation notes and action records are administrator-only. Badge progress and earned
+              badges are shown only to the signed-in account owner under the current interface and database policy.
             </p>
             <Notice>
               <ShieldCheck size={22} aria-hidden="true" />
@@ -991,6 +997,14 @@ export function PrivacyPage() {
                       No automatic expiry. A check-in and its linked private verification evidence are kept until you
                       request deletion of that check-in or delete the account. The continued need for exact validation
                       evidence should be reviewed periodically.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td data-label="Data">Badge progress and awards</td>
+                    <td data-label="Current retention rule">
+                      Recalculated from approved activity whenever relevant records change. An award is removed if its
+                      approved source activity no longer meets the threshold. Remaining badge records are deleted with
+                      the account.
                     </td>
                   </tr>
                   <tr>

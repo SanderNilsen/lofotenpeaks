@@ -2,7 +2,7 @@ import 'leaflet/dist/leaflet.css';
 import { divIcon } from 'leaflet';
 import { Crosshair } from 'lucide-react';
 import { useRef } from 'react';
-import { MapContainer, Marker, TileLayer, useMapEvents } from 'react-leaflet';
+import { Circle, MapContainer, Marker, TileLayer, useMapEvents } from 'react-leaflet';
 import styled from 'styled-components';
 import { theme } from '../../styles/theme.js';
 
@@ -83,6 +83,21 @@ const CenterTarget = styled(Crosshair)`
   position: absolute;
   top: 50%;
   transform: translate(-50%, -50%);
+  z-index: 500;
+`;
+
+const RadiusLabel = styled.span`
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid ${theme.colors.line};
+  border-radius: ${theme.radii.small};
+  bottom: 12px;
+  color: ${theme.colors.ink};
+  font-size: 0.78rem;
+  font-weight: 800;
+  left: 12px;
+  padding: 7px 9px;
+  pointer-events: none;
+  position: absolute;
   z-index: 500;
 `;
 
@@ -167,7 +182,13 @@ function MapClickHandler({ disabled, onSelect }) {
   return null;
 }
 
-export function SummitCoordinatePicker({ disabled = false, latitude, longitude, onChange }) {
+export function SummitCoordinatePicker({
+  disabled = false,
+  latitude,
+  longitude,
+  onChange,
+  radiusMeters = 200,
+}) {
   const mapRef = useRef(null);
   const markerRef = useRef(null);
   const lat = toCoordinate(latitude);
@@ -175,6 +196,8 @@ export function SummitCoordinatePicker({ disabled = false, latitude, longitude, 
   const hasSelection = lat !== null && lng !== null;
   const position = hasSelection ? [lat, lng] : null;
   const center = position ?? DEFAULT_CENTER;
+  const parsedRadius = Number(radiusMeters);
+  const visibleRadius = Number.isFinite(parsedRadius) && parsedRadius > 0 ? parsedRadius : 200;
 
   function selectCoordinates({ lat: nextLat, lng: nextLng }) {
     onChange({
@@ -211,6 +234,19 @@ export function SummitCoordinatePicker({ disabled = false, latitude, longitude, 
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
           {position && (
+            <Circle
+              center={position}
+              pathOptions={{
+                color: theme.colors.forest,
+                fillColor: theme.colors.forest,
+                fillOpacity: 0.14,
+                opacity: 0.9,
+                weight: 2,
+              }}
+              radius={visibleRadius}
+            />
+          )}
+          {position && (
             <Marker
               ref={markerRef}
               alt="Selected summit location"
@@ -230,6 +266,7 @@ export function SummitCoordinatePicker({ disabled = false, latitude, longitude, 
           )}
         </MapContainer>
         <CenterTarget aria-hidden="true" size={28} strokeWidth={2.5} />
+        {position && <RadiusLabel>{visibleRadius} m check-in radius</RadiusLabel>}
       </MapShell>
       <PickerFooter>
         <CoordinateReadout aria-live="polite">

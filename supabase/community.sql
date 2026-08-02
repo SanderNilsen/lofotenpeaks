@@ -78,7 +78,7 @@ begin
   ) then
     alter table public.mountains
     add constraint mountains_check_in_radius_range
-    check (check_in_radius_meters between 25 and 1000);
+    check (check_in_radius_meters between 25 and 200);
   end if;
 end $$;
 

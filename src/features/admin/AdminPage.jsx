@@ -578,6 +578,25 @@ const FullField = styled(Field)`
   grid-column: 1 / -1;
 `;
 
+const RadiusControls = styled.div`
+  align-items: center;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(90px, 0.3fr) minmax(160px, 1fr);
+
+  input[type='range'] {
+    accent-color: ${theme.colors.forest};
+    background: transparent;
+    border: 0;
+    min-height: 44px;
+    padding: 0;
+  }
+
+  @media (max-width: 420px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
 const ButtonRow = styled.div`
   display: flex;
   flex-wrap: wrap;
@@ -957,6 +976,8 @@ const StatusPill = styled.span`
 
 const MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024;
 const MAX_GPX_SIZE_BYTES = 2 * 1024 * 1024;
+const MIN_CHECK_IN_RADIUS_METERS = 25;
+const MAX_CHECK_IN_RADIUS_METERS = 200;
 
 const initialForm = {
   mountainId: '',
@@ -1108,10 +1129,12 @@ function validateGuidePayload(payload) {
 
   if (
     !Number.isFinite(payload.checkInRadiusMeters) ||
-    payload.checkInRadiusMeters < 25 ||
-    payload.checkInRadiusMeters > 1000
+    payload.checkInRadiusMeters < MIN_CHECK_IN_RADIUS_METERS ||
+    payload.checkInRadiusMeters > MAX_CHECK_IN_RADIUS_METERS
   ) {
-    throw new Error('Check-in radius must be between 25 and 1000 meters.');
+    throw new Error(
+      `Check-in radius must be between ${MIN_CHECK_IN_RADIUS_METERS} and ${MAX_CHECK_IN_RADIUS_METERS} meters.`,
+    );
   }
 
   if (
@@ -2160,16 +2183,28 @@ export function AdminPage() {
                       onChange={(event) => updateField('heightMeters', event.target.value)}
                     />
                   </Field>
-                  <Field>
-                    <span>Check-in radius meters</span>
-                    <input
-                      required
-                      type="number"
-                      min="25"
-                      max="1000"
-                      value={form.checkInRadiusMeters}
-                      onChange={(event) => updateField('checkInRadiusMeters', event.target.value)}
-                    />
+                  <Field as="div">
+                    <span id="check-in-radius-label">Check-in radius meters</span>
+                    <RadiusControls>
+                      <input
+                        required
+                        aria-labelledby="check-in-radius-label"
+                        type="number"
+                        min={MIN_CHECK_IN_RADIUS_METERS}
+                        max={MAX_CHECK_IN_RADIUS_METERS}
+                        value={form.checkInRadiusMeters}
+                        onChange={(event) => updateField('checkInRadiusMeters', event.target.value)}
+                      />
+                      <input
+                        aria-label="Adjust check-in radius"
+                        type="range"
+                        min={MIN_CHECK_IN_RADIUS_METERS}
+                        max={MAX_CHECK_IN_RADIUS_METERS}
+                        step="5"
+                        value={form.checkInRadiusMeters || '200'}
+                        onChange={(event) => updateField('checkInRadiusMeters', event.target.value)}
+                      />
+                    </RadiusControls>
                     <small>How close someone must be to the summit to check in.</small>
                   </Field>
                   <Field>
@@ -2202,6 +2237,7 @@ export function AdminPage() {
                     disabled={status.type === 'loading'}
                     latitude={form.summitLat}
                     longitude={form.summitLng}
+                    radiusMeters={form.checkInRadiusMeters}
                     onChange={({ lat, lng }) =>
                       setForm((current) => ({ ...current, summitLat: lat, summitLng: lng }))
                     }

@@ -46,7 +46,7 @@ create table public.mountains (
   published boolean not null default true,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
-  constraint mountains_check_in_radius_range check (check_in_radius_meters between 25 and 1000),
+  constraint mountains_check_in_radius_range check (check_in_radius_meters between 25 and 200),
   constraint mountains_check_in_points_range check (check_in_points between 1 and 1000)
 );
 

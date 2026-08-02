@@ -43,6 +43,7 @@ const MapShell = styled.div`
   border: 1px solid ${theme.colors.line};
   border-radius: ${theme.radii.medium};
   height: 360px;
+  isolation: isolate;
   min-width: 0;
   overflow: hidden;
   position: relative;

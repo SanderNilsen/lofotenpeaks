@@ -682,22 +682,56 @@ const DangerZone = styled.div`
 const SaveBar = styled.div`
   align-items: center;
   background: rgba(255, 255, 255, 0.97);
-  border-top: 1px solid ${theme.colors.line};
-  bottom: 0;
+  border: 1px solid ${theme.colors.line};
+  border-radius: 0 0 ${theme.radii.medium} ${theme.radii.medium};
+  bottom: 18px;
   box-shadow: 0 -12px 24px rgba(38, 40, 36, 0.08);
   display: flex;
   gap: 14px;
   justify-content: space-between;
-  margin: 0 -24px -24px;
-  padding: 14px 24px;
+  margin: 22px -25px -25px;
+  padding: 18px 24px;
   position: sticky;
   z-index: 12;
+
+  &::after {
+    background: ${theme.colors.background};
+    content: '';
+    height: 18px;
+    left: -2px;
+    pointer-events: none;
+    position: absolute;
+    right: -2px;
+    top: 100%;
+  }
+
+  ${ButtonRow} {
+    flex-wrap: nowrap;
+    justify-content: flex-end;
+  }
+
+  @media (max-width: 1180px) {
+    align-items: stretch;
+    flex-direction: column;
+
+    ${ButtonRow} {
+      justify-content: flex-start;
+    }
+  }
+
+  @media (max-width: 900px) {
+    bottom: 0;
+
+    &::after {
+      display: none;
+    }
+  }
 
   @media (max-width: 680px) {
     align-items: stretch;
     flex-direction: column;
-    margin: 0 -16px -16px;
-    padding: 14px 16px;
+    margin: 18px -17px -17px;
+    padding: 16px;
 
     ${ButtonRow} {
       display: grid;
@@ -757,10 +791,10 @@ const Message = styled.p`
 `;
 
 const EditorStatus = styled.div`
-  padding: 16px 24px 0;
+  padding: 16px 24px 20px;
 
   @media (max-width: 640px) {
-    padding: 14px 16px 0;
+    padding: 14px 16px 18px;
   }
 `;
 
